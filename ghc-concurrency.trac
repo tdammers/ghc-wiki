@@ -1,0 +1,52 @@
+= Concurrent programming in GHC =
+
+This page contains notes and information about how to write concurrent programs in GHC.
+
+Please feel free to add stuff here (login '''guest''', password '''guest''').
+
+== Starting points ==
+
+ * '''Basic concurrency: forkIO and MVars'''.  Read [http://research.microsoft.com/Users/simonpj/papers/marktoberdorf/marktoberdorf.ps.gz Tackling the awkward squad: monadic input/output, concurrency, exceptions, and foreign-language calls in Haskell].
+  The [http://www.haskell.org/ghc/docs/papers/concurrent-haskell.ps.gz original paper about Concurrent Haskell] contains quite a few examples about how to write concurrent programs.  A larger example is 
+[http://www.haskell.org/~simonmar/papers/web-server.ps.gz Writing High-Performance Server Applications in Haskell, Case Study: A Haskell Web Server]
+
+ * '''Software Transactional Memory''' (STM) is a new way to coordinate concurrent threads. STM will be in GHC 6.6, and is described in the paper [http://research.microsoft.com/~simonpj/papers/stm/index.htm Composable memory transactions].  The paper [http://research.microsoft.com/~simonpj/papers/stm/lock-free.htm Lock-free data structures using Software Transactional Memory in Haskell] gives further examples of concurrent programming using STM.
+
+ * '''Foreign function interface'''.  If you are calling foreign functions in a concurrent program, you need to know about ''bound threads''.  They are described in a Haskell workshop paper, [http://research.microsoft.com/~simonpj/Papers/conc-ffi/index.htm Extending the Haskell Foreign Function Interface with Concurrency].
+
+
+
+== Using concurrency in GHC ==
+
+ * You get access to concurrency operations by importing the library [http://www.haskell.org/ghc/docs/latest/html/libraries/base/Control-Concurrent.html Control.Concurrent].
+
+ * The GHC manual gives a few useful flags that control scheduling (not usually necessary) [http://www.haskell.org/ghc/docs/latest/html/users_guide/sec-using-parallel.html#parallel-rts-opts RTS options].
+
+
+== Multiprocessor GHC ==
+
+As of version 6.5, GHC supports running programs in parallel on an SMP or multi-core machine.  How to do it:
+
+ * You'll need to get a version of GHC that supports SMP.  Either download ghc from [http://www.haskell.org/ghc/docs/latest/html/building/sec-cvs.html CVS] or use darcs: {{{darcs get --partial http://darcs.haskell.org/ghc}}}.  There are also [http://www.haskell.org/ghc/dist/current/dist nightly snapshot distributions] available.
+ 
+ * All code currently has to be built using the {{{-smp}}} switch, including the libraries.  If you downloaded a binary snapshot, then you already have the required libraries.  If you build GHC from source, you need to add
+{{{
+GhcLibWays += s
+}}}
+  to the file {{{mk/build.mk}}} in the build tree before building.
+
+ * Compile your program with {{{-smp}}}
+ 
+ * Run the program with {{{+RTS -N2}}} to use 2 threads, for example.  You should use a {{{-N}}} value equal to the number of CPU cores on your machine (not including Hyper-threading cores).
+
+ * Concurrent threads ({{{forkIO}}} and {{{forkOS}}}) will run in parallel, and you can also use the {{{par}}} combinator and Strategies from the [http://www.haskell.org/ghc/docs/latest/html/libraries/base/Control-Parallel-Strategies.html Control.Parallel.Strategies] module to create parallelism.
+
+ * Use {{{+RTS -sstderr}}} for timing stats.
+
+
+== Links to related work on parallel and distributed Haskell (many based on GHC) ==
+
+  * [http://www.macs.hw.ac.uk/~dsg/gph/ Glasgow Parallel Haskell]
+  * [http://www.macs.hw.ac.uk/~dsg/gdh/ Glasgow Distributed Haskell]
+  * http://www-i2.informatik.rwth-aachen.de/~stolz/dhs/
+  * http://www.informatik.uni-kiel.de/~fhu/PUBLICATIONS/1999/ifl.html
