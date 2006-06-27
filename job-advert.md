@@ -1,0 +1,73 @@
+# Would you like to be paid to work on GHC?
+
+
+
+**NOTE: the deadline for applications has now passed.  Thanks
+to everyone who applied, we'll be contacting applicants shortly.**
+
+
+
+The Glasgow Haskell Compiler (GHC) is now being used by so many people,
+on so many platforms, that at GHC HQ we've been struggling to keep up.
+We're delighted to say that we are now looking to hire a GHC support
+engineer to work with us.
+
+
+
+Here is how we envisage working together:
+
+
+- You would work 3-5 days a week on GHC (details flexible).
+- You don't need to live in Cambridge, but we would like you to visit
+  every few months, so that we build up a face-to-face relationship.
+- You'll be a self-employed consultant, not a Microsoft employee.
+  You bill us; we pay you.
+- The position is a one year fixed term contract in the first instance.
+- GHC is, and will remain, an open-source project with a BSD-style
+  license.
+
+
+We are looking for help with the role of supporting GHC in the field.
+Specifically, here's what the job involves:
+
+
+- Investigating, prioritising and fixing bugs, improving the test suite
+- Managing the STABLE branch of the source tree
+- Managing the GHC release cycle
+- Keeping the GHC web site up to date
+- Answering questions from GHC users
+- Helping to support the open-source community that works on GHC itself
+
+
+We're particularly looking for someone who is experienced in a variety
+of operating system platforms and libraries. You should be able to deal
+with questions like "I try to build GHC on Solaris 2.3.4 and get
+\`undefined symbol \_readline'"; or "How do I link to DLLs on Windows?";
+or "does the ByteString library in GHC 6.2.1 do XXX?".  The role will
+not primarily involve working on GHC's core; it's the parts round the
+edges that you would mainly focus on.  You must be able to read and
+write Haskell, but we don't expect that you'll need to write a great
+deal of Haskell code.  C and 'make' experience are important too.
+
+
+
+Above all, we are looking for someone who is enthusiastic about Haskell,
+and fired up about the prospect of becoming a GHC expert.
+
+
+
+If you are interested, please send your CV and a statement of why you
+would be a good fit for the job, to our Human Resources Department.
+We're happy to accept informal enquiries of
+course: please contact Simon Marlow or Simon Peyton Jones for further information. 
+
+
+
+The rate of pay is dependent on qualifications and experience.  It'll be
+fun!
+
+
+
+*Simon Peyton Jones and Simon Marlow*
+
+
