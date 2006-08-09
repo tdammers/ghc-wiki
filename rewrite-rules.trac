@@ -1,0 +1,150 @@
+== Notes on the implementation of rewrite RULEs in GHC ==
+
+=== Looking through lets ===
+
+We recently made the rule-matcher able to "look through" lets, thus
+{{{
+   RULE f (g x) = rhs
+
+   Expression:  f (let v = e in g v)
+}}}
+  The rule will still match, giving
+{{{
+   let v = e in rhs[v/x]
+}}}
+
+=== Dictionaries ===
+
+Suppose we have
+{{{
+  RULE f (g x) = rhs
+
+  f :: Ord a => a -> a
+
+  foo :: Int -> Int
+  foo x = f (g x)
+}}}
+Then we tend to get
+{{{
+  f_79 :: Int -> Int
+  f_79 = f Int dOrdInt
+
+  foo :: Int -> Int
+  foo = \x -> f_79 (g x)
+}}}
+Lo, the f/g RULE cannot fire. 
+
+Current solution: use {{{-fno-method-sharing}}} to get
+{{{
+  foo :: Int -> Int
+  foo = \x -> f Int dOrdInt (g x)
+}}}
+But we found other examples where this wasn't enough.  Code is below.  The solution is: use {{{-fdicts-cheap}}}, which makes dictionary construction look really cheap.
+
+Example of when -fno-method-sharing isn't enough.
+{{{
+module Foo where
+
+data UArr a = UArr [a]
+
+class UA a where
+  ua :: [a] -> [a]
+
+instance UA Int where
+  ua xs = xs
+
+class DT a where
+  foo :: a -> a
+  bar :: a -> a
+
+instance DT Int where
+  foo x = x
+  bar x = x
+
+instance (DT a, DT b) => DT (a,b) where
+  foo x = x
+  bar x = x
+
+instance UA a => DT (UArr a) where
+  foo x = x
+  bar x = x
+
+data Dist a = Dist a
+
+mapD :: (DT a, DT b) => (a -> b) -> Dist a -> Dist b
+{-# INLINE [1] mapD #-}
+mapD f (Dist x) = Dist (f x)
+
+zipWithD :: (DT a, DT b, DT c) => (a -> b -> c) -> Dist a -> Dist b ->
+Dist c
+{-# INLINE zipWithD #-}
+zipWithD f (Dist x) (Dist y) = mapD (uncurry f) (Dist (x,y))
+
+splitD :: UA a => UArr a -> Dist (UArr a)
+{-# INLINE [1] splitD #-}
+splitD x = zipWithD const (Dist x) (Dist x)
+
+joinD :: UA a => Dist (UArr a) -> UArr a
+{-# INLINE [1] joinD #-}
+joinD (Dist x) = x
+
+{-# RULES
+
+"split/join" forall x.
+  splitD (joinD x) = x
+
+ #-}
+
+------
+
+module Bar where
+
+import Foo
+
+foo :: Dist (UArr Int) -> Dist (UArr Int)
+foo = splitD . joinD
+
+------
+
+Compared to the previous version, the important differences are
+
+  - the class UA and the instance DT (UArr a) which builds a DT 
+    dictionary from an UA one,
+  - splitD . joinD instead of splitD (joinD x) in foo.
+
+With this, we get
+
+------
+
+15 splitD :: UA a => UArr a -> Dist (UArr a)
+     {- Arity: 1 HasNoCafRefs Strictness: A Inline: [1]
+	Unfolding: (__inline_me (\ @ a $dUA :: UA a ->
+				 let {
+				   $dDT :: DT (UArr a) = $f1 @ a $dUA
+				 } in
+				 \ x :: UArr a ->
+				 zipWithD
+				   @ (UArr a)
+				   @ (UArr a)
+				   @ (UArr a)
+				   $dDT
+				   $dDT
+				   $dDT
+				   (GHC.Base.const @ (UArr a) @ (UArr a))
+				   (Dist @ (UArr a) x)
+				   (Dist @ (UArr a) x))) -}
+
+------
+
+and the rule doesn't fire. Nor does it with
+
+  foo x = splitD $ joinD x
+
+But it *does* fire with
+
+  foo x = splitD (joinD x)
+
+despite the arity of splitD. Very strange...
+
+Roman
+}}}
