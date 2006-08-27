@@ -1,0 +1,77 @@
+# Examples of Type Functions
+
+
+
+The map example from *Associated Types with Class* in the new form:
+
+
+```wiki
+data family Map k :: * -> *
+
+data instance Map ()     v = MapUnit (Maybe v)
+data instance Map (a, b) v = MapPair (Map a (Map b v))
+```
+
+
+We can define operations on indexed maps using a type class whose instances corresponds to the type indexes.  Note that a declaration, such as
+
+
+```wiki
+data instance Map Int Char = Nonsense
+```
+
+
+is not acceptable, as it constraints the second argument of `Map`, which is not a type index, but a parametric argument.
+
+
+
+Generic finite maps:
+  
+
+
+```wiki
+  class GMapKey k where
+    data GMap k :: * -> *
+    empty       :: GMap k v
+    lookup      :: k -> GMap k v -> Maybe v
+    insert      :: k -> v -> GMap k v -> GMap k v
+  
+  instance GMapKey Int where
+    data GMap Int v        = GMapInt (Map.Map Int v)
+    empty                  = GMapInt Map.empty
+    lookup k (GMapInt m)   = Map.lookup k m
+    insert k v (GMapInt m) = GMapInt (Map.insert k v m)
+  
+  instance GMapKey Char where
+    data GMap Char v        = GMapChar (GMap Int v)
+    empty                   = GMapChar empty
+    lookup k (GMapChar m)   = lookup (ord k) m
+    insert k v (GMapChar m) = GMapChar (insert (ord k) v m)
+  
+  instance GMapKey () where
+    data GMap () v           = GMapUnit (Maybe v)
+    empty                    = GMapUnit Nothing
+    lookup () (GMapUnit v)   = v
+    insert () v (GMapUnit _) = GMapUnit $ Just v
+  
+  instance (GMapKey a, GMapKey b) => GMapKey (a, b) where
+    data GMap (a, b) v            = GMapPair (GMap a (GMap b v))
+    empty                               = GMapPair empty
+    lookup (a, b) (GMapPair gm)   = lookup a gm >>= lookup b 
+    insert (a, b) v (GMapPair gm) = GMapPair $ case lookup a gm of
+                                    Nothing  -> insert a (insert b v empty) gm
+                                    Just gm2 -> insert a (insert b v gm2  ) gm
+  
+  instance (GMapKey a, GMapKey b) => GMapKey (Either a b) where
+    data GMap (Either a b) v                = GMapEither (GMap a v) (GMap b v)
+    empty                                   = GMapEither empty empty
+    lookup (Left  a) (GMapEither gm1  _gm2) = lookup a gm1
+    lookup (Right b) (GMapEither _gm1 gm2 ) = lookup b gm2
+    insert (Left  a) v (GMapEither gm1 gm2) = GMapEither (insert a v gm1) gm2
+    insert (Right a) v (GMapEither gm1 gm2) = GMapEither gm1 (insert a v gm2)
+```
+
+
+  
+
+
