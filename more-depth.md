@@ -1,0 +1,63 @@
+# Areas We'd Like To See Covered In More Depth
+
+
+
+Possible presentation topics for Friday.  **If you'd like to see more on one of these, add your name to the line.  Or add a new item'''
+**
+
+
+- How the renamer works
+
+- How the type checker works --- Norman Ramsey (but prefer two below), Andres Löh, Jeremy Gibbons, Luke Maurer, Brandon Moore, Kim-Ee Yeoh, Clifford Beshers
+
+- How the simplifier works, and what transformations it does.
+
+- How Template Haskell is implemented -- Brandon Moore
+
+- Packages, Cabal, and GHC --- would like to see: Norman Ramsey, Geoff Washburn
+
+- Past or present efforts in formal verification of GHC components
+
+- Details of the GHC-as-a-library API, and how to use it. -- Norman Ramsey, Andy Gill, Geoff Washburn, Jeffery Zhang, Kathleen Fisher, Ravi Nanavati
+
+  - Related: compiling multiple modules: `--make` and all that
+
+- More details about vectored returns
+
+- Details about System FC, GHC's new intermediate language -- Jeremy Gibbons, Kim-Ee Yeoh, Markus Lauer, Iavor Diatchki
+
+- Reading a nightly snapshot build log
+
+- Understanding the ddump flags, and walkthrough of a Haskell example -- Kim-Ee
+
+- Profiling for closing space leaks
+
+  - [
+    Example program](http://www.nabble.com/Why-does-this-program-eat-RAM--t2218557.html)  Clifford Beshers
+  - short example posted to cafe by C Rodrigues ([
+    http://haskell.org/pipermail/haskell-cafe/2006-June/016171.html](http://haskell.org/pipermail/haskell-cafe/2006-June/016171.html), [
+    http://haskell.org/pipermail/haskell-cafe/2006-July/016709.html](http://haskell.org/pipermail/haskell-cafe/2006-July/016709.html))
+  - Cases where allocations seem to be misaccounted ([
+    http://cvs.haskell.org/trac/ghc/ticket/680](http://cvs.haskell.org/trac/ghc/ticket/680))
+  - leaks through references ([
+    http://haskell.org/pipermail/haskell-cafe/2006-August/017567.html](http://haskell.org/pipermail/haskell-cafe/2006-August/017567.html))
+
+## Suggestions from the floor
+
+
+- It would be quite interesting to hear what parts of GHC are changing rapidly and what parts seem quite stable.  Also, into which corners of the compiler do the righteous fear to tread?  (The evil mangler?)
+- It is unclear how binding group analysis influences the use of 1 abstract syntax (HsSyn): how is the required ordering and grouping implemented, how does it affect error messages? 
+- How does this Cabal thing work?
+- How to read a dailysnapshot build log.
+- Does ghc compile with VisualHaskell yet?
+- In the compiler pipeline, please explain a little more about the invariants as a program flows through the pipeline.  For example, toward the back end, it would be useful to know at what point the following become known:
+
+  - layout of heap objects
+  - explicit heap pointer (allocation pointer)
+  - explicit stack pointer
+- What optimizations happen in the simplifier? How do they work?
+- The GHC API and implementation of GHCi
+- A breakdown of the size of the various parts of the run-time system
+- Maybe something about the mathematical underpinnings of Haskell and GHC (though I get the feeling I'm the only one lacking a graduate math degree :-) )
+
+  - Perhaps a start would be a resource page on HaskellTypeTheory -- links to type theory courses around the world, survey articles, etc. But aside from type theory though, what else do you mean by "math underpinnings"?
