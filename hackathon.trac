@@ -1,0 +1,194 @@
+[[PageOutline]]
+
+= Post-Hackathon activity =
+
+[wiki:AboutVideos Videos of the informal presentations] by Simon and Simon at the Hackathon are currently being uploaded to video.google.com, and are linked to from this wiki.  They will eventually be distributed around the [wiki:Commentary GHC Commentary], attached to relevant pages.
+
+= Let's Hack =
+Most of the information on this page seems to be pre-hacking data.  Now that you're here, let's start a new page with links to subpages of interest: [wiki:Hackathon/Hack].
+
+[wiki:MoreDepth Areas We'd Like To See Covered in More Depth]
+
+[wiki:FridayIdeas How We Might Spend Friday]
+
+
+= The 2006 GHC hackathon: 14,15 September 2006, Portland =
+
+GHC is used by lots of people, but its implementation is rather over-centralised, even though GHC is a BSD-licensed, open-source project.  The biggest obstacle to more people getting involved is that GHC is a big, and hence intimidating, system.  The purpose of the GHC hackathon is to give a tutorial in GHC’s innards, plus time to work on some projects in a context where there are plenty of people around to help.  The objective is to substantially broaden (more numbers) and deepen (more confidence) the community of people who feel they know enough to fix and enhance GHC.  
+
+These days, GHC is more than just a batch compiler:
+ * It's an interactive interpreter
+ * It's a (Haskell) library
+The latter, in particular, opens up new possiblities, such as using GHC to parse and type-check Haskell, before analysing or transforming it with your own program.  However, GHC-as-a-library has a pretty big interface that uses a lot of data types, which will be among the things we'll describe at the hackathon.
+
+We'll suggest some projects, but you're welcome to come along with your own wacky ideas or itches that you want to scratch, and work on them in an environment with a high-bandwidth connection to developers who really know the innards of GHC.   You could work on something individual, or in small groups.  We anticipate all being in one room, or in a tight group of rooms, so there’d be lots of informal interaction.
+
+Also there's a good chance it'll be fun :-)
+ 
+== Date and programme ==
+
+The hackathon will be held in Portland, Oregon, on Thursday September 14th and Friday 15th, immediately before the [http://icfp06.cs.uchicago.edu/ International Conference on Functional Programming (ICFP'06)] in Portland. There are various interesting ICFP workshops on Sat 16th ([http://www.informatik.uni-bonn.de/~ralf/wgp2006.html Generic programming], [http://www.cl.cam.ac.uk/ml2006/ ML], [http://www.erlang.se/workshop/2006/ Erlang]), but if people are enthusiastic to continue on Saturday, the space will be available.
+
+We have in mind the following.  
+
+ * One full day of tutorial from Simon PJ & Simon M about GHC’s glorious innards (14th)
+
+ * Then one or two days of hacking on projects (15th, 16th)  
+
+We expect that some of you will come with GHC-related projects that you want to work on, but we'll also offer a [wiki:HackathonProjects list of possible projects], so you can come without anything in mind and choose on the day.  The list is a wiki; please add your own suggestions to it, even if you can't come!
+
+=== Venue ===
+
+The Hackathon will be hosted by Galois and PSU, and will be held on the PSU campus, in the Fourth Avenue Building, 1900 SW 4th Avenue, Room 10,
+near the other ICFP activities. (Note this is changed from the original planned location, near the Galois offices in Beaverton).
+
+[[Image(Hackathon Map.gif)]]
+
+[[Image(Campus Map.gif)]]
+
+Entry to the Forth Avenue Building with be via the main entrance, on the south west corner of the building.
+
+The room has desks, a projector, whiteboards, and wireless access. Bring your own laptop
+(capable of building GHC). 
+
+Have a look at the [http://www.trimet.org/ TriMet] web site for details about how to use Public transportation in Portland.
+
+
+== Time ==
+
+The Hackathon will be open
+ * 9 till 5 - Thur 14th - Breakfast, Lunch and afternoon break snacks.
+ * 9 till 5 - Fri 15th - Breakfast, (out for lunch), afternoon break snacks.
+ * 9 till 12 - Sat 16th - Breakfast, snacks.
+
+
+=== Registration ===
+
+If you want to come, we strongly encourage you to tell us, in two ways:
+ * Email [mailto:jodee@galois.com], stating you wish to attend the GHC Hackathon. 
+ * Add your name to the list of participants below (this page is a Wiki, so you can do that yourself).
+
+Registration is not absolutely required, but any Pizza, manuals, and workspace will be allocated on a first come, first served basis, so registration is a good plan! 
+
+
+=== Cost ===
+
+Zero.  But you may have to feed yourself if you don't register.
+
+== Areas of Interest ==
+
+ * [Ext] - Extending Haskell; things like Template Haskell, and new syntax.
+ * [TC]  - Typechecking.
+ * [Opt] - Optimizing Haskell, GHC Core representation, and tools to help optimization.
+ * [CG]  - Turning GHC Core Haskell into C, or Java, or C#, or C--, cross-compiling.
+ * [i]   - Debugging and GHCi, and other interactive tools.
+ * [Lib] - Libraries, packaging, and namespace issues.
+
+[wiki:MoreDepth Areas We'd Like To See Covered in More Depth]
+
+[wiki:FridayIdeas How We Might Spend Friday]
+
+== History of Hackathons ==
+
+Wikipedia has an [http://en.wikipedia.org/wiki/Hackathon article about Hackathons]
+
+== Bootstrapping into GHC ==
+
+We had some enquiries about whether people should come along with a
+fresh GHC build ready to go, and if so how to go about getting one.
+
+I'll probably be demonstrating how to set up a build on Thursday, so if
+you want you can wait until then and there should be plenty of time to
+get a working build before Friday.  It's probably a good idea to make
+sure that your machine has the relevant tools, though:
+
+  http://hackage.haskell.org/trac/ghc/wiki/Building/Prerequisites
+
+If you're keen to set up a build beforehand, here's where to look to
+find out how to do it.  I've been moving the build system documentation
+onto the wiki, the top of which is here:
+
+  http://hackage.haskell.org/trac/ghc/wiki/Building
+
+In particular, the section "Quick start for developers" should have
+enough to set you up with a build that won't take several days to
+complete, and will be tailored to what you're particularly interested in
+working on.
+
+There are two branches of the source code now: the HEAD and the 6.6
+branch.  They are still very close, so building either one should be
+fine.  The 6.6 branch darcs repositories are all under
+http://darcs.haskell.org/ghc-6.6.
+
+== Participants ==
+
+If you want to come, please add your name to the list below.  Add a sentence or two about yourself and why you want to come. If you are working on a project to do with GHC, tell us about that too.
+
+
+ * [http://www.haskell.org/~simonmar Simon Marlow] One of the main authors of GHC, particularly the back end, run-time system, and libraries.
+ * [http://research.microsoft.com/~simonpj Simon Peyton Jones] One of the main authors of GHC, particularly the type system and Core intermediate language.
+
+
+=== Participant List ===
+
+ * [mailto:adams-moran@galois.com Andy Adams-Moran], interested in making cross-compiling with GHC easier, and in learning more about the innards of the compiler (versus the RTS)
+
+ * [http://wiki.freespire.org/index.php/Freespire_Technology_Board_Home Clifford Beshers], Linspire, particularly interested in GHC as a library.
+ * [mailto://mboes@galois.com Mathieu Boespflug] Interested in implementing John Meacham's [http://repetae.net/john/recent/out/classalias.html class alias proposal].
+ * [http://www.cs.chalmers.se/~bringert/ Björn Bringert], Chalmers University of Technology and Göteborg University, want to learn about the internals of GHC for future projects, possibly implement instance deriving for GADTs
+
+ * [http://www.cs.cmu.edu/~crary Karl Crary], CMU, working on a Haskell-driven typesetting system
+ * [http://www.csee.ogi.edu/~diatchki Iavor S. Diatchki], interested in Haskell for systems programming/type checking (general improvement rules)
+
+ * [http://www.cs.uu.nl/wiki/Atze/WebHome Atze Dijkstra], Universiteit Utrecht, working on [http://www.cs.uu.nl/wiki/Ehc/WebHome EHC], interested to see what can be reused/learned/shared/etc.
+ * Thomas DuBuisson, generally interested in GHC RTS
+ * [mailto://devriese@cs.tcd.ie Edsko de Vries], Trinity College Dublin. Interested in using GHC as a backend (code generator) for an experimental functional language with a substructural (uniqueness) type system.
+
+ * [http://www.research.att.com/info/kfisher Kathleen Fisher], ATT, interested in adding support for data description to Haskell
+ * Greg Fitzgerald, language enthusiast relatively new to Haskell (comment stolen from Mathew Mills :)
+ * [http://nimblemachines.com/ David Frech], interested in the "backend": STG code generation and its relationship with the RTS.
+
+ * [http://www.comlab.ox.ac.uk/jeremy.gibbons/ Jeremy Gibbons], University of Oxford, generally curious about GHC internals - especially advanced aspects of typing
+ * [http://www.gill-warbington.com/home/andy Andy Gill], Galois, Previous contributor to GHC, wanting tools for high assurance Haskell.
+ * [http://www.galois.com/ Paul Graunke], Galois, interested in formal methods (Isabelle) and GHC intermediate representations
+
+ * [http://www.cse.ogi.edu/~hallgren/ Thomas Hallgren], dedicated Haskell programmer, interesting in redoing hOp with GHC 6.6 and have the changes included in the main source repository.
+
+ * [http://www.xoltar.org Bryn Keller], interested bystander. Interested in generating code for unusual targets (e.g. JavaScript, Flash, .Net, etc.).
+
+ * Markus Lauer, want to understand better how GHC works
+ * [http://www.galois.com/ Brett Letner], Galois, interested in code coverage tool for Haskell.
+ * [http://www.iai.uni-bonn.de~/loeh/ Andres Löh], University of Bonn, interested in type systems and generic programming
+ * [mailto://lambda@10k.org Jake Luck], interested in interactive debugging and accessing GHC internals from embedded systems.
+ * Ian Lynagh, interested in all parts.
+
+ * [mailto:matthews@galois.com John Matthews], Galois, interested in connecting GHC to the Isabelle theorem prover.
+ * [mailto://Luke.Maurer@alumni.carleton.edu Luke Maurer], recent graduate of Carleton College, just looking to get my hands dirty
+ * [mailto:mathewmills@mac.com Mathew Mills], language enthusiast relatively new to Haskell.
+ * [mailto:brandonm@yahoo-inc.com Brandon Moore], Yahoo. Interested in types, syntax extension.
+
+ * [mailto:ravi@bluespec.com Ravi Nanavati], Bluespec. Interested in being able to fix GHC bugs before they burn me.
+ * [mailto:hellish@comcast.net Echo Nolan], interested in optimization, absorbing intelligence by osmosis.
+
+ * [mailto:andrew@pimlott.net Andrew Pimlott], Planning Systems Inc., interested in the dark corners we stumble into during application development, and space profiling.
+
+ * [http://www.eecs.harvard.edu/~nr Norman Ramsey], interested in either code generation or refactoring some part of the run-time system (and would really like to learn more about how the run-time system is put together, even if it's too big for a weekend hack).
+
+ * [http://www.cs.uu.nl/wiki/Swierstra/WebHome Doaitse Swierstra], Universiteit Utrecht, working on [http://www.cs.uu.nl/wiki/Ehc/WebHome EHC], interested to see what can be reused/learned/shared/etc.
+
+ * [mailto:atomb@soe.ucsc.edu Aaron Tomb], University of California, Santa Cruz, interested in formal verification of Haskell programs, advanced type systems, and learning about the internals of GHC
+ * [http://www.galois.com/ Mark Tullsen], Galois, interested in tools for Haskell and high assurance run-time systems.
+
+ * [http://www.cs.york.ac.uk/~malcolm Malcolm Wallace], nhc98-hacker, wanting to steal ideas :-), particularly from the type-system.
+ * [http://www.cis.upenn.edu/~geoffw/ Geoffrey Washburn], UPenn. Previous GHC contributor (original implementation of GADTs in Core). Wide variety of language interests involving expressiveness, security, and practical programming.
+ * [http://www.cis.upenn.edu/~lipeng/ Peng Li], UPenn.  Interested in multiprocessor GHC, STM, RTS and I/O libraries.
+
+ * [mailto:yeoh@cs.wisc.edu Kim-Ee Yeoh], interested in documenting, housekeeping, and general opening up of compiler sources to a wider audience
+ * [mailto:jz87@mac.com Jeffery Zhang], interested in type systems and metaprogramming.
+
+ * [mailto:kya@cs.pdx.edu Ahn, Ki Yung], PSU. GHC user. intersted in better data-sturcture libraries with more generic and powerful interface, eliminating dictionary passing cost of class functions anywhere possible, GADTs.
+
+ * Lyle Kopnicky (lyle AT rentrak DOT com), interested in learning more about compiling Haskell.
+ * [http://www.cs.indiana.edu/~lepike/ Lee Pike], Galois.  Interested in "Haskell on bare metal" and a lightweight/high-assurance RTS. 
+ * [mailto:illium37@yahoo.com Troy Howard], Portland, discover-e Legal Inc., generally interested in compilers and oddball languages with a focus on iterative performance optimization.
+ * [mailto:mcstrini@fastmail.fm Max Strini], Portland, discover-e Legal Inc., interested in type-level programming and optimization
