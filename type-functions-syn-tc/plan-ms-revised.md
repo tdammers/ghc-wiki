@@ -1,0 +1,296 @@
+```wiki
+
+
+=== Problem with Plan MS: Termination is still an issue ===
+
+Example:
+
+F and G are type function constructors. Consider the local assumptions
+
+F (G Int) = Int    -- (1) 
+G Int = F (G Int)  -- (2)
+
+Applying (2) on (1) yields
+
+    F (G Int) = Int
+--> F (F (G Int)) = Int
+--> F (F (F (G Int))) = Int
+--> ...
+
+NOTE:
+Plan MC rejects (2), cause the type equation is non-decreasing.
+Here we are after a more liberal type checking method.
+
+=== Plan MS revised overview ===
+
+Plan MS only works if we "normalize" terms. Effectively, we represent
+terms via CHR constraints, "term reductions" are then performed via
+CHR solving steps.
+
+The big picture:
+
+Step 1 (normal form step):
+
+(a) We transform local and wanted type equations to CHR constraints.    
+(b) We transform type instances to CHR simplification rules.
+
+Step 2 (solving step):
+
+To derive wanted from local type equations wrt type instances,
+we perform CHR solving steps. These CHR solving steps can be mapped
+to "term reduction" steps.
+
+
+The advantage of this method is that we can deal with
+"non-terminating" local type equations (see above) and
+"non-confluent" local type equations, e.g.
+S Int = Int /\ S Int = F Int, and we don't need to orient
+type equations.
+Of course, we need to impose the usual conditions on
+type instances, ie termination and confluence.
+
+=== CHR vs Term reductions ===
+
+How to phrase term reduction steps in terms of CHR solving steps.
+The main task is to put terms into normal from.
+
+==== Normal form =====
+
+Terms are formed as follows
+
+t ::= a        -- variable
+   |  F        -- type function constructor
+   |  T        -- ordinary type constructor
+   |  t t      -- type application
+
+Type equations are formed as follows
+
+Eq ::= t = t
+    |  Eq /\ Eq
+
+
+Type equations can easily be put into the following normal form
+
+n ::= a
+   |  T
+   |  n n
+
+C ::= a = n
+   |  F n = n
+   | C /\ C
+
+
+a set of type equations in normal form C, consists of equations of
+the form a = n or F n = n where the normal form type n does not refer 
+to type function constructors.
+
+
+Example:
+
+The normal form of
+
+F (G Int) = Int     
+G Int = F (G Int)  
+
+from above is
+
+F a = Int
+G Int = a
+G Int = b
+F b = c
+G Int = c
+
+The first two equations are derived from F (G Int) = Int. That is, we 
+replace G Int by a where a is a fresh wobbly variable.
+The last three equations result from replacing G Int on the rhs of
+G Int = F (G Int) by b which leads to G Int = F b, then we replace
+F b by c and we are done.
+
+NOTE: We consider a, b, c as wobbly type variables.
+
+
+Similarly, we build the normal form of type instances.
+For example, the normal form of
+
+forall a. F [a] = [F a]
+
+is
+
+forall a. exists b. F [a] = b /\ b=[F a]
+
+
+NOTE:
+
+We must build the normal form of type instances. Otherwise, application of
+type instances may break the normal form property. Eg. consider
+application of forall a. F [a] = [F a]
+on F [Int] = b /\ S Int = b.
+
+It should be clear that a normal form equation such as F a = Int,
+can be viewed as the CHR constraint F a Int, and
+forall a. exists b. F [a] = [b] /\ b=F a as
+the CHR simplification 
+rule F [a] [b] <==> F a b
+
+
+==== Mapping CHR derivations to term derivations and vice versa ====
+
+
+Let t1=t1' /\ .... /\ tk=tk' be a set of type equations and
+C its normal form. Let TT be a set of type instances and
+TT_n its normal form.
+
+We build a canonical form of t1=t1' /\ .... /\ tk=tk'
+by solving C wrt rules TT_n plus the standard FD rule, ie
+C -->* C'. This CHR derivation can be mapped to a term derivation
+t1=t1' /\ .... /\ tk=tk' -->* t1''=t1''' /\ ... /\ tl''=tl'''
+(ie a sequence of rule applications using the FC type equation rules). 
+
+
+The CHR solving steps in detail:
+
+FD solving step:
+
+Let C \equiv C' /\ F n1 = n2 /\ F n1 = n3.
+
+Then, C --> C' /\ F n1 = n2 /\ n2 = n3
+
+In the above, we still use the (normal form) term representation.
+In the CHR constraint notation, the FD solving step is written
+
+       C' /\ F n1 n2 /\ F n1 n3
+-->    C  /\ F n1 n2 /\ n2 = n3
+
+The point is that the "actual" type equations only contain
+normal form types.
+
+This solving step can be mapped back to a term reduction step.
+Let t1''=t1''' /\ ... /\ tl''=tl''' be the term representation
+of C' /\ F n1 = n2 /\ n2 = n3 (ie we remove the wobbly variables
+we've introduced earlier in the normal form step).
+Then,
+
+t1=t1' /\ .... /\ tk=tk' --> t1''=t1''' /\ ... /\ tl''=tl'''
+
+this is now a term reduction step 
+(using the type equation rules of the FC system)
+
+
+Type instance step:
+
+Let C \equiv C' /\ F n1 = n2
+
+and forall a. F n3 = n4 /\ C in TT_n such that
+phi(n3) = n1 for some substitution phi where dom(phi)=a.
+
+Then, C --> C' /\ phi(n4) = n2 /\ phi(C).
+
+As before, we also give the derivation in CHR constraint notation.
+     C' /\  F n1 n2
+-->  C' /\  phi(n4) = n2 /\ phi(C)
+
+This solving step can be mapped back to a term reduction step
+(a type instance application step).
+
+
+Equivalence step:
+
+The FD and type instance step introduce equations among normal form types.
+We build the mgu of these normal form equations (for this step it's
+helpful to use the CHR constraint notation).
+
+
+=== Plan MS revised details ===
+
+Let TT be a set of type instances,
+C and W a set of constraints already in normal form where
+C are the local equations and W are the wanted equations.
+
+We check that W follows from C wrt TT as follows.
+
+We rewrite (C | W) to (C' | W') by performing the following steps.
+
+Reduce C step:
+Apply FD and CHR simp steps on C, ie C -->* C', we obtain
+
+      (C | W) --> (C' | W)
+
+Reduce W type instance step
+Apply CHR simp steps on W, ie W -->* W', we obtai
+
+
+      (C | W) --> (C | W')
+
+NOTE: we could also apply FD steps on W, no harm.
+
+Reduce W wrt C step:
+
+If C \equiv C' /\ F n1 = n2      and W \equiv F n1 = n3 /\ W'
+then
+
+      (C | W) --> (C | W' /\ n2 = n3)
+
+
+We exhaustively apply the above steps (if TT is terminating the steps
+are terminating). That is,
+
+(C | W) -->* (C' | W')
+
+then check if W' is a subset of C'. If yes, W follows from C wrt TT.
+
+NOTE:
+
+In the reduce W wrt C step, adding n2 = n3 to C as well is wrong.
+We could also first reduce C -->* C', then
+C' /\ W -->* C'' and check that C'' and C' are equivalent (by exploiting
+the fact that C implies W iff C <-> C /\ W).
+
+
+==== A note on efficiency ====
+
+The normal from representation has the advantage that searching for
+"matchings" becomes "easier". Eg in case of the (earlier) plan MS and plan MC,
+given the local assumption S s1 ... sn = t we traverse/search all
+terms to find matching partners S s1 ... sn which then will be replaced by t.
+Consider the local G Int = Int and the term [Tree [G Int]] where we first
+traverse two list nodes and a tree node before we find the matching partner.
+In the normal from representation, we use a "flat" representation, all potential
+matchings must be at the "outer" level. We could even use hashing. That is,
+the local F a = Int is assigned the hash index F, so is the wanted
+constraint F a = Int (trivial example). When applying locals/type functions
+we'll only need to consider the entries with hash index F.    
+
+
+==== A note on evidence construction ====
+
+We yet need to formalize the exact details how to map CHR evidence back
+to term evidence. In fact, there's an issue.
+Consider the type equation (with evidence)
+
+e : F (G Int) = Int
+
+In the normal form representation, the above is represented as
+
+    e1 : F a = Int
+    e2 : G Int = a
+
+for some evidence e1 and e2. What's the connection between e and e1,e2?
+
+In case  e : F (G Int) = Int is wanted, the method outlined above
+will attempt to find evidence for e1 and e2. Given e1 and e2 we can then
+build evidence e.
+
+In case e : F (G Int) = Int is local (ie given), the normal form construction
+seems to be the wrong way around. Indeed, from e we can't necessarily build e1 and e2.
+Well, the method outlined here simply assumes that  
+       e1 : F a = Int, e2 : G Int = a 
+is the internal representation for
+       e : F (G Int) = Int
+
+NOTE:
+
+The user can of course use the more "compact" term representation of local assumptions,
+but internally we'll need to keep local assumptions in normal form.
+
+
+```
