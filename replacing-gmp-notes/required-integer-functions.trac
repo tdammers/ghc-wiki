@@ -1,0 +1,97 @@
+
+
+= Functions that operate on Integer values =
+
+''Note'': this is a very rough overview of the Integer functions in GHC.  It is not yet even a sketch of functions that a replacement library should implement, although the [wiki:ReplacingGMPNotes/RequiredIntegerFunctions#PrimitiveFunctions(inCmmorC) Primitive Functions (in Cmm or C)] provide an overview of what GMP currently provides.
+
+== GHC Functions ==
+
+|| '''Module/Class''' || '''Haskell Function''' || '''Notes''' ||
+|| GHC.Num || (+) || rts/PrimOps.cmm --> Haskell || 
+|| GHC.Num || (-) || rts/PrimOps.cmm --> Haskell || 
+|| GHC.Num || (*) || rts/PrimOps.cmm --> Haskell || 
+|| GHC.Num || div || rts/PrimOps.cmm --> Haskell || 
+|| GHC.Num || negate || rts/PrimOps.cmm --> Haskell || 
+|| GHC.Num || abs ||  || 
+|| GHC.Num || signum ||  || 
+|| GHC.Num || subtract || rts/PrimOps.cmm --> Haskell || 
+|| GHC.Num || even || rts/PrimOps.cmm --> Haskell || 
+|| GHC.Num || odd ||  || 
+|| GHC.Num || gcd || rts/PrimOps.cmm --> Haskell || 
+|| GHC.Num || lcm || rts/PrimOps.cmm --> Haskell || 
+|| GHC.Num || {{{(^)}}} || need exceptions for overflow || 
+|| GHC.Num || {{{(^^)}}} || need exceptions for overflow || 
+|| GHC.Num || zeroInteger || (see other primitives below)  ||
+|| GHC.Num(Eq) || < ||  ||
+|| GHC.Num(Eq) || <= ||  ||
+|| GHC.Num(Eq) || > ||  ||
+|| GHC.Num(Eq) || >= ||  ||
+|| GHC.Num(Eq) || == ||  ||
+|| GHC.Num(Enum) || succ || simple addition (+) ||
+|| GHC.Num(Enum) || pred || simple subtraction (-) ||
+|| GHC.Num(Enum) || toEnum || int2Integer (primitive) ||
+|| GHC.Num(Enum) || fromEnum || integer2Int (primitive) ||
+|| GHC.Num(Enum) || enumFrom ||  ||
+|| GHC.Num(Enum) || enumFromThen ||  ||
+|| GHC.Num(Enum) || enumFromTo ||  ||
+|| GHC.Num(Enum) || enumFromThenTo ||  ||
+|| GHC.Num(Show) || showsPrec || jtos (internal Haskell function) ||
+|| GHC.Num(Show) || showList || jtos (internal Haskell function) ||
+|| GHC.Float || floatRadix || rts/StgPrimFloat.c ||
+|| GHC.Float || encodeFloat || rts/StgPrimFloat.c --> foreign import GHC.Float ||
+|| GHC.Float || decodeFloat || rts/StgPrimFloat.c --> rts/Rts.h --> !PrimOps.cmm || 
+|| GHC.Float || encodeDouble || rts/StgPrimFloat.c --> foreign import GHC.Float ||
+|| GHC.Float || decodeDouble || rts/StgPrimFloat.c --> rts/Rts.h --> !PrimOps.cmm ||
+|| Data.Bits || (.&.) ||  ||
+|| Data.Bits || (.|.) ||  ||
+|| Data.Bits || xor ||  ||
+|| Data.Bits || complement ||  ||
+|| Data.Bits || shift ||  ||
+|| Data.Bits || rotate ||  ||
+|| Data.Bits || bit ||  ||
+|| Data.Bits || setBit ||  ||
+|| Data.Bits || clearBit ||  ||
+|| Data.Bits || complementBit ||  ||
+|| Data.Bits || testBit ||  ||
+|| Data.Bits || bitSize ||  ||
+|| Data.Bits || isSigned ||  ||
+|| Data.Bits || shiftL || Haskell function ||
+|| Data.Bits || shiftR || Haskell function ||
+|| Data.Bits || rotateL || rotates operate as shifts for Integer ||
+|| Data.Bits || rotateR || rotates operate as shifts for Integer ||
+|| !StringBuffer || parseInteger || Haskell function || 
+
+== Primitive Functions (in Cmm or C) ==
+
+|| '''Module/Class''' || '''Haskell Function''' || '''Notes''' ||
+|| GHC.Prim || integer2Int# || from rts/PrimOps.cmm ||
+|| GHC.Prim || integer2Word# || from rts/PrimOps.cmm ||
+|| GHC.Prim || int2Integer# || from rts/PrimOps.cmm ||
+|| GHC.Prim || word2Integer# || from rts/PrimOps.cmm ||
+|| GHC.Prim || int64ToInteger# || from rts/PrimOps.cmm ||
+|| GHC.Prim || word64ToInteger# || from rts/PrimOps.cmm ||
+|| GHC.Prim || decodeDouble# || from rts/PrimOps.cmm ||
+|| GHC.Prim || decodeFloat# || from rts/PrimOps.cmm ||
+|| GHC.Prim || plusInteger# || from rts/PrimOps.cmm ||
+|| GHC.Prim || minusInteger# || from rts/PrimOps.cmm ||
+|| GHC.Prim || timesInteger# || from rts/PrimOps.cmm ||
+|| GHC.Prim || gcdInteger# || from rts/PrimOps.cmm ||
+|| GHC.Prim || gcdIntegerInt# || from rts/PrimOps.cmm ||
+|| GHC.Prim || divExactInteger# || from rts/PrimOps.cmm ||
+|| GHC.Prim || quotInteger# || from rts/PrimOps.cmm ||
+|| GHC.Prim || remInteger# || from rts/PrimOps.cmm ||
+|| GHC.Prim || cmpInteger# || from rts/PrimOps.cmm ||
+|| GHC.Prim || cmpIntegerInt# || from rts/PrimOps.cmm ||
+|| GHC.Prim || quotRemInteger# || from rts/PrimOps.cmm ||
+|| GHC.Prim || divModInteger# || from rts/PrimOps.cmm || 
+|| GHC.Prim || andInteger# || from rts/PrimOps.cmm || 
+|| GHC.Prim || orInteger# || from rts/PrimOps.cmm || 
+|| GHC.Prim || xorInteger# || from rts/PrimOps.cmm || 
+|| GHC.Prim || complementInteger# || from rts/PrimOps.cmm ||
+|| GHC.Float || floatRadix || rts/StgPrimFloat.c ||
+|| GHC.Float || encodeFloat || rts/StgPrimFloat.c --> foreign import GHC.Float ||
+|| GHC.Float || decodeFloat || rts/StgPrimFloat.c --> rts/Rts.h --> !PrimOps.cmm || 
+|| GHC.Float || encodeDouble || rts/StgPrimFloat.c --> foreign import GHC.Float ||
+|| GHC.Float || decodeDouble || rts/StgPrimFloat.c --> rts/Rts.h --> !PrimOps.cmm ||
+
+
