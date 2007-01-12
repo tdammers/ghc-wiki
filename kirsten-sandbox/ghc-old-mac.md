@@ -1,0 +1,514 @@
+# Building GHC on Mac OS X 10.2 in 136 Easy Steps, by Kirsten aged 26 1/52
+
+
+1. grab the HEAD off darcs, per [Building/GettingTheSources](building/getting-the-sources) (no problems here)
+1.  run autoreconf (this went ok, because I had just upgraded my autoconf in order to build darcs)
+1.  run ./configure
+1.  oops, I only have happy 1.13, it wants happy 1.15
+1.  go to the happy download page. what, no Mac OS X binary?
+1.  grab the happy sources
+1.  ./configure, make, make install. so far so good
+1.  ./configure GHC again
+1.  LOL, I need alex 2.0
+1.  why isn't this integrated into the GHC build process? also, googling for just "alex" is un-useful. so is googling for "alex lexer" and "alex lexer haskell"
+1.  LOL, \*still\* no Mac OS X binary.
+1.  ./configure; make in alex
+1.  have disgusting IM conversation with friend while waiting
+1.  alex: "you lose at life":
+
+  ```wiki
+  Creating a symbolic link from alex-2.0.1 to alex in /usr/local/bin failed: `/usr/local/bin/alex' already exists
+  Perhaps remove `/usr/local/bin/alex' manually?
+  make[2]: *** [install] Error 1
+  make[1]: *** [install] Error 1
+  make: *** [install] Error 1
+  ```
+1.  consider a career change
+1.  rm /usr/local/bin/alex
+1.  sudo rm /usr/local/bin/alex
+1.  sudo make me a sandwich
+1.  sudo make install
+1.  okay, I have alex. yippee.
+1.  ./configure in GHC again
+1.  seems to have worked. With trembling fingers (or maybe that's just the freezing Southern California weather), type "make".
+1. OH NOEZ:
+
+  ```wiki
+  gcc -O -DTABLES_NEXT_TO_CODE -I. -I../rts    -c mkDerivedConstants.c -o mkDerivedConstants.o
+  InfoTables.h:314: illegal member declaration, missing name, found `}'
+  OSThreads.h:135: #error "Threads not supported"
+  OSThreads.h:141: undefined type, found `OSThreadId'
+  OSThreads.h:145: illegal external declaration, missing `;' after `OSThreadProcAttr'
+  OSThreads.h:145: illegal external declaration, missing `;' after `*'
+  OSThreads.h:147: undefined type, found `OSThreadId'
+  OSThreads.h:148: undefined type, found `OSThreadProc'
+  OSThreads.h:153: undefined type, found `Condition'
+  OSThreads.h:154: undefined type, found `Condition'
+  OSThreads.h:155: undefined type, found `Condition'
+  OSThreads.h:156: undefined type, found `Condition'
+  OSThreads.h:157: undefined type, found `Condition'
+  OSThreads.h:158: undefined type, found `Mutex'
+  OSThreads.h:163: undefined type, found `Mutex'
+  OSThreads.h:164: undefined type, found `Mutex'
+  OSThreads.h:169: undefined type, found `ThreadLocalKey'
+  OSThreads.h:170: undefined type, found `ThreadLocalKey'
+  OSThreads.h:171: undefined type, found `ThreadLocalKey'
+  Storage.h:211: undefined type, found `Mutex'
+  Storage.h:212: undefined type, found `Mutex'
+  ../rts/Task.h:88: undefined type, found `OSThreadId'
+  ../rts/Task.h:115: undefined type, found `Condition'
+  ../rts/Task.h:116: undefined type, found `Mutex'
+  ../rts/Task.h:225: illegal function prototype, found `*'
+  ../rts/Task.h:225: illegal function definition, found `)'
+  ../rts/Task.h:235: undefined type, found `ThreadLocalKey'
+  ../rts/Capability.h:74: undefined type, found `Mutex'
+  ../rts/Capability.h:197: undefined type, found `Mutex'
+  cpp-precomp: warning: errors during smart preprocessing, retrying in basic mode
+  make[1]: *** [mkDerivedConstants.o] Error 1
+  make: *** [stage1] Error 1
+  ```
+1.  Cry.
+1.  Hmm, how old is my gcc, anyway?
+
+  ```wiki
+  % gcc --version
+  gcc (GCC) 3.1 20020420 (prerelease)
+  Copyright (C) 2002 Free Software Foundation, Inc.
+  This is free software; see the source for copying conditions.  There is NO
+  warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. [ yeah, no shit, Sherlock ]
+  ```
+1. Will upgrading my gcc break everything? Probably. Should I do it anyway? Probably.
+1. Actually, upgrading gcc sounds about as appealing as a quadruple root canal. Maybe I can use gcc2 (2.95.2) instead.
+1. Aaaaargh, of course I'm not that lucky:
+
+  ```wiki
+  checking for gcc... gcc2
+  checking for C compiler default output file name... 
+  configure: error: C compiler cannot create executables
+  ```
+1.  Start downloading tarball for newer gcc from: [
+  http://www.opensource.apple.com/darwinsource/August2003GCCUpdate/](http://www.opensource.apple.com/darwinsource/August2003GCCUpdate/). Also consider becoming religious so I can pray for it to be actually useful.
+1.  
+
+  ```wiki
+  Length: 31,674,171 [application/x-tar]
+
+   2% [>                                    ] 895,686       14.36K/s    ETA 34:52
+  ```
+1.  Wish that parents-in-law would get the faster internets at their house.
+1.  Eat breakfast.
+1.  Installing gcc on a full stomach is probably better anyway (though quite possibly not). Unzip the tarball. Notice that `INSTALL` is a directory. That's already a bad sign.
+1.  Hope that `autoconf; ./configure; make; make install` will just work, since I don't have the attention span for anything else.
+1.  Run make.
+1.  For some reason, the configure script thinks that my PPC laptop is an i386. `./configure` doesn't do anything. Nor does `./configure --help`.
+1.  No, actually it thinks I want to build a cross-compiler. Why would I want that?
+1.  Apparently the hosts to build for are controlled by the `HOSTS` environment variable, or maybe it's set somewhere in one of the config files. I'm not sure. Nor am I sure why I have the attention span to grovel through the sources but not to read the documentation.
+1.  Try `setenv HOSTS ppc`
+1.  `make`
+1.  Still complains with the same message:
+
+  ```wiki
+  ********************************************************************************
+  * Building Apple GCC 3.3 Compiler(s) (languages = c++,c,objc,objc++) for thins *
+  * ---------------------------------------------------------------------------- *
+  * BUILDHOST       = Kirsten-Chevaliers-Computer.local. -- a ppc                *
+  * HOSTS           = ppc  i386                                                  *
+  * TARGETS         = ppc  i386                                                  *
+  * SRCROOT         = /tmp/gcc3/gcc-1495                                         *
+  * OBJROOT         = /tmp/gcc3/gcc-1495/obj                                     *
+  * SYMROOT         = /tmp/gcc3/gcc-1495/obj/../sym                              *
+  * DSTROOT         = /tmp/gcc3/gcc-1495/obj/../dst                              *
+  * RC_RELEASE      =                                                            *
+  * CFLAGS          = -g                                                         *
+  * OPT_OVERRIDE    =                                                            *
+  * NEXT_ROOT       =                                                            *
+  * BUILD           = ppc                                                        *
+  * BOOTSTRAP       = yes                                                        *
+  * PREFIX          = /usr                                                       *
+  * DO_SYMLINKS     = no                                                         *
+  * ENABLE_CHECKING = --disable-checking                                         *
+  * Default cc      =                                                            *
+  * Curr. Hdrs.     = 3.1                                                        *
+  * ---------------------------------------------------------------------------- *
+  * 12/27/06 10:08:49 PST                                                        *
+  ********************************************************************************
+
+
+  ????????????????????????????????????????????????????????????
+  ? The directory /usr/libexec/gcc/darwin/i386 is missing!!! ?
+  ? Please install a compiler that generates code for i386.  ?
+  ????????????????????????????????????????????????????????????
+
+  make: *** [build] Error 1
+  ```
+1.  Try `export HOSTS`
+1.  `make`
+1.  Still complains.
+1.  For the 65536th time in my life, consider destroying everything Turing-complete and then going out to enjoy the big room with the blue ceilings.
+1.  Apparently you can also set the `TARGETS` environment variable. Try setting it to `ppc` also.
+1. 
+
+  ```wiki
+  ??????????????????????????????????????????
+  ? Host type i386 should also be a target ?
+  ??????????????????????????????????????????
+  ```
+1.  Well, maybe if I could also set the `HOSTS` to just `ppc`, that wouldn't be a problem.
+1.  Use grep again (the only IDE I'll ever need) and figure out to edit the `GNUmakefile` to change the `HOSTS = ` and `targets = ` lines to obliterate any and all traces of `i386`. There's probably a better way. At this point I don't care.
+1.  Start `make` again. It is, at least, convinced that it only wants to be building a `ppc` compiler, without any of that crazy `i386` nonsense.
+1.  Go back to bed.
+1.  ...but not \*yet\*. The hell? 
+
+  ```wiki
+  ++++++++++++++++++++++++++++++++++++++++++
+  + Building libiberty                     +
+  + -------------------------------------- +
+  + cwd = /tmp/gcc3/gcc-1495/obj/libiberty +
+  ++++++++++++++++++++++++++++++++++++++++++
+
+  + gnumake srcdir=/tmp/gcc3/gcc-1495/libiberty BUILD_PREFIX=ppc- BUILD_PREFIX_1=ppc- 'HOST_CC= cc -arch ppc -no-cpp-precomp' 'CFLA\
+  GS= -g' 'GCC_CFLAGS=-no-cpp-precomp -g' 'BOOT_CFLAGS=-O2 -g -no-cpp-precomp -mdynamic-no-pic' 'CC=cc -arch ppc -arch ppc -no-cpp-\
+  precomp -g'
+  if [ x"" != x ] && [ ! -d pic ]; then \
+    mkdir pic; \
+  else true; fi
+  touch stamp-picdir
+  if [ x"" != x ]; then \
+    cc -arch ppc -arch ppc -no-cpp-precomp -g -c -DHAVE_CONFIG_H -g -I. -I/tmp/gcc3/gcc-1495/libiberty/../include  -W -Wall -Wtradi\
+  tional -pedantic  /tmp/gcc3/gcc-1495/libiberty/regex.c -o pic/regex.o; \
+  else true; fi
+  cc -arch ppc -arch ppc -no-cpp-precomp -g -c -DHAVE_CONFIG_H -g -I. -I/tmp/gcc3/gcc-1495/libiberty/../include  -W -Wall -Wtraditi\
+  onal -pedantic /tmp/gcc3/gcc-1495/libiberty/regex.c -o regex.o
+  gnumake[1]: cc: Command not found
+  gnumake[1]: *** [regex.o] Error 127
+  + status=2
+  + command set +x
+  + set +x
+
+  *********************************************
+  * *** gnumake failed building libiberty *** *
+  *********************************************
+  ```
+1. WTF is "libiberty"?
+1. Apparently, not only does it think it should be using `cc` instead of `gcc` (which are supposed to be the same anyway, no?), the `PATH` isn't getting exported correctly, because `cc` is certainly in `/usr`, which is in my `PATH`.
+1. Try setting the `CC` environment variable to {{{/usr/gcc}}.
+1. `make`. Doesn't work.
+1. `make clean`
+1. `make`. Doesn't work.
+1. Edit the makefile in the `libiberty` subdir: `CC = gcc`. Again, there's probably a better way...
+1. `make`. Doesn't work.
+1. `make clean`
+1. `make`. Really go back to bed.
+1. Decide for some reason to get back out of bed and leave the other warm body in it behind in order to start building `gcc` again. Consider whether I need psychological help.
+1. The problem is that it can't find `cc` in the `PATH` and although `/usr`, where `cc` is, SHOULD be in the `PATH`, it's not getting exported properly fsr. 
+1. Create a symbolic link to `/usr/cc` in `/usr/bin`.
+1. Chainsaw, meet butter.
+1. `make`. `libiberty` makes it all the way through this time.
+1. NOW WHAT
+
+  ```wiki
+  cc -arch ppc -no-cpp-precomp -g -c -no-cpp-precomp  -g -no-cpp-precomp -DHAVE_DESIGNATED_INITIALIZERS=0 -DIN_GCC   -W -Wall -Wwri\
+  te-strings -Wstrict-prototypes -Wmissing-prototypes -Wtraditional -pedantic -Wno-long-long  -mdynamic-no-pic -DHAVE_CONFIG_H -DGE\
+  NERATOR_FILE    -I. -I. -I/tmp/gcc3/gcc-1495/gcc -I/tmp/gcc3/gcc-1495/gcc/. -I/tmp/gcc3/gcc-1495/gcc/config -I/tmp/gcc3/gcc-1495/\
+  gcc/../include -I/tmp/gcc3/gcc-1495/gcc/../more-hdrs \
+    ./gengtype-lex.c -o gengtype-lex.o
+  gengtype-lex.c:1: warning: ISO C forbids an empty source file
+  cc -arch ppc -no-cpp-precomp -g -c -no-cpp-precomp  -g -no-cpp-precomp -DHAVE_DESIGNATED_INITIALIZERS=0 -DIN_GCC   -W -Wall -Wwri\
+  te-strings -Wstrict-prototypes -Wmissing-prototypes -Wtraditional -pedantic -Wno-long-long  -mdynamic-no-pic -DHAVE_CONFIG_H -DGE\
+  NERATOR_FILE    -I. -I. -I/tmp/gcc3/gcc-1495/gcc -I/tmp/gcc3/gcc-1495/gcc/. -I/tmp/gcc3/gcc-1495/gcc/config -I/tmp/gcc3/gcc-1495/\
+  gcc/../include -I/tmp/gcc3/gcc-1495/gcc/../more-hdrs \
+    ./gengtype-yacc.c -o gengtype-yacc.o
+  cc: ./gengtype-yacc.c: No such file or directory
+  cc: no input files
+  gnumake[2]: *** [gengtype-yacc.o] Error 1
+  gnumake[1]: *** [stage1_build] Error 2
+  + status=2
+  + command set +x
+  + set +x
+
+  ********************************************
+  * *** gnumake failed building compiler *** *
+  ********************************************
+  ```
+1. Figure this is probably because I don't have bison and yacc installed. Consider the comical aptness of the term "yak-shaving" here.
+1. Wait a sec, I do have bison and yacc! They're under `/usr`! Why the hell are they under `/usr`, anyway, and why isn't `/usr` in my `PATH`? Actually, that was probably just because I unzipped a tarball in the wrong place at some point. I guess I'll just put them all in `/usr/bin`.
+1. `make clean` so configure can notice that bison and yacc and flex are there now. `make`
+1. 
+
+  ```wiki
+  (cd . && \
+   bison  -d -o gengtype-yacc.c /tmp/gcc3/gcc-1495/gcc/gengtype-yacc.y || \
+   ( rm -f gengtype-yacc.c && false ) )
+  bison: /usr/share/bison.simple: No such file or directory
+  gnumake[2]: *** [gengtype-yacc.c] Error 1
+  gnumake[1]: *** [stage1_build] Error 2
+  + status=2
+  + command set +x
+  + set +x
+
+  ********************************************
+  * *** gnumake failed building compiler *** *
+  ********************************************
+  ```
+1. WTH is `bison.simple`?
+1. Download `bison.simple` off the intorblags and put it in `/usr/bin`.
+1. Oh, it wants it to be in `/usr/share`. Well, sure, put it there too.
+1. It's missing another include file:
+
+  ```wiki
+  In file included from /tmp/gcc3/gcc-1495/gcc/config/rs6000/host-darwin.c:25:
+  /usr/include/sys/mman.h:62:39: mach/shared_memory_server.h: No such file or directory
+  In file included from /tmp/gcc3/gcc-1495/gcc/config/rs6000/host-darwin.c:25:
+  /usr/include/sys/mman.h:170: parse error before "sf_mapping_t"
+  /usr/include/sys/mman.h:171: parse error before "sf_mapping_t"
+  /tmp/gcc3/gcc-1495/gcc/config/rs6000/host-darwin.c: In function `segv_handler':
+  /tmp/gcc3/gcc-1495/gcc/config/rs6000/host-darwin.c:66: dereferencing pointer to incomplete type
+  /tmp/gcc3/gcc-1495/gcc/config/rs6000/host-darwin.c:115: dereferencing pointer to incomplete type
+  /tmp/gcc3/gcc-1495/gcc/config/rs6000/host-darwin.c:115: dereferencing pointer to incomplete type
+  gnumake[2]: *** [host-darwin.o] Error 1
+  gnumake[1]: *** [stage1_build] Error 2
+  ```
+1. What is `shared_memory_server.h` and why isn't there an easy way to answer the question "what is it, and to get it can I just download the file somewhere or do I have to finally give in and buy the upgrade to Mac OS 10.4?"
+1. Wait a day. Drive to the Apple store.
+1. Get told that of course I can't exchange money for the goods and services I want, because my four-year-old laptop is *too old*. 
+1. Consider buying a PC.
+1. Post on the GHC mailing list to seek pity (or at least laughs).
+1. Per a resulting suggestion, start downloading the .dmg for gcc 3.3 off [
+  http://connect.apple.com/](http://connect.apple.com/) (which of course isn't google-able because of course you have to create an account and mumble mumble deep web mumble.)
+1. Be thankful that at least this one is only going to take 23 minutes to download instead of 34. Get dressed.
+1. Try to install the gcc .pkg. It says I need the December 2002 Developer Tools update too (which is of course exactly what the person on the mailing list said as well.)
+1. Start the Dec. 2002 update downloading. *6-hour download.* Crie.
+1. Be grateful that at least you're not on dialup.
+1. Be grateful that at least you have First World problems rather than the other kind.
+1. About 10 hours later, double-click the installer. Wait 15 minutes.
+1. "The software was successfully installed." Now there's an experience I haven't had in a while.
+1. Double-click the August 2003 GCC updater. Wait 2 minutes.
+1. "The software was successfully installed." I'm on a roll!!
+1. So, where was I two days ago, anyway? Oh yeah, trying to build GHC! That was the original point, wasn't it? I'm not sure anymore.
+1. Of course, GHC is still looking for gcc under /usr (since it's first in your PATH for some reason) and not under /usr/bin where it really lives.
+1. Edit PATH to put /usr at the end. This doesn't work.
+1. Play some symlink games.
+1. Now `gcc` points to gcc 3.3, but the same error message comes up as before when I run `make` in ghc:
+
+  ```wiki
+  % make
+  make -C utils/mkdependC boot
+  ------------------------------------------------------------------------
+  == make boot -r;
+   in /Users/krc/ghc-head/ghc/includes
+  ------------------------------------------------------------------------
+  gcc -O -DTABLES_NEXT_TO_CODE -I. -I../rts    -c mkDerivedConstants.c -o mkDerivedConstants.o
+  In file included from Rts.h:144,
+                   from mkDerivedConstants.c:23:
+  OSThreads.h:135:4: #error "Threads not supported"
+  In file included from Rts.h:144,
+                   from mkDerivedConstants.c:23:
+  OSThreads.h:141: error: parse error before "osThreadId"
+  OSThreads.h:141: warning: data definition has no type or storage class
+  OSThreads.h:145: error: parse error before "OSThreadProc"
+  OSThreads.h:145: warning: data definition has no type or storage class
+  OSThreads.h:147: error: parse error before '*' token
+  OSThreads.h:153: error: parse error before '*' token
+  OSThreads.h:154: error: parse error before '*' token
+  OSThreads.h:155: error: parse error before '*' token
+  OSThreads.h:156: error: parse error before '*' token
+  OSThreads.h:157: error: parse error before '*' token
+  OSThreads.h:163: error: parse error before '*' token
+  OSThreads.h:164: error: parse error before '*' token
+  OSThreads.h:169: error: parse error before '*' token
+  OSThreads.h:170: error: parse error before '*' token
+  OSThreads.h:171: error: parse error before '*' token
+  In file included from Rts.h:160,
+                   from mkDerivedConstants.c:23:
+  Storage.h:211: error: parse error before "sm_mutex"
+  Storage.h:211: warning: data definition has no type or storage class
+  Storage.h:212: error: parse error before "atomic_modify_mutvar_mutex"
+  Storage.h:212: warning: data definition has no type or storage class
+  In file included from ../rts/Capability.h:27,
+                   from mkDerivedConstants.c:28:
+  ../rts/Task.h:88: error: parse error before "OSThreadId"
+  ../rts/Task.h:88: warning: no semicolon at end of struct or union
+  ../rts/Task.h:115: error: parse error before "cond"
+  ../rts/Task.h:115: warning: data definition has no type or storage class
+  ../rts/Task.h:116: error: parse error before "lock"
+  ../rts/Task.h:116: warning: data definition has no type or storage class
+  ../rts/Task.h:155: error: parse error before '}' token
+  ../rts/Task.h:155: warning: data definition has no type or storage class
+  ../rts/Task.h:158: error: parse error before '*' token
+  ../rts/Task.h: In function `isBoundTask':
+  ../rts/Task.h:160: error: `task' undeclared (first use in this function)
+  ../rts/Task.h:160: error: (Each undeclared identifier is reported only once
+  ../rts/Task.h:160: error: for each function it appears in.)
+  ../rts/Task.h: At top level:
+  ../rts/Task.h:166: error: parse error before '*' token
+  ../rts/Task.h:166: warning: data definition has no type or storage class
+  ../rts/Task.h:178: error: parse error before '*' token
+  ../rts/Task.h:178: warning: data definition has no type or storage class
+  ../rts/Task.h:183: error: parse error before '*' token
+  ../rts/Task.h:188: error: parse error before '*' token
+  ../rts/Task.h:194: error: parse error before '*' token
+  ../rts/Task.h:200: error: parse error before '*' token
+  ../rts/Task.h:205: error: parse error before '*' token
+  ../rts/Task.h:209: error: parse error before '*' token
+  ../rts/Task.h:209: warning: data definition has no type or storage class
+  ../rts/Task.h:225: error: parse error before '*' token
+  ../rts/Task.h:225: error: parse error before '*' token
+  ../rts/Task.h:225: error: `OSThreadProcAttr' declared as function returning a function
+  ../rts/Task.h:235: error: parse error before "currentTaskKey"
+  ../rts/Task.h:235: warning: data definition has no type or storage class
+  ../rts/Task.h:246: error: parse error before '*' token
+  ../rts/Task.h:257: error: parse error before '*' token
+  ../rts/Task.h: In function `setMyTask':
+  ../rts/Task.h:260: error: `task' undeclared (first use in this function)
+  ../rts/Task.h: At top level:
+  ../rts/Task.h:270: error: parse error before '*' token
+  ../rts/Task.h: In function `taskEnter':
+  ../rts/Task.h:274: error: `task' undeclared (first use in this function)
+  In file included from mkDerivedConstants.c:28:
+  ../rts/Capability.h: At top level:
+  ../rts/Capability.h:42: error: parse error before "Task"
+  ../rts/Capability.h:42: warning: no semicolon at end of struct or union
+  ../rts/Capability.h:61: error: parse error before '*' token
+  ../rts/Capability.h:61: warning: data definition has no type or storage class
+  ../rts/Capability.h:71: error: parse error before '*' token
+  ../rts/Capability.h:71: warning: data definition has no type or storage class
+  ../rts/Capability.h:74: error: parse error before "lock"
+  ../rts/Capability.h:74: warning: data definition has no type or storage class
+  ../rts/Capability.h:81: error: parse error before '*' token
+  ../rts/Capability.h:81: warning: data definition has no type or storage class
+  ../rts/Capability.h:82: error: parse error before '*' token
+  ../rts/Capability.h:82: warning: data definition has no type or storage class
+  ../rts/Capability.h:97: error: parse error before '}' token
+  ../rts/Capability.h:174: error: parse error before "Task"
+  ../rts/Capability.h:191: error: parse error before "Task"
+  ../rts/Capability.h:197: error: parse error before '*' token
+  ../rts/Capability.h:220: error: parse error before "Task"
+  ../rts/Capability.h:224: error: parse error before "Task"
+  ../rts/Capability.h: In function `recordMutableCap':
+  ../rts/Capability.h:247: error: dereferencing pointer to incomplete type
+  ../rts/Capability.h:253: error: dereferencing pointer to incomplete type
+  mkDerivedConstants.c: In function `main':
+  mkDerivedConstants.c:228: error: dereferencing pointer to incomplete type
+  mkDerivedConstants.c:228: error: dereferencing pointer to incomplete type
+  mkDerivedConstants.c:229: error: dereferencing pointer to incomplete type
+  mkDerivedConstants.c:229: error: dereferencing pointer to incomplete type
+  mkDerivedConstants.c:231: error: dereferencing pointer to incomplete type
+  mkDerivedConstants.c:232: error: dereferencing pointer to incomplete type
+  mkDerivedConstants.c:233: error: dereferencing pointer to incomplete type
+  mkDerivedConstants.c:233: error: dereferencing pointer to incomplete type
+  make[1]: *** [mkDerivedConstants.o] Error 1
+  make: *** [stage1] Error 1
+  [Kirsten-Chevaliers-Computer:~/ghc-head/ghc] krc%
+  ```
+1. Go to bed.
+1. No, no, can't rest as long as this problem isn't solved. Maybe this is a terrible idea, but what if I try `./configure --disable-threaded-rts`?
+1. `make clean`
+1. `make`
+1. OMFG!!!111 it at least makes it past `mkDerivedConstants.c` this time
+1. :-((((
+
+  ```wiki
+  ------------------------------------------------------------------------
+  == make boot -r;
+   in /Users/krc/ghc-head/ghc/compat
+  ------------------------------------------------------------------------
+  ../utils/mkdependC/mkdependC -f .depend    -I. -Iinclude -I../includes  -- -O -I. -Iinclude -D__\
+  GHC_PATCHLEVEL__=1 -I../libraries/base/cbits -I../libraries/base/include    -- cbits/directory.c\
+   cbits/rawSystem.c cbits/unicode.c
+  /usr/local/bin/ghc -M -optdep-f -optdep.depend  -osuf o    -H16m -O -I. -Iinclude -Rghc-timing -\
+  I../libraries -fglasgow-exts -no-recomp Compat/Directory.hs Compat/RawSystem.hs Compat/Unicode.h\
+  s Distribution/Compat/FilePath.hs Distribution/Compat/ReadP.hs Distribution/Compiler.hs Distribu\
+  tion/GetOpt.hs Distribution/InstalledPackageInfo.hs Distribution/License.hs Distribution/Package\
+  .hs Distribution/ParseUtils.hs Distribution/Version.hs Language/Haskell/Extension.hs System/Dire\
+  ctory/Internals.hs
+  <<ghc: 8979932 bytes, 3 GCs, 9280/9280 avg/max bytes residency (1 samples), 15M in use, 0.04 INI\
+  T (0.02 elapsed), 0.17 MUT (1.53 elapsed), 0.03 GC (0.04 elapsed) :ghc>>
+  make all
+  /usr/local/bin/ghc -H16m -O -I. -Iinclude -Rghc-timing  -I../libraries -fglasgow-exts -no-recomp\
+      -c System/Directory/Internals.hs -o System/Directory/Internals.o  -ohi System/Directory/Inte\
+  rnals.hi
+  System/Directory/Internals.hs:1: parse error on input `#'
+  <<ghc: 5251084 bytes, 3 GCs, 5688/5688 avg/max bytes residency (1 samples), 16M in use, 0.03 INI\
+  T (0.01 elapsed), 0.06 MUT (0.31 elapsed), 0.02 GC (0.02 elapsed) :ghc>>
+  make[2]: *** [System/Directory/Internals.o] Error 1
+  make[1]: *** [boot] Error 2
+  make: *** [stage1] Error 1
+  ```
+1. Well, my `/usr/local/bin/ghc` is really old. 6.0.1, in fact. Maybe I need something newer for bootstrapping. What does the documentation say? Have I ever read it before? If not, why break my streak? 
+1. Hmm, says "version 5.04 at least." 6.0.1 \> 5.04 (or so I would naively think).
+1. `System/Directory/Internals.hs` has an `OPTIONS` pragma. Why am I suspecting that GHC 6.0.1 doesn't know about this pragma? Would the documentation lie to me? (Probably.)
+1. Then again, I no longer have any idea where my version of GHC 6.0.1 came from.
+1. Maybe I'll download a binary of GHC instead.
+1. Oh wait, I CAN'T do that, because I have Mac OS 10.2.
+1. Hey, I might have a functioning other version of GHC sitting around. These ideas just keep getting worse and worse...
+
+  ```wiki
+  ./configure --with-ghc=~/GHC/ghc-6.4.2/ghc/compiler/ghc-inplace --disable-threaded-rts
+  ```
+1. Huh, it got all the way through ./configure even though apparently the path name wasn't getting canonicalized. Nice!
+
+  ```wiki
+  ./configure --with-ghc=/Users/krc/GHC/ghc-6.4.2/ghc/compiler/ghc-inplace --disable-threaded-rts
+  ```
+1. Oh, CRIE, that's not going to work, I never finished building the libraries with the other GHC, and indeed COULDN'T.
+1. Back to square one:
+
+  ```wiki
+  ./configure --with-ghc=/usr/local/bin/ghc --disable-threaded-rts
+  ```
+1. Wonder how I ever got this installed in the first place.
+1. Sleep.
+1. In the morning, look at that Internals.hs file more carefully. Something weird seems to be happening with cpp. For one thing, the file paths in the includes in `Internals.hs` seem to be wrong, but upon fixing them, `cpp` dumps in a bunch of lines that begin with things like `# 1`, which ghc doesn't seem to like.
+1. Start building ghc on a Linux system to compare what that file ends up looking like. (Which should be interesting since that's a webhosting account where autoconf doesn't even seem to be installed. Hope it doesn't matter!)
+1. Okay, well, `compat/` builds perfectly on the Linux box. No big shock, I guess. But what does cpp do?
+1. Huh, on the Linux box, that Internals.hs file doesn't seem to even get touched. A configure problem? Or maybe it really is needed on Mac OS but not Linux?
+1. Aw, crap, looking at the Makefile under `compat/` tells me that Internals.hs is getting built because I'm bootstrapping with a ghc less than 6.3, whereas on that Linux box, I have ghc 6.4 already, so that's that mystery solved.
+1. *Why* can't I get a binary ghc for OS 10.2? (Because, I guess, everyone else upgraded already, and I'm the last of the Mohicans.)
+1. So, I suspect `Internals.hs` may be bitrotted, but that still doesn't solve the mystery of how to get cpp to do the right thing with it.
+1. And thanks to a minimal test case, it's not even those line pragmas that's making ghc throw up.
+1. Go on IRC.
+1. A very nice person, `pejo`, points out: [http://www.haskell.org/ghc/dist/6.4/MacOSX/](http://www.haskell.org/ghc/dist/6.4/MacOSX/)
+1. Download the mysterious tarball from there and unzip it.
+1. Reconfigure:
+
+  ```wiki
+  ./configure --with-ghc=/private/tmp/ghc_d/ghc-bootstrap/bin/ghc --disable-threaded-rts
+  ```
+1. That went okay. `make`
+1. Edit the paths in `/tmp/ghc_d/ghc-bootstrap/bin/ghc` (which is a shell script) to change `/opt/local` to `/tmp/ghc_d/ghc-bootstrap`. Four times.
+1. `make` again
+1. Oh noez:
+
+  ```wiki
+  make -C utils/mkdependC boot
+  ------------------------------------------------------------------------
+  == make boot -r;
+   in /Users/krc/ghc-head/ghc/includes
+  ------------------------------------------------------------------------
+  ../utils/mkdependC/mkdependC -f .depend     -- -O -DTABLES_NEXT_TO_CODE -I. -I../rts    -- mkDerivedConstants.c
+  ------------------------------------------------------------------------
+  == make boot -r;
+   in /Users/krc/ghc-head/ghc/compat
+  ------------------------------------------------------------------------
+  /bin/sh: test: unknownunknown: integer expression expected
+  /private/tmp/ghc_d/ghc-bootstrap/bin/ghc -M -optdep-f -optdep.depend  -osuf o -optdep--exclude-module=System.Directory.Internals   -H16m -O -I. -Iinclude -Rghc-timing -I../li\
+  braries -fglasgow-exts -no-recomp Compat/Directory.hs Compat/RawSystem.hs Compat/Unicode.hs Distribution/Compat/FilePath.hs Distribution/Compat/ReadP.hs Distribution/Compiler\
+  .hs Distribution/GetOpt.hs Distribution/InstalledPackageInfo.hs Distribution/License.hs Distribution/Package.hs Distribution/ParseUtils.hs Distribution/Version.hs Language/Ha\
+  skell/Extension.hs tmp.hs
+  dyld: /private/tmp/ghc_d/ghc-bootstrap/lib/ghc-6.4/ghc-6.4 can't open library: /opt/local/lib/libreadline.5.0.dylib  (No such file or directory, errno = 2)
+  make[1]: *** [depend] Trace/BPT trap
+  make: *** [stage1] Error 1
+  ```
+1. Wonder whether 11:49 AM is too early in the day to start drinking.
+1. Do I have libreadline? Yes, but only version 4. Is that good enough? Maybe. Try some horrible symlink games.
+1. Damn:
+
+  ```wiki
+  dyld: /private/tmp/ghc_d/ghc-bootstrap/lib/ghc-6.4/ghc-6.4 version mismatch for library: /opt/local/lib/libreadline.5.0.dylib (compatibility version of user: 5.0.0 greater th\
+  an library's version: 4.0.0)
+  make[1]: *** [depend] Trace/BPT trap
+  ```
+
+  1. Okay, I'll just go download readline 5.0 instead. Google says that's "trivial".
+  1. Several days later after getting distracted by other things, try to actually build readline. Realize it's not actually "trivial".
+  1. Buy a PC.
