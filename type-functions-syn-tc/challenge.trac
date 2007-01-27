@@ -1,0 +1,73 @@
+== The challenge ==
+
+Consider the axioms
+
+{{{
+forall a. S [a] = [S a]   (R1)
+T Int = Int               (R2)
+}}}
+S and T are type functions of kind *->*
+For convenience, I drop the `redundant' forall a. on R1's lhs.
+
+Suppose some type annotations/pattern matchings give rise
+to the local assumptions
+
+{{{
+T [Int] = S [Int]        (R3)
+T Int = S Int            (R4)
+}}}
+and under these assumptions we need to verify
+
+{{{
+T [Int] = [Int]
+}}}
+
+
+Logically, we can express the above as follows:
+
+{{{
+(forall a. S [a] = [S a]) /\       -- axioms
+(T Int = Int)
+
+ |=
+
+
+
+(T [Int] = S [Int]) /\             -- local assumptions
+(T Int = S Int)
+
+ implies
+
+(T [Int] = [Int])                  -- (local) property
+}}}
+That is, any model (in the first-order sense) which is
+a model of the axioms and local assumptions is also
+a model of the property.
+
+NOTE: There are further axioms such as reflexitivity of = etc.
+We'll leave them our for simplicitiy.
+
+The all important question:
+How can we algorithmically check the above statement?
+Roughly, we perform the following two steps.
+
+ 1. Generate the appropriate implication constraint out of the program text.  That's easy cause GHC supports now implication constraints. (There are some potential subtleties, see GENERATEIMP below).
+ 2. Solve the implication constraint by applying axioms and local assumptions until the (local) property is verified. That's the hard part.
+
+NOTE: 
+
+We assume that (implication) constraints consist of  equality constraints only. In general, we'll also find type class constraints. We ignore such constraints  for the moment.
+
+In the following, we assume that symbols t refer to types and symbols C refer to conjunctions of equality constraints and Ax refers to an axiom set.
+
+We'll restrict ourselves to simple implication constraints of the form {{{   C implies t1=t2 }}}
+In general, implication constraints may be nested, e.g
+{{{ C1 implies (C2 implies C3) }}} and may contain conjunctions
+of implications, e.g. {{{C1 implies (F1 /\ F2)}}} where F1 and F2 are arbitrary implication constraints. Implication constraints may be universally quantified, e.g. 
+{{{ forall a (S a = T a implies ...) }}}
+These universal quantifiers arise from universal type annotations, e.g.  {{{ f :: S a = T a => ....}}}, and
+pattern matchings over data types with abstract components, e.g. data Foo where
+{{{ K :: S a = T a => a -> Foo}}}
+We can operationally deal with universally quantified variables by skolemizing them (and we must ensure that skolemized/universal variables do not escape).
+
+End of NOTE
