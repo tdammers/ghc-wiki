@@ -1,0 +1,36 @@
+= Type Functions: Syntax and Representation =
+
+== Syntax of family and family instance declarations ==
+
+A toplevel family declaration consists of a type declaration head using `family` as a special following the declaration keyword.  It is optionally followed by a `::` and a kind (which is by default `*` if not specified).   In an associated family declaration, the `family` special is dropped.  Toplevel family instance declarations, use the `instance` keyword after the main declaration keyword; associated instances don't use `instance`.  We require for every instance declaration of a type family that a matching family declaration is in scope.
+
+== Representation of indexed types ==
+
+=== Family declarations ===
+
+`HsDecls.TyClDecl` has a new variant `TyFamily` to represent family declarations of both flavours (i.e., `type family` and `data family`).  The new variant comprises the declaration's flavour, name, type parameters, and optionally a result kind signature.  The type parameters can have kind signatures as usual.  The predicate `HsDecls.isFamilyDecl` recognises family declarations.
+
+=== Family instances ===
+
+We represent insatances of type families and data/newtype families by generalising the AST for type synonym declarations (`TySynonym`) and data/newtype declarations (`TyData`), respectively.  In both cases, the novelty is to admit type index patterns instead of just type variables as parameters.  These index pattern go into the field `tcdTyPats` of type `Maybe [LHsType name]`, used as follows:
+ * If it is `Nothing`, we have a ''vanilla'' data type declaration or type synonym declaration and `tcdVars` contains the type parameters of the type constructor.
+ * If it is `Just pats`, we have the definition of an a indexed type (toplevel or nested in an instance declarations).  Then, `pats` are type patterns for the type-indexes of the type constructor and `tcdVars` are the variables in those patterns.  Hence, the arity of the type constructor is `length tcdPats` and ''not'' `length tcdVars`.
+In both cases (and as before we had indexed types), `tcdVars` collects all variables we need to quantify over.
+
+=== Parsing and AST construction ===
+
+The LALR parser allows arbitrary types as left-hand sides in '''data''', '''newtype''', and '''type''' declarations.  The parsed type is, then, passed to {{{RdHsSyn.checkTyClHdr}}} for closer analysis (possibly via `RdHsSyn.checkSynHdr`).  It decomposes the type and, among other things, yields the type arguments in their original form plus all type variables they contain.  Subsequently, {{{RdrHsSyn.checkTyVars}}} is used to either enforce that all type arguments are variables (second argument is `False`) or to simply check whether the type arguments are variables (second argument `True`).  If in enforcing mode, `checkTyVars` will raise an error if it encounters a non-variable (e.g., required for class declarations).  If in checking mode, it yields the value placed in the `tcdPats` field described above; i.e., returns `Nothing` instead of the type arguments if these arguments are all only variables.
+
+== Representation of associated types ==
+
+We add type declarations to class declarations and instance declarations by a new field, of type `[LTyClDecl]`, to both `TyClDecl.ClassDecl` (known by the field name `tcdATs`) and `TyClDecl.InstDecl`.  For classes, this new field contains values constructed from `TyFamily` and `TySynonym` (for synonym defaults), whereas for instances, we have `TyData` and `TySynonym`.  
+
+== Representation of equational constraints ==
+
+Equational constraints are parsed into a new variant of `HsPred`, called `HsEqualP`.
+
+== Type tags ==
+
+To enable the listing of associated types in the sub-binder list of import/export items for classes, we extend the parser with a production that allows a constructor name (upper case or approppriate infix operator in parenthesis) to be prefixed by the keyword `type`.  
+
+NB: There is a cavet at the moment, in error messages the type prefix is not printed, as the `ppr` instance on `HsImpExp.IE` is polymorphic in the name (and hence, we cannot get at the name space in which a name is).
