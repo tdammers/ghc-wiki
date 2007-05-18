@@ -1,0 +1,604 @@
+## Closure conversion without classes
+
+
+
+The following scheme approaches the problem of mixing converted and unconverted code from the point of view of GHC's Core representation, avoiding the use of classes as much as possible.  In particular, the scheme gracefully handles any declarations that themselves cannot be converted, but occur in a converted module.  The two essential ideas are that (1) we move between converted and unconverted values/code using a conversion isomorphism and (2) we treat unconverted declarations differently depending on whether or not they involve arrows; e.g., the definition of `Int` by way of unboxed values (which we cannot convert) doesn't prevent us from using `Int`s *as is* in converted code.
+
+
+#### The closure type
+
+
+
+We represent closures by
+
+
+```wiki
+data a :-> b = forall e. !(e -> a -> b) :$ e
+```
+
+
+and define closure creation and application as
+
+
+```wiki
+lam :: (a -> b) -> (a :-> b)
+lam f = const f :$ ()
+
+($:) :: (a :-> b) -> a -> b
+(f :$ e) $: x = f e x
+```
+
+
+So, we have `(->)_CC == (:->)`.
+
+
+### Overview and invariants
+
+
+
+The meta-function "`^`", written postfix, converts from normal code to closure-converted code. 
+
+
+- For each function definition 
+
+  ```wiki
+  f::ty = e
+  ```
+
+  create a closure-converted function definition for `f_cc`, defining the closure-converted version of `f`, *and* a definition for `f` with its original type, that defines it in terms of `f_cc`:
+
+  ```wiki
+  f_cc::ty^ = e^
+
+  f::ty = fr iso<ty> f_cc
+  ```
+
+  where `ty^` is the closure-converted version of `ty`, and `e^` is the closure-converted version of `e`.  
+
+- For each data type `T`, create a closure-converted data type `T_CC`, whose constructors use `(:->)` instead of `(->)`. 
+
+- The value `iso<ty>` is a pair of functions, converting to and fro between `ty` and `ty^`.  Like "`^`", the `iso<ty>` thing should be considered as a meta-function that works recursively on `ty`.
+
+
+Invariants:
+
+
+```wiki
+  e :: ty     implies       e^ :: ty^
+
+  to iso<ty> :: ty -> ty^
+  fr iso<ty> :: ty^ -> ty
+```
+
+
+Provided these invariants are maintained, the transformed program will be type-correct.
+
+
+### Conversion status
+
+
+
+All `TyCon`s, `DataCon`s, and `Id`s have a *conversion status* that determines how occurences of these entities are treated during conversion.  For an `Id` named `v`, we have two alternatives:
+
+
+1. The binding of `v` was compiled without conversion and we have to use `v` itself in converted code, which requires the use of an in-place conversion function.
+1. Otherwise, we have a converted variant `v_CC`, and we use `v_CC` instead of `v` in converted code.
+
+
+For a type constructor `T` and its data constructors `C`, we have three alternatives:
+
+
+1. The declaration introducing `T` and its constructors was compiled without conversion or we were unable to convert it, as it uses some language feature that prevents conversion.
+1. A converted variant `T_CC` exists, but coincides with `T` (e.g., because `T` neither directly nor indirectly involves arrows).
+1. A converted variant `T_CC` exists and differs from `T`.
+
+
+In the last two cases, we also have a *conversion constructor* `isoT` whose type and meaning is described below.
+
+
+
+An example of a feature that prevents conversion are unboxed values.  We cannot make a closure from a function that has an unboxed argument, as we can neither instantiate the parametric polymorphic closure type with unboxed types, nor can we put unboxed values into the existentially quantified environment of a closure.
+
+
+### Converting types
+
+
+#### Conversion of type terms
+
+
+
+We determine the converted type `t^` of `t` as follows:
+
+
+```wiki
+T^            = T_CC , if T_CC exists
+              = T    , otherwise
+a^            = a_CC
+(t1 -> t2)^   = t1 -> t2   , if kindOf t1 == #
+                             or kindOf t2 == #
+              = t1^ :-> t2^, otherwise
+(t1 t2)^      = t1^ t2^
+(forall a.t)^ = forall a_CC.t^
+```
+
+
+Here some examples,
+
+
+```wiki
+(Int -> Int)^           = Int :-> Int
+(forall a. [a] -> [a])^ = [a] :-> [a]
+([Int -> Int] -> Int)^  = [Int :-> Int] :-> Int
+(Int# -> Int# -> Int#)^ = Int# -> Int# -> Int#
+((Int -> Int) -> Int#)^ = (Int -> Int) -> Int#
+(Int -> Int -> Int#)^   = Int :-> (Int -> Int#)
+```
+
+
+Why do we use `(t1 -> t2)^ = t1 -> t2` when either argument type is unboxed, instead of producing `t1^ -> t2^`?  Because we want to avoid creating conversion constructors (see below) for such types.  After all, the conversion constructor `isoArr` for function arrows works only for arrows of kind `*->*->*`.
+
+
+### Conversion constructors
+
+
+
+To move between `t` and `t^` we use conversion functions.  And to deal with type constructors, we need *conversion constructors*; i.e., functions that map conversion functions for type arguments to conversion functions for compound types.
+
+
+#### Conversion pairs
+
+
+
+Conversion functions come in pairs, which we wrap with the following data type for convenience:
+
+
+```wiki
+data a :<->: b = (:<->:) {to :: a -> b, fr ::b -> a}
+```
+
+
+The functions witness the isomorphism between the two representations, as usual.
+
+
+#### Types of convercion constructors
+
+
+
+The type of a conversion constructor depends on the kind of the converted type constructor:
+
+
+```wiki
+isoTy (t::k1->k2) = forall a a_CC.
+                      isoTy (a::k1) -> isoTy (t a::k2)
+isoTy (t::*)      = t :<->: t^
+```
+
+
+where type conversion `t^` is defined below.
+
+
+
+As an example, consider
+
+
+```wiki
+data T (f::*->*) = T1 (f Int) | T2 (f Bool)
+```
+
+
+The type of the conversion constructor is as follows :
+
+
+```wiki
+isoTy (T::(*->*)->*) =
+  forall f f_CC. 
+    (forall a a_CC. 
+       (a :<->: a_CC) -> (f a :<->: f_CC a_CC)) ->
+    T f :<->: T_CC f_CC
+```
+
+
+The conversion constructor might be implemented as
+
+
+```wiki
+isoT isof = toT :<->: frT
+  where
+    toT (T1 x) = T1 (to (isof isoInt ) x)
+    toT (T2 y) = T2 (to (isof isoBool) y)
+    frT (T1 x) = T1 (fr (isof isoInt ) x)
+    frT (T2 y) = T2 (fr (isof isoBool) y)
+```
+
+
+where `isoInt` and `isoBool` are the conversion constructors for `Int`s and `Bool`s.
+
+
+
+Moreover, the conversion constructor for function arrows is
+
+
+```wiki
+isoArr :: a :<->: a_CC   -- argument conversion
+       -> b :<->: b_CC   -- result conversion
+       -> (a -> b) :<->: (a_CC :-> b_CC)
+isoArr (toa :<->: fra) (tob :<->: frb) = toArr :<->: frArr
+  where
+    toArr f        = const (tob . f . fra) :$ ()
+    frArr (f :$ e) = frb . f e . toa
+```
+
+### Conversions
+
+
+#### Rules
+
+
+
+To perform the actual conversion of values of a type `t::*`, we generate a conversion `iso<t>` of type `t :<->: t^` as follows:
+
+
+```wiki
+iso<T>          = isoT           , if T_CC exists
+                = idIso<*>       , otherwise
+iso<a::k>       = idIso<k>
+iso<t1 -> t2>   = idIso<*>       , if kindOf t1 == #
+                                   or kindOf t2 == #
+                = isoArr         , otherwise 
+                    iso<t1> iso<t2>
+iso<t1 t2>      = iso<t1> iso<t2>
+iso<forall a.t> = toIso :<->: frIso
+  where
+    toIso (x::forall a.t) = /\a. to (iso<t>)@a x@a
+    frIso (x::forall a.t) = /\a. fr (iso<t>)@a x@a
+```
+
+
+where
+
+
+```wiki
+idIso<*>      = id :<->: id
+```
+
+
+**OPEN PROBLEM:** What should `idIso<k>` do for `k` other than `*`?  We might think
+
+
+```wiki
+idIso<k1->k2> = \_ -> (idIso<k2>)
+```
+
+
+would work, but it doesn't always.  Take this example
+
+
+```wiki
+data T a = MkT a
+unit :: T a -> a
+unit (MkT x) = x
+
+-- converted
+foo :: f (Int -> Int) -> (forall a. f a -> a) -> Int
+foo t u = u t 1
+
+-- not converted
+bar = foo unit
+```
+
+
+Here, we will have to convert the first argument to `foo` and that conversion needs to convert the embedded `Int -> Int` to `Int :-> Int`, which is hard to do in `foo = fr iso<...> foo_CC` as we don't know anything about `f::*->*`.
+
+
+#### Examples
+
+
+
+Here some example conversions:
+
+
+```wiki
+iso<Int -> Int>     = isoArr isoInt isoInt
+iso<Int -> Int#>    = id :<->: id
+iso<[a -> a]>       = isoList (isoArr (id :<->: id) 
+                                      (id :<->: id))
+iso<f (Int -> Int)> = ???
+```
+
+### Converting type declarations
+
+
+#### Conversion rules
+
+
+
+If a type declaration for constructor `T` occurs in a converted module, we need to decide whether to convert the declaration of `T`.  We decide this as follows:
+
+
+1. If the declaration of `T` mentions another algebraic type constructor `S` for which there is **no** `S_CC`, then we cannot convert `T`.
+1. If **all** algebraic type constructors `S` mentioned in `T`'s definiton have a conversion `S_CC  == S`, we do not convert `T`, but set `T_CC == T` and generate a suitable conversion constructor `isoT`.  (NB: The condition implies that `T` does not mention any function arrows.)
+1. If the declaration of `T` uses any features that we cannot (or for the moment, don't want to) convert, simply don't convert it.
+1. Otherwise, we generate a converted type declaration `T_CC` together with a conversion constructor `isoT`.  Conversion proceeds by converting all data constructors (see below).
+
+
+Moreover, we handle other forms of type constructors as follows:
+
+
+- `FunTyCon`: We have `(->)_CC = (:->)`.
+- `TupleTyCon`: We have `(,..,)_CC = (,..,)`.  We may either have a (long) list of conversion constructors `iso(,..,)` pre-defined or need to generate them inline by generating a suitable case expression where needed.
+- `SynTyCon`: Closure conversion operates on `coreView`; hence, we will see no synonyms.  (Well, we may see synonym families, but will treat them as not convertible for the moment.)
+- `PrimTyCon`: We essentially ignore primitive types during conversion, assuming that their converted and unconverted forms coincide.  As they cannot contain values of other types, we need no conversion constructor.
+- `CoercionTyCon` and `SuperKindTyCon`: They don't categorise values and are ignored during conversion.
+
+#### Conversion constructor
+
+
+
+Whenever we have a converted type constructor `T_CC`, we also need to generate a conversion constructor `isoT`.  If `T` has one or more arguments, the conversion is non-trivial, even for `T_CC == T`.
+
+
+#### Converting data constructors
+
+
+
+We convert a data constructor `C :: t1 -> ... -> tn` by generating a converted constructor `C_CC :: t1^ -> .. -> tn^`.  This includes the generation of a corresponding new worker `Id`.  For example, if the original worker has the type signature
+
+
+```wiki
+MkT :: (Int -> Int) -> Int
+```
+
+
+the converted worker is 
+
+
+```wiki
+MkT_CC :: (Int :-> Int) -> Int
+```
+
+
+As a consequence, whenever we convert a *partial* worker application in an expression, we need to introduce a closure on the spot.  (Simon pointed out that this is a rare case anyway.)
+
+
+
+We do not specially handle wrappers of data constructors or field selectors.  They are converted just like any other toplevel function.
+
+
+#### Examples
+
+
+
+For example, when we convert
+
+
+```wiki
+data Int = I# Int#
+```
+
+
+we get `Int_CC = Int` and we have
+
+
+```wiki
+isoInt :: Int :<->: Int
+isoInt = toInt :<->: frInt
+  where
+    toInt (I# i#) = I# i#
+    frInt (I# i#) = I# i#
+```
+
+
+As another example,
+
+
+```wiki
+data Maybe a = Nothing | Just a
+```
+
+
+implies `Maybe_CC = Maybe` and
+
+
+```wiki
+isoMaybe :: (a :<->: a_CC) -> (Maybe a :<->: Maybe a_CC)
+isoMaybe isoa = toMaybe :<->: frMaybe
+  where
+    toMaybe isoa Nothing  = Nothing
+    toMaybe isoa (Just x) = Just (to isoa x)
+    frMaybe isoa Nothing  = Nothing
+    frMaybe isoa (Just x) = Just (fr isoa x)
+```
+
+### Converting classes and instances
+
+
+
+We don't alter class and instance declarations in any way.  However, the dictionary type constructors and dfuns are converted in the same way as other data types and value bindings, respectively.
+
+
+
+As an example, assume `Num Int` were defined as
+
+
+```wiki
+class Num a where
+  (+)    :: a -> a -> a
+  negate :: a -> a
+instance Num Int where
+  (+)    = primAddInt
+  negate = primNegateInt
+```
+
+
+with the Core code being
+
+
+```wiki
+data Num a = 
+  Num {
+    (+)    :: a -> a -> a,
+    negate :: a -> a
+  }
+dNumInt = Num Int
+dNumInt = Num primAddInt primNegateInt
+```
+
+
+Then, closure conversion gives us
+
+
+```wiki
+data Num_CC a = Num_CC (a :-> a :-> a) (a :-> a)
+(+_CC)    :: Num_CC a :-> a :-> a :-> a
+negate_CC :: Num_CC a :-> a :-> a
+
+dNumInt_CC :: Num_CC Int   -- as Int_CC = Int
+dNumInt_CC = Num_CC 
+               (to isoIntToIntToInt primAddInt) 
+               (to isoIntToInt primNegateInt)
+  where
+    isoIntToIntToInt = isoArr isoInt isoIntToInt
+    isoIntToInt      = isoArr isoInt isoInt
+```
+
+### Converting value bindings
+
+
+#### Bindings
+
+
+
+For every binding
+
+
+```wiki
+f :: t = e
+```
+
+
+we generate
+
+
+```wiki
+f_CC :: t^ = e^
+```
+
+#### Toplevel
+
+
+
+When converting a toplevel binding for `f :: t`, we generate `f_CC :: t^` and redefine `f` as
+
+
+```wiki
+f :: t = fr iso<t> f_CC
+```
+
+#### Examples
+
+
+
+Given 
+
+
+```wiki
+add :: Num a -> a -> a
+add = \dNum x -> (+) dNum x 1
+```
+
+
+we generate
+
+
+```wiki
+add :: Num a -> a -> a
+add = fr isoFun add_CC
+  where
+    isoFun = isoNum (id :<->: id) `isoArr`
+             (id :<->: id)        `isoArr`
+             (id :<->: id)
+
+add_CC :: Num_CC a :-> a :-> a
+add_CC = lam $ \dNum -> 
+           (\dNum x -> (+_CC) $: dNum $: x $: 1) :$ dNum
+```
+
+
+If `add` is used in unconverted code it will still refer to the converted computation `add_CC`; i.e., we can use converted (and subsequently vectorised) code from unconverted/unvectorised code just by importing a converted/vectorised module as normal into an unconverted module.
+
+
+### Converting terms
+
+
+
+To keep the translation rules simpler, we assume that for every converted data constructor `C_CC :: forall a1..an. t1 -> .. -> tm -> t`, there is a conversion wrapper
+
+
+```wiki
+$WC_CC :: forall a1..an. t1 :-> .. :-> tm :-> t
+$WC_CC = /\a1..an -> lam_m (C_CC@a1@..@an)
+```
+
+
+where the family of functions
+
+
+```wiki
+lam_1 :: (a1 -> b) -> (a1 :-> b)
+lam_1 = lam
+
+lam_n :: (a1  -> ..  -> an  -> b)
+      -> (a1 :-> .. :-> an :-> b)
+lam_n f = 
+  lam_(n-1) $ 
+    \x1 .. x(n-1) -> uncurry_(n-1) f :$ (x1, .., x(n-1)
+```
+
+
+turns an `n`-ary function into an `n`-ary closure.  (NB: This is not the same as `(to iso<..>)` for that type, as we do not convert the types of the arguments of the function.)
+
+
+
+We translate terms as follows:
+
+
+```wiki
+cc[[C]]
+  | if C_CC exists       = $WC_CC
+cc[[x::t]]
+  | if x_CC exists       = x_CC
+  | otherwise            = to iso<t> x
+cc[[lit]]                = lit
+cc[[e1 e2]]              = cc[[e1]] $: cc[e2]
+cc[[e@t]]                = cc[[e]]@t^
+cc[[\x -> e]]            = (\(y1, .., yn) x_CC -> cc[e]]) :$
+                           (y1, .., yn)
+  where
+    y1 .. yn = FV e
+cc[[/\a -> e]]           = /\a -> cc[e]]
+cc[let x = e1 in e2]     = let x_CC = cc[[e1]] in cc[[e2]]
+cc[[case e x::t of alts]]= case cc[[e]] x_CC::t^
+                           of cc[[alts]]
+cc[[e `cast` t]]         = cc[[e]] `cast` t^
+
+cc[[alt1; ..; altn]]    = cc[[alt1]]; ..; cc[altn]]
+cc[[default -> e]]      = default -> cc[[e]]
+cc[[C x1 .. xn -> e]]
+  | if C_CC exists      = C_CC x1_CC .. xn_CC -> cc[[e]]
+  | otherwise           = C x1 .. xn -> cc[[e]]
+```
+
+### TODO
+
+
+#### Examples
+
+
+
+Have an example with two modules one unconverted, where the converted imports the unconverted.
+
+
+
+Also have an example that motivates why we have to vectorise/CC declarations such as `Int`.
+
+
