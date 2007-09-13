@@ -1,0 +1,59 @@
+= Replacing GMP with a Haskell integer arithmetic library =
+
+One possiblity is to replace GMP with an arbitrary-precision integer arithmetic library written entirely in Haskell. There is at least one available:
+
+ * [http://www.haskell.org/pipermail/libraries/2007-August/007909.html HIntegerByInt] by Isaac Dupree
+
+The downside is speed, of course.  The upside is that (a) you don't need GMP and (b) it's relatively easy to do.
+
+Because of the speed issue we can't abandon GMP.  So there are two possibilities: 
+  * '''Easy''': add a build-time option so that you can build GHC with GMP, or instead build GHC with a Haskell Integer library.  Disadvantage: there would be two versions of (say) `ghc-6.8`: 
+    * vanilla `ghc-6.8` using GMP
+    * `ghc-6.8-special` with Haskell Integer library
+
+  * '''Harder''': give a new flag to GHC, say `-integer-package=my-integer-2.0`.  The intention would be that the compiler would then use the `Integer` library in package `my-integer-2.0` instead of GMP.  Advantage: only one version of GHC.
+
+Here are some notes on what you'd need to do to achieve this.
+You'll have to change three bits:
+ * The libraries
+ * The compiler
+ * The runtime system
+
+== The libraries ==
+
+Currently `Integer` is defined in the module `GHC.Num`.  It would not be hard to pull out the `Integer` stuff, into a separate module `GHC.Integer` (exporting a well-defined interface, and not exposing the representation of `Integer`) that `GHC.Num` imported.  `GHC.Num` is where class `Num` is defined, and `Num` uses `Integer` in the type of the class method `fromInteger`; that's why `GHC.Num` has to import `Integer` and not the other way round. 
+
+Then for the "easy" plan, you could simply change the import so that instead of `GHC.Num` importing `GHC.Integer` it imported `MyIntegerModule` or whatever.  Now recompile all libraries.
+
+The tricky bit about the "harder" plan is that you'll need to build the libraries twice; once with `GHC.Num` importing `GHC.Integer`, and once with `GHC.Num` importing your `MyIntegerModule` instead.  You'd need to ship GHC with both sets of libraries; the `-integer-package` flag would select which set of libraries you use when compiling and linking.  It's rather unclear exactly how to do this so that it works nicely with Cabal etc.
+
+== The compiler ==
+
+GHC knows relatively little about the `Integer` type. Look in `prelude/PrelNames` and search for `Integer`.  These `Names` "know" which module the functions are defined in; look at the defn of `plusIntegerName` for example.  
+
+Currently, then, GHC expects the type `Integer` and the value `plusInteger` to be defined in `GHC.Num`.  That's fine: just add defns like this:
+{{{
+module GHC.Num where
+  import GHC.Integer( Integer, plusInteger, ... ) as I
+    -- or import MyIntegerModule(...) as I
+
+  type Integer = I.Integer
+  plusInteger = I.plusInteger
+  ...etc...
+}}}
+Now GHC will still find `GHC.Num.Integer` but it'll find a type synonym that will tell it where `Integer` is ''really'' defined.  Similarly `plusInteger`.
+
+Integer ''literals'' are built by the desugarer in `DsUtils.mkIntegerExpr`.  All it assumes is that there are functions:
+{{{
+  smallIntegerDataCon :: Int -> Integer
+  plusInteger, timesInteger :: Integer -> Integer -> Integer
+}}}
+It uses these functions to construct big integer literals using arithmetic. Despite the name, it's not important that `smallIntegerDataCon` is bound to a data constructor. All the library needs to provide is a way to convert an `Int` to an `Integer`.  So that can be handled just the same way as above.
+
+In short, the compiler can be untouched EXCEPT for any jiggery pokery to do with finding the right libraries when using the "harder" approach.
+
+== The runtime system ==
+
+You'd need to build two versions of the runtime system too, one omitting all the GMP goop.
+
+ 
