@@ -1,0 +1,9 @@
+= Submissions =
+
+This page has been replaced by a combination or
+ * [wiki:WorkingConventions/FixingBugs How to fix a bug in GHC]
+ * [wiki:WorkingConventions/AddingFeatures How to add a new feature to GHC]
+
+Both are referred to from [wiki:WorkingConventions]. 
+
+Ultimately we'll delete this Submissions page.
