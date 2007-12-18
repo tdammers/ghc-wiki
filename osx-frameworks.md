@@ -1,0 +1,105 @@
+## Notes about OS X Frameworks
+
+
+
+There's been some confusion  (myself included) about how OS X frameworks integrate with the compiler and linker.  Apple's documentation is not very clear on some of these points.  So I hope this page will clear up any misconceptions, and let us decide how to integrate them with GHC.
+
+
+
+First, a review: A framework is a directory ending in `.framework` which stores headers and object code associated with a library.  Frameworks are always dynamically linked.
+
+
+
+Note ghc provides the following flags equivalents:
+
+
+- `-framework-dir` =\> `-F`
+- `-framework` =\> `-framework`
+- `-I` =\> `-I`
+
+### Compilation flags
+
+
+
+You can `#include` a header from a framework in two ways.  Say Foo.framework contains the header file `header.h`.  It will be stored in either the `Headers` or `PrivateHeaders`
+subfolders (which may be symlinks to other subfolders).
+
+
+#### Apple-recommended way
+
+
+
+Reference a header using `#include <Foo/header.h>`.  Then, `gcc` will look for the folder `Foo.framework` in the following directories:
+
+
+- Any directories specified by `-F` (eg, `-F$HOME/Library/Frameworks`)
+- `/System/Library/Frameworks` (only Apple's frameworks should be stored here)
+- `/Library/Frameworks`  
+
+
+Once Foo.framework is found, `gcc` will look for:
+
+
+- `Foo.framework/Headers/header.h`
+- `Foo.framework/PrivateHeaders/header.h`.
+
+
+Note: if you specify `#include <Foo/header.h>`, `gcc` will also search for, e.g.,  `/usr/local/include/Foo/header.h`, and may use it if found.
+
+
+#### More unix-y way
+
+
+
+Another way is to just use `#include <header.h>` and add the compiler flag `-I$HOME/Library/Frameworks/Foo.framework/Headers`.  This is consistent with `#include` on other unixes, but requires manually
+specifying the full path to the framework's `Headers` folder.  
+
+
+### Dynamically linking at build time
+
+
+
+To build an executable or library which is linked against a framework, you must specify `-framework Foo` which tells `ld` to dynamically link against the framework.  The framework
+will be searched for in:
+
+
+- Any directories specifid with `-F`
+- `/Library/Frameworks`
+- `/Network/Library/Frameworks`
+- `/System/Library/Frameworks`
+
+### Loading at runtime
+
+
+
+When you run a program which was linked against a framework, it is loaded by the dynamic link editor, `dyld`.  The dynamic linker searches for the framework using the following algorithm.  
+(The default values of `DYLD_(FALLBACK_)FRAMEWORK_PATH` may be overwritten by setting environmental variables as colon-separated strings).
+
+
+- Look in each of the entries of `DYLD_FRAMEWORK_PATH`, which defaults to empty.
+- Check the current directory.
+- Look in each of the entries of `DYLD_FALLBACK_FRAMEWORK_PATH`, which defaults to searching the following:
+
+  - `$HOME/Library/Frameworks`
+  - `/Library/Frameworks`
+  - `/Network/Library/Frameworks`
+  - `/System/Library/Frameworks`
+- If the framework name starts with `"@executable_path"` or `"@loader_path"`, replace it with, e.g., the full path to the application bundle:
+
+  - [
+    http://developer.apple.com/documentation/DeveloperTools/Conceptual/MachOTopics/Articles/loading\_code.html](http://developer.apple.com/documentation/DeveloperTools/Conceptual/MachOTopics/Articles/loading_code.html)
+  - [
+    http://www.cocoadev.com/index.pl?LinkingAuxiliaryExecutablesToEmbeddedFramework](http://www.cocoadev.com/index.pl?LinkingAuxiliaryExecutablesToEmbeddedFramework)
+
+
+Note that the `-F` is irrelevant to runtime behavior! (Apple's docs are not at all clear, but that's definitely how it works.)  Also, note `$HOME/Library/Frameworks` is searched by default at runtime, despite what `dyld`'s manpage says.  
+
+
+
+We've checked the source of dyld.cpp and tested most of the above behavior to confirm; you can download it at the following locations (requires free Apple ID registration).  See especially the functions `load` and `loadPhase0, loadPhase1, ..., loadPhase5`.
+
+
+- [
+  Download the source of any Darwin releases](http://www.opensource.apple.com/darwinsource/)
+- [
+  Direct link to dyld.cpp](http://www.opensource.apple.com/darwinsource/10.5/dyld-95.3/src/dyld.cpp)
