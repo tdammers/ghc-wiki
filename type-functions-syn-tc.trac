@@ -1,0 +1,38 @@
+= Type Checking with Indexed Type Synonyms =
+
+  '''This is OLD and OUT OF DATE material.'''
+
+GHC has now F,,C,, as its typed intermediate language.
+In a next step, we wish to add type functions to
+GHC's source language.  Type functions in combination
+with type annotations and GADTs allow us to type check
+some interesting programs.
+
+{{{
+data Zero
+data Succ n
+data List a n where
+  Nil  :: List a Zero
+  Cons :: a -> List a m -> List a (Succ m)
+
+type family Add :: * -> * -> *
+type instance Add Zero     y = y
+type instance Add (Succ x) y = Succ (Add x y)
+
+append :: List a l -> List a m -> List a (Add l m)
+append Nil xs = xs
+append (Cons x xs) ys = Cons x (append xs ys)
+}}}
+
+However, type checking with type functions is challenging.
+
+ * [wiki:TypeFunctionsSynTC/Challenge The challenge]
+ * [wiki:TypeFunctionsSynTC/Naive A first (naive) attempt]
+ * [wiki:TypeFunctionsSynTC/Second A second attempt]
+ * [wiki:TypeFunctionsSynTC/GHC Type equations in GHC]
+ * [wiki:TypeFunctionsSynTC/PlanMS Plan MS]
+ * [wiki:TypeFunctionsSynTC/PlanMSRevised Plan MS revised]
+ * [wiki:TypeFunctionsSynTC/PlanMSRevised2 Plan MS revised again]
+ * [wiki:TypeFunctionsSynTC/Comparison Brief comparison]
+ * [wiki:TypeFunctionsSynTC/GhcChr CHR-style simplification for GHC]
+ * [wiki:TypeFunctionsSynTC/GhcChrExamples Examples]
