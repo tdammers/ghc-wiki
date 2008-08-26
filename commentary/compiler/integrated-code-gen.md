@@ -35,7 +35,7 @@ The important elements of
 our design are as follows:
 
 
-1. Build two big hammers, and hit as many nails as possible.  (The big hammers are the **dataflow optimization engine** and a **coalescing register allocator.** For more on their uses, see our [design philosophy](commentary/compiler/integrated-code-gen#esign-philosophy).)  The hammer itself may be big and complicated, but **using a big hammer should be easy** and should give easily predictable results.
+1. Build two big hammers, and hit as many nails as possible.  (The big hammers are the **dataflow optimization engine** and a **coalescing register allocator.** For more on their uses, see our [design philosophy](commentary/compiler/integrated-code-gen#design-philosophy).)  The hammer itself may be big and complicated, but **using a big hammer should be easy** and should give easily predictable results.
 1. Load all back ends into every instance of the compiler, and **treat every compilation as a cross-compilation.**  Despite having been used in production compilers for at least twenty years, this technique is still seen as somewhat unorthodox, but it removes many `#ifdef`s and saves significant complexity at compiler-configuration time. Removing `#ifdef`s also mitigates problems with  validating the compiler under different build configurations.
 
 ## Design philosophy
