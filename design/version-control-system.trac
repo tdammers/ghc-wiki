@@ -1,0 +1,59 @@
+= GHC Version Control plans =
+
+We plan to move from Darcs to Git for GHC itself.  The recent flurry of work on Darcs is very encouraging, but GHC is a particularly high-end client, and taking a direct dependency leads to stress at both ends.  This page describes the plan.  See [wiki:DarcsConversion] for more details about the conversion process, and [wiki:GitForDarcsUsers] for a quick reference on how to use Git.
+
+We do not plan to change before the 6.10 release. Doing so would be destabilising at a time when we are trying to stabilise; and we need to devote all our active cycles to getting 6.10 out.  Yes, that means it'll be more painful to move patches from the (Git) HEAD to the (Darcs) 6.10 branch, but we'll put up with that.  We'll delay the change until the 6.10 branch seems to have settled down; i.e. roughly 6.10.2.
+
+A very desirable goal is that it be possible to build GHC with only Git, rather than requiring every developer to actively use both Darcs and Git.  But, many of the libraries are maintained by others (notably Cabal) who, for good reasons, do not want to move.
+
+In what follows the "Boot Libraries" are the ones required to build GHC itself.
+
+We propose the following:
+   * The GHC repo will be in Git
+
+   * Each Boot Library will
+     * (a)either be mastered in Git, with a read-only Darcs mirror
+     * (b) or be mastered in Darcs, with a read-only Git mirror
+     * (c) or be mastered in Darcs, with an occasional, manual process to copy a snapshot of the library from Darcs into GHC's Git repo.  (Those Git files should be considered read-only.)
+
+   * That means that if we want to modify a Darcs-mastered library we'll have to get the Darcs version, make the patch, test it, push it, and then the Git mirror will be right.  Inconvenient,     but we can live with that.  We might even arrange it to be possible for super-developers to use the Darcs repo (rather than the mirror) direct from their tree.  Ordinary developers can continue to be Git-only.
+
+   * The same issue will arise for other people who want to modify a
+     Git-mastered package.
+
+   * Which is which will be decided on a case-by-case basis.  The main criterion is: is GHC a passive client of the library, which is maintained by someone else (e.g. Cabal, containers), or is the library intimately coupled with GHC's inner workings (e.g. template-haskell)?
+
+   If in doubt we should resolve ties in favour of darcs; we can always change our minds later, but changing and then changing back would be silly.
+
+   * Our specific proposals for the master VCS for each boot library are:
+{{{
+    hsc2hs                          darcs
+    haddock2                        either: up to David Waern 
+    packages/array                  git
+    packages/base                   git
+    packages/base3-compat           git
+    packages/bytestring             darcs
+    packages/Cabal                  darcs
+    packages/containers             darcs
+    packages/directory              darcs
+    packages/editline               darcs
+    packages/filepath               darcs
+    packages/ghc-prim               git
+    packages/haskell98              darcs
+    packages/hpc                    either: up to Andy Gill
+    packages/integer-gmp            git
+    packages/old-locale             darcs
+    packages/old-time               darcs
+    packages/packedstring           darcs
+    packages/pretty                 darcs
+    packages/process                git
+    packages/random                 darcs
+    packages/syb                    either: up to Utrecht
+    packages/template-haskell       git
+    packages/unix                   git
+    packages/Win32                  git
+}}}
+
+Of these, probably the only contentious one is `base`, which is both very tightly coupled to GHC, but also used by nhc and Hugs.  We humbly beg indulgence from Malcolm and Ross, and hope that the Darcs mirror be acceptable.  They have kindly offered such indulgence!
+
+However, `array`, `process`, `unix`, `Win32` are also somewhat less obvious, but they are quite intimately connected to GHC
