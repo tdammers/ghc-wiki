@@ -1,0 +1,29 @@
+
+= GHC-6.10.2 =
+
+This table summarises which platforms we believe the 6.10.2 release properly builds on.
+
+Please do update this table if you have more up-to-date info, or add new platforms if you have info for them.
+
+== Tier 1 ==
+
+||'''Platform'''||'''Works?'''||'''Last Checked'''||'''Tickets'''||
+||Windows/x86|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=Windows)]]||
+||OS X/x86|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=MacOS X&architecture=x86|Unknown/Multiple)]]||
+||Linux/x86|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=Linux&architecture=x86|Unknown/Multiple)]]||
+||Linux/amd64|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=Linux&architecture=x86_64 (amd64)|Unknown/Multiple)]]||
+
+== Tier 2 ==
+
+||'''Platform'''||'''Works?'''||'''Last Checked'''||'''Tickets'''||
+||OS X/powerpc|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=MacOS X&architecture=powerpc|Unknown/Multiple)]]||
+||Linux/powerpc|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=Linux&architecture=powerpc|Unknown/Multiple)]]||
+||Solaris/x86|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=NetBSD&architecture=x86|Unknown/Multiple)]]||
+||Solaris/amd64|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=NetBSD&architecture=x86_64 (amd64)|Unknown/Multiple)]]||
+||Solaris/sparc|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=Solaris&architecture=sparc|Unknown/Multiple)]]||
+||FreeBSD/x86|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=FreeBSD&architecture=x86|Unknown/Multiple)]]||
+||FreeBSD/amd64|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=FreeBSD&architecture=x86_64 (amd64)|Unknown/Multiple)]]||
+||OpenBSD/x86|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=OpenBSD&architecture=x86|Unknown/Multiple)]]||
+||OpenBSD/amd64|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=OpenBSD&architecture=x86_64 (amd64)|Unknown/Multiple)]]||
+||NetBSD/x86|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=NetBSD&architecture=x86|Unknown/Multiple)]]||
+||NetBSD/amd64|| || ||[[TicketQuery(milestone=6.10.2&status!=closed&os=NetBSD&architecture=x86_64 (amd64)|Unknown/Multiple)]]||
