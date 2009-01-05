@@ -1,0 +1,98 @@
+# Worker/Wrapper PRAGMA
+
+
+
+This is a sketch of a design for a PRAGMA to support the wider use of the worker/wrapper idiom.
+
+
+## The basic idea
+
+
+1. Write basic function
+
+```wiki
+reverse :: [a] -> [a]
+reverse [] = []
+reverse (x:xs) = reverse xs ++ [x]
+```
+
+1. Write non-rec worker function using the **original** function. 
+
+```wiki
+worker :: [a] -> [a] -> [a]
+worker xs = rep (reverse xs)
+```
+
+1. Finally, the pragma (or alt syntax, for discussion).
+
+  ```wiki
+  {-# WRAPPER reverse xs = abs (worker xs) #-}
+  {-# RULE "reverse" [WRAPPER] reverse xs = abs (worker xs) #-}
+  ```
+
+
+The design here intentionally works if the PRAGMA is ignored: the original reverse is used by everyone,
+and worker gets removed as dead code.
+
+
+
+You also may need to provide the coercion functions that go with the above definition.
+
+
+```wiki
+
+rep :: [a] -> [a] -> [a]
+rep xs ys = xs ++ ys
+
+abs :: ([a] -> [a]) -> [a]
+abs f = f []
+```
+
+### How does this work?
+
+
+
+We look for the edge between the worker and reverse,
+and rename it, as well as promoting the wrapper rule into a definition.
+So early in compilation, the AST will look like:
+
+
+```wiki
+{-# INLINE reverse' #-}
+reverse' :: [a] -> [a]
+reverse' [] = []
+reverse' (x:xs) = reverse xs ++ [x]
+
+worker :: [a] -> [a] -> [a]
+worker xs = rep (reverse' xs)
+
+{-# INLINE reverse #-}
+reverse xs = abs (worker xs)
+```
+
+
+Now we can let the optimizer do its job, as before. reverse' (which is no longer recursive)
+will be inlined inside worker. Anyone using reverse will call worker.
+
+
+
+The key thing is identifying the worker in general. It is anything that
+
+
+- Is mentioned in the right hand side of the WRAPPER rule, and
+- Calls the original function (reverse).
+
+
+After prototyping, we will explore generalizations.
+
+
+## Discuss
+
+
+
+I've come to the conclusion that this is not possible to implement directly inside the current
+rules as provided, and needs a small extension.
+
+
+- What is a good syntax for the WRAPPER PRAGMA?
+- What is the best place to put this in GHC? Do we extend `Activation` with a `Wrapper` constructor? Do we extend the HsDecls AST?
