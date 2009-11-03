@@ -1,0 +1,104 @@
+
+What follows are some notes I made when I last got PAPI working on Linux.
+
+
+## Installing PAPI
+
+
+- Grab PAPI and the most recent perfctr 2.6.x
+- Unpack both under `~/tmp`
+
+### On Ubuntu
+
+
+
+Get the bits needed to build a kernel:
+
+
+- `sudo apt-get install linux-kernel-devel fakeroot kernel-wedge kernel-package`
+- `sudo apt-get build-dep linux-source`
+- `sudo apt-get install linux-source`
+- This seems to get a slightly out-of-date version, but maybe that's ok
+
+
+Unpack and patch the kernel:
+
+
+- `cd ~/tmp`
+- `tar xvjf /usr/src/linux-source-*`
+- `cd linux-source*`
+- Read `$perfctr/INSTALL`
+- `$perfctr/update-kernel` Might fail because it can't find the right patch, in which case:
+- `$perfctr/update-kernel --patch=2.6.22` (tell it which patch)
+- `make menuconfig`
+- Turn on `perfctr`-related stuff under "Processor type and features", "Performance-monitoring counters support".
+  You need both "virtual" and "global" support turned on.
+
+
+Build the kernel:
+
+
+- `make-kpkg --rootcmd fakeroot --initrd --append-to-version=-perfctr kernel-image kernel-headers`
+- wait a while
+
+
+Install the kernel:
+
+
+- `cd ..`
+- `dpkg -i linux-image-*.deb`
+- `dpkg -i linux-headers-*.deb`
+- Copy contents of `lib/firmware/$old_kernel` to `/lib/firmware/$new_kernel` (not sure if this is right, but so
+  far the wireless adaptor still seems fine under the new kernel, so I guess it worked)
+- `cd $perfctr`
+- `cp etc/perfctr.rules /etc/udev/rules.d/99-perfctr.rules`
+- Boot the new kernel
+- I seemed to have `perfctr` built as a module, probably selected that in menuconfig by mistake, so anyway:
+- `sudo modprobe perfctr`
+- `cat /proc/misc | grep perfctr` should now show perfctr, and you should have `/dev/perfctr`.
+
+
+Build the perfctr library:
+
+
+- `cd $perfctr`
+- `make PREFIX=$HOME/local`
+- `make PREFIX=$HOME/local install`
+
+
+Now to build PAPI:
+
+
+- `cd $papi`
+- The configure script had some trouble detecting the C compiler for me, I had to edit the configure script and re-autoconf it.   Change
+
+  ```wiki
+  if test "$OS" != "linux"; then
+    ...
+  else
+    AC_PROG_CC
+    AC_PROG_F77
+  fi
+  ```
+
+
+to
+
+
+```wiki
+AC_PROG_CC
+AC_PROG_F77
+```
+
+- `autoconf`  
+- We have a choice about whether to use the `libperfctr` in the PAPI distribution, or the one that comes with `perfctr`.  The
+  latter is probably more correct, but the former also worked for me.
+- `./configure --with-perfctr-prefix=$HOME/local` --prefix=$HOME/local
+- `make`
+- `./run-tests.sh` (I got about 4 failures on Core 2)
+- `make install`
+
+
+Now it's all built, with header files in `$HOME/local/include`, libraries in `$HOME/local/lib`.
+
+
