@@ -1,0 +1,19 @@
+
+
+= GHC Commentary: Storage =
+
+GHC's storage manager is designed to be quite flexible: there are a large number of tunable parameters in the garbage collector, and partly the reason for this was because we wanted to experiment with tweaking these settings in the context of Haskell.
+
+[[Image(sm-top.png)]]
+
+ * [wiki:Commentary/Rts/Storage/HeapObjects Layout of Heap Objects]
+ * [wiki:Commentary/Rts/Storage/Stack Layout of the Stack]
+ * [wiki:Commentary/Rts/Storage/Slop Slop]
+ * [wiki:Commentary/Rts/Storage/BlockAlloc The Block Allocator]
+ * [wiki:Commentary/Rts/Storage/GC The Garbage Collector]
+ * [wiki:Commentary/Rts/Storage/HeapAlloced The HEAP_ALLOCED() macro]
+
+See also:
+
+ * [wiki:Commentary/Rts/HaskellExecution/PointerTagging Pointer tagging]
+
