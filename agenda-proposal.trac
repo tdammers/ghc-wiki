@@ -1,0 +1,51 @@
+= Agenda Proposal for HackPar =
+
+Participants, please comment directly by editing this page. 
+
+== Agenda proposals ==
+
+JB: I suggest the following formats
+ * T=Talk (Practical Code Knowledge): One person gives informative overview and points to relevant source code, followed/interrupted by time slots to look up and read the code. 
+ * Brainstorm: One person presents ideas (slides, black/white board, ???) about future features and development, and is chairing a discussion round afterwards. After discussion, results have to be fixed in keywords, within 5 minutes.
+ * Pair Programming: groups of 2 read and write code, focus on one particular aspect
+ * Snapshot: <5 minute for reporting results of hacking sessions to the group
+
+|| '''Time''' || '''Topic''' || '''Chair/Presenter''' ||
+|| || || ||
+|| || || ||
+|| Thu, early|| Individual setup on arrival ||  ||
+|| Thu, noon || Lunch || ||
+|| Thu, 1:30 || T:Jumpstart session: repository and build setup, Debugging || ?Vladimir? / Jost ||
+|| Thu, 2pm  || T:Overview of the Implementation Structure, Eden parts || Jost ||
+|| Thu, 2:30 || T:Heap Closures, Pointer tagging for Dummies || ?Simon?||
+|| Thu, 3pm  || Pair programming: Tracing, Packing, GUM-Eden integration, configure/packaging || - ||
+|| Thu, 5pm  || Summary snapshots || - ||
+|| Thu, 5:30 || Brainstorm Repository || Jost/tba ||
+|| Thu, dinner || Pizza || ||
+|| Thu, late || Pair programming II ? || - ||
+|| || || ||
+|| Fri, 9am   || Breakfast? || ||
+|| Fri, 9:30  || ?T:GUM implementation || Mustafa ||
+|| Fri, 10am  || ?T:Migration/Load balancing ||Vladimir? ||
+|| Fri, 10:30 || Pair Programming: Tracing, Packing, configure/packaging || ||
+|| Fri, 1pm  || Lunch break || ||
+|| Fri, 2pm  || Organising the development, group positioning || HWL  ||
+|| Fri, 2:15 || T:Migration/Load balancing ||Vladimir ||
+|| Fri, 2:30 || T:Future GHC directions || Simon ||
+|| Fri, 3pm  || Brainstorm: Test suite coverage and Setup || tba ||
+|| Fri, 3:30 || Pair Programming: various test programs, test and repo setup || - ||
+|| Fri, 5:30 || Summary snapshots, check-in || ||
+|| Fri, 6pm  || Brainstorm (with scotch & malt?) || bar tender ||
+|| Fri, late || Curry and games evening  || - ||
+|| || || ||
+|| Sat, 9:30 || Extensions and Future directions || Chair: ||
+|| || Globus, GHC-GAP, GHC-SMP, Microkernel, Packing as-a-library || tba ||
+|| Sat, 10:30 || Pair programming: various projects (analysis) || ||
+|| Sat, 12:30 || Summary snapshots || ||
+|| || || ||
+|| Sat, 1pm  || Lunch break || ||
+|| Sat, 3pm || Pair programming: Tracing, Packing code, various projects || ||
+|| Sat, 5pm  || Summary snapshots || ||
+|| Sat, 5:30 || Result check-in (repository) and wrap-up || ||
+|| Sat, late || Pub and winding-down || ||
+|| || || ||
