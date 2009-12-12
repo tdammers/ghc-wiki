@@ -1,0 +1,30 @@
+== Primitive Operations ==
+
+The Eden implementation exposes coordination control and communication to Haskell level, and uses the defined primitives in the internals of a module `Eden.hs` 
+(this part is not relevant for the GpH variant, but might be interesting even though).
+
+ * runtime information primitives: `noPe#, selfPe#`
+ * placeholder creation and registration: `expectData#`
+ * connecting a thread to a registered inport: `connectInport#`
+ * sending graph structures: `sendData#` (also implementing remote process creation by a special send mode)
+
+These primitives (see `rts/PrimOps.c`) use the RTS functionality we have put in place earlier.
+
+NB: if at all possible, we should make sure all primitives do something expectable and sensible in the non-parallel case. This is not true for `expectData#`
+
+Simple operations like `selfPe / noPe` only read variables inside the runtime system. They can be (and were) implemented as primitive operations, but the best way is to implement them in Haskell by simply reading a (foreign-import'ed) C Int  (as done for Concurrent Haskell's `numCapabilities` as well):
+
+{{{
+foreign import ccall "&nPEs" nPEs :: Ptr CInt
+foreign import ccall "&thisPE" thisPE :: Ptr CInt
+noPe,selfPe :: Int
+noPe = unsafePerformIO $  do
+              n <- peek nPEs
+              return (fromIntegral n)
+selfPe = unsafePerformIO $  do
+              n <- peek thisPE
+              return (fromIntegral n)
+}}}
+
+
+[wiki:GpHEden --> back to GpHEden]
