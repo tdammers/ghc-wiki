@@ -1,0 +1,52 @@
+== Compiler Ways for Parallel Execution ==
+We add several '''ways''' to the GHC for compiling a parallel target. The purpose is to link compiled code to a special RTS built with `PARALLEL_RTS` and to generate a start script for the executable.
+
+The ways we create for parallel Haskell should be RTS-only, which means that the difference is only in the runtime system code, and not in the code generator. If something we modify ever changes the code generator, we get a '''full way''' instead: all libraries need to be recompiled in this case. We do not want this.
+
+=== Way definition ===
+`compiler/main/StaticFlagParser.hs` Ways defined:
+
+ * '''-parpvm''' using PVM middleware. Haskell way: `WayParPvm`
+ * '''-parmpi''' using MPI middleware. Haskell way: `WayParMPI`
+ * '''-parcp''' using a multi-process implementation. Haskell way: `WayParCp`
+
+Furthermore, the way names are abbreviated for the build scripts and assigning name parts for the linker.
+
+ * `pp <-> parpvm`
+ * `pm <-> parmpi`
+ * `pc <-> parcp`
+
+`mk/config.mk.in` uses these way abbreviations (also combined with debug and logging, see below), and also enables a new configure flag `--enable-parallel` to build the parallel system.
+
+==== The preprocessor flags ====
+
+Way definitions are in `compiler/main/StaticFlags.hs` where a set of flags activated for the particular way. 
+In each way, we activate flag {{{-optc-DPARALLEL_RTS}}}, {{{-D__PARALLEL_HASKELL__}}}, and way-dependent further preprocessor flags {{{-optc-DUSE_(PVM | MPI )}}}
+
+A bit confusing, I admit(JB)...
+The flag `__PARALLEL_HASKELL__` is defined for all Haskell compilations, whereas `PARALLEL_RTS` is defined when compiling the runtime system (the older Eden-6.8.x system used flag `PARALLEL_HASKELL` for the runtime system). 
+
+==== Combining ways ====
+
+`compiler/main/StaticFlags.hs` also defines the allowed combination of our ways with other ways. Debugging is allowed with every way by default. We have added the combination with -eventlog (PP-Flag `EVENTLOG`) recently. 
+Combination with -threaded (PP-Flag `THREADED_RTS`) is currently not allowed/expected to work, but a path to go in the future, so we try to prepare our code for that. 
+
+`mk/config.mk.in` (formerly, now separated into `mk/ways.mk`) defines options for these combined ways, using the abbreviations mentioned above. When combining several ways (e.g. debug and pp), the order is important, p?_debug is not debug_p?. We put debug first, so debug_p? is valid. This ordering is defined in `compiler/main/StaticFlags.hs`
+
+=== Configure Script Changes ===
+
+`./configure.ac` activates --enable-parallel, and adds tests for the availability of PVM and MPI. If PVM or MPI are not available, the respective ways will not be built.  While the PVM test is already correct (tests availability of lpvm3 for linking and compilation), the MPI test is currently still too weak (retrieves MPI compilation and linking flags by calling `mpicc --showme`, but does not test whether actual compilation and linking succeed).
+
+A test for the Pablo SDDF tools and trace library has been removed, it is not needed any more.
+
+=== Driver Changes ===
+Changes in `compiler/main/DriverPipeline.hs`:
+
+ * linker flags for PVM and MPI are introduced by a generated `Config.hs` (see `compiler/ghc.mk`). This hard-wires the flags into the compiler, instead of relying on user-set environment variables. When using the compiler and the compiled program, the environment has to be exactly identical to the one used when building the compiler (which is a clean solution but might cause some user problems).
+
+ * copying the compiler output, generating a start script:
+
+A run-phase `moveBinary`, calling a function `moveBinary` and helpers, rename/move the compiled binary and generate a start script to be called by the user.  This start script will later be extended for tracing (trace post-processing the trace files of several machines). TODO We should think again about the MPI support: when the script calls `mpirun`, node names should be passed as RTS options (removed before passing the flags to the program). Or we probably switch to spawning the non-main instances from inside the program (using MPI-2) (which is a bigger change).
+
+
+[wiki:GpHEden --> back to GpHEden]
