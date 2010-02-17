@@ -1,0 +1,86 @@
+This page is meant to document the current state of GHC on Apple Mac OS X on Intel x86 hardware.
+
+As of 2006-11-3, !MacPorts (formerly Darwinports, [http://www.macports.org/ MacPorts]) supports GHC 6.6 on x86.  The build is from source,
+using a binary bootstrap compiler and is "unix-style" in that it does not use frameworks.
+The maintainer is [mailto:gwright@macports.org Gregory Wright].
+
+The most common problems building ghc 6.6 using !MacPorts are not having an up-to-date Xcode and
+not cleaning up after a failed build.  You should verify that you have the latest Xcode from http://developer.apple.com/tools/xcode.
+Downloading Xcode requires a free Apple Developer Connection membership.  Please note that
+Xcode updates are no longer distributed by Software Update -- you must manually download
+the latest version.
+
+If you have tried to build ghc under !MacPorts and had the build fail, you must do
+
+{{{ > sudo port clean ghc }}}
+
+before you start the build again.  Restarting a failed build is a common source of spurious build problems.
+
+----
+
+As of 2006-10-11, there is an official binary distribution of GHC 6.6 for Mac OS X (Version 10.4) on the x86 architecture, thanks to AudreyTang. It's available from the main download page: http://haskell.org/ghc/download_ghc_66.html#macosxintel
+
+That which may be of use and excitement for various Haskell and Mac users, is an Xcode plugin available at http://www.hoovy.org/HaskellXcodePlugin/ - works excellent with this build
+
+----
+
+Another build, from 2006-09-15 (during the Hackathon):
+http://k9.dv8.org/~atomb/ghc-6.5-20060915.tar.bz2
+
+It only contains the core libraries (both normal and profiled), though it should be fairly easy to use it to compile any of the extra modules you like. As in previous builds, it requires that GMP.Framework mentioned below. It doesn't have Audrey's nice post-install script, so you'll need to run ranlib on all of the .a files installed in lib/ghc-6.5.
+
+Unfortunately, this package only seems to work if you have DarwinPorts set up in /opt/local, with the readline package installed. There's a tarball of the readline libraries (which unpacks into /usr/local/lib) that might alleviate the problem: http://k9.dv8.org/~atomb/readline.tar.bz2
+
+-- Aaron Tomb
+
+----
+
+At the time of writing (2006-08-20), darcs ghc won't build out of the box using the build 20060608.  Here's steps to do it:
+
+{{{
+darcs get --partial http://darcs.haskell.org/ghc
+cd ghc
+chmod +x ./darcs-all
+./darcs-all get --partial
+autoreconf
+./configure
+darcs unpull --patch "Fix Array imports"  # answer yes
+# edit file mk/config.mk
+# on line 790, change variable's value to
+# GhcMinVersion = 4
+# that causes normal bootstrap
+make -j3   # Add GhcBootLibs=YES if you don't want all the libs, -j3 is cool if you got core duo
+# compiles stage1 and libs
+# it should stop on stage2, compiler/Digraph.lhs
+darcs pull -a  # patch "Fix Array imports"
+make -j3 stage=2 # Add GhcBootLibs=YES if you don't want all the libs
+# be happy
+}}}
+
+If you use build after 20060814 or so, you shouldn't need to unpull and pull the patch.
+
+Make certain you have the GMP.framework for Darwin Intel installed. It can be downloaded as part of the Darcs Intel .dmg file at http://glozer.net/darcs/ .
+
+----
+
+AudreyTang has contributed an updated GHC CVS build:
+http://pugs.blogs.com/dist/ghc-6.5.20060608.tar.bz2
+
+ * This build has a post-install script that fixes readline, installs GMP.framework, and runs "ranlib" for you, so there's no manual tweaking involved anymore.
+ * Also note that this build does not have Data.ByteString and Data.ByteString.Char8 as part of the "base" package, because they are not compatible with the same-named modules from the latest fps package, which is going to be merged to GHC real soon now.
+ * An earlier build is available at http://perlcabal.org/~audreyt/tmp/ghc-6.5.20060526-i686-apple-darwin8.tar.bz2
+
+----
+
+This GHC CVS build seems to work quite well:
+http://www.uni-graz.at/imawww/haskell/ghc-6.5.20060409-i386-apple-darwin.tar.bz2
+Some issues:
+ * You need to manually install GMP.framework in /Library/Frameworks, and libreadline.dylib (and the libreadline*.dylib symlinks, I guess) in /usr/local/lib (assuming prefix=/usr/local).
+ * When using runghc to build some cabal packages (e.g. [http://www.cs.chalmers.se/~bringert/darcs/haskell-xhtml/doc/ xhtml]), the setup program dies silently after building the archive, but before writing the .installed-pkg-config file. If the setup program is compiled with ghc, this does not happen.
+ * When using "./configure --prefix=/usr/local; make install", GHC gets installed in /usr/local/lib/-6.5/.
+
+The Makefile.in for the release above is broken in a few ways, which causes the /-6.5/ weirdness   The problems are:
+ * package is not set.  Be sure that the package name does not end in a space
+ * the invocation of mkdirhier (INSTALL_DIR) is broken for libraries & share (lines 205 & 206) , the first $$0 is in error
+ * the library files are installed using cp, but should be installed using 'install -p' to preserve the timestamps
+
