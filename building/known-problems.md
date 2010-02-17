@@ -1,0 +1,4 @@
+
+redirect(wiki:Building/FAQ)?
+
+
