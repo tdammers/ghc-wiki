@@ -1,0 +1,82 @@
+# Planning notes for GHC
+
+
+
+This page is an internal planning document, for Ian L, Simon M, and Simon PJ. It tracks the various things we'd like to get done, apart from the usual bug triage and release cycle.
+
+
+## Current active mini-projects
+
+
+
+Ian's projects
+
+
+- **space-and-time perf sweep of the HEAD** (post 6.6.1)
+
+- **Building libraries using Cabal**: Tidy up patches, do haddocking, test, then push.
+  Don't worry about unreg way: we'll probably drop it anyway, and for nightly testing we
+  can just do a full unreg build. Can't build the GHC package with --make due to
+  a bug where GHC gets confused when as it learns more about a type as it compiles
+  recursive modules: [930](http://gitlabghc.nibbler/ghc/ghc/issues/930).
+
+  - Look into whether we can do `SplitLibraries` with Cabal or not.
+
+- **Mailing lists**:
+
+  - install spam-filtering technology for the lists
+
+- **Broken tests**
+  Update building guide to know about broken(foo) and reqlib(foo) changes?
+
+- **GHC API**. File/reclassify bugs/tasks from the API users.
+
+- **Ghc Performance Index** ([\#1009](http://gitlabghc.nibbler/ghc/ghc/issues/1009)).
+
+- **Download statistics**
+
+
+ 
+
+
+- **Dynamic linking and shared libraries**
+
+  - GHCi seems to be working unregisterised
+  - Make -fPIC work with the NCG on various arches
+  - DLL/SO for RTS+Base libs.  Then lots of DLLs/SOs can share one RTS.
+  - nofib -fPIC vs normal code on the common arches
+  - nofib DLL vs static on the common arches
+  - Doc updates
+  - Write Wiki page describing GHCi linker
+
+    - GHCi’s linker (.o files) vs system linker (.so and .dll only)
+    - GHCi’s linker only works on 5-ish platforms.  
+
+
+Simon PJ's projects
+
+
+- **Implication constraints** doc/tidying up
+- **Demand analysis** with Kirsten Chevalier
+- **Associated data types and type synonyms**, with Manuel: [TypeFunctions](type-functions)
+- **Data parallel Haskell**, with Manuel, Gabi, Roman; see [
+  http://haskell.org/haskellwiki/GHC/Data\_Parallel\_Haskell](http://haskell.org/haskellwiki/GHC/Data_Parallel_Haskell)
+
+
+Simon M's projects
+
+
+- **darcs** Get darcs.h.o:\~igloo/darcs/ installed
+- **Parallel garbage collection**
+
+## Awaiting attention
+
+
+
+This list intended to be in priority order (but of course the priorities might not be right!)
+
+
+- **Windows installers**. Want to help Neil get going (see also [\#604](http://gitlabghc.nibbler/ghc/ghc/issues/604)).
+- **Merge commentaries**. We should merge all the info from the old commentary into the new one and then remove the old one.
+- **Dynamicise flags**. `-auto-all` should be dynamic, and `-prof` too if it's easy. And many, many others!
+- **stdin/stdout/stderr**. The initialisation should be done at startup, not when stdin/stdout/stderr are forced. May be tricky on Windows when we don't have a console.
