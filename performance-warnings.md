@@ -1,0 +1,126 @@
+
+At the 2010 Haskell Implementors Workshop, a discussion was held on how hard it remains for users to reliably achieve "C-like" performance from GHC Haskell code. While experts are able to consistently get good results, they typically do so via techniques that are difficult to learn, or obscure. Many Haskell users still find extracting high performance code from GHC to be hard or confusing. 
+
+
+
+Resources designed to address this gap, such as [
+the wiki advice](http://www.haskell.org/haskellwiki/Performance), [
+Real World Haskell](http://book.realworldhaskell.org/read/profiling-and-optimization.html) and [
+tutorials](http://blog.johantibell.com/2010/09/slides-from-my-high-performance-haskell.html)), have helped broaden the expert base, but do little to help beginner users reliably achieve good performance.
+
+
+
+The goal of this project is to have GHC guide the user to better performance, by warning of coding patterns that won't yield good performance.
+
+
+## Approach
+
+
+
+Users have trouble understanding how strictness analysis works, how demand analysis works, when and why things are specialized, inlined or unboxed. Our goal is for the compiler to tell them when such things happen, in order to guide them to better code.
+
+
+## Stage 1: Performance Lint
+
+
+### Strictness Warnings
+
+
+
+Users often feel a shotgun approach to strictness is the only way to fix performance or space problems. Due to difficulties reasoning about demand, a scattergun approach -- dropping bang patterns everywhere -- is used to squash laziness issues. This is usually unnecessary, and may make programs slower, than placing the getting the strictness precisely right.
+
+
+
+**The compiler should warn about unnecessary uses of bang patterns or seq.**
+
+
+
+Simon PJ: *Warning about unnecessary bangs or seqs is going to be hard, because the program has been shaken around so much between source and the end of the optimisation pipeline. Even deciding what "unnecessary" means is tricky.. is a bang unnecessary if its absence depends on a subtle
+strictness property of a function that is called in the body?*
+
+
+### Heuristics for "Probably a Performance Bug"
+
+
+
+Atomic types:
+
+
+- Int, Word, Int\*, Word\*
+- Double, Float
+
+
+should almost always be unboxed in users' code. It is exceedingly rare for such values to be necessarily lazy for correctness. However, due to insufficient strictness, such types are often inferred as lazy, and consequently not unboxed. 
+
+
+
+We can improve users' code by warning of any boxed types as arguments, or in data structures, for these types. Particularly accumulating parameters, or fields in record types. Additionally, if they are strict, but not unboxed, that should also be a warning.
+
+
+
+Simon PJ: *Warning about every boxed Int might yield a lot of warnings''
+*
+
+
+### Other heuristics
+
+
+- Warning any use of \>\>= that doesn't inline
+- Warn about lazy state monads
+- Warn about lazy tuples
+- Warn about unboxed constructor fields that had to be reboxed for passing to a non-strict function
+- Warn about join points that aren't let-no-escapes
+- Warn about lazy projections that aren't THUNK\_SELECTORs
+- Warn about possible space leaks due to `-ffull-laziness`
+- Warn about possible loss of sharing due to `-fstate-hack`
+- [SpecConstr](spec-constr) warnings
+- INLINE binder is (non-rule) loop breaker
+- Simplifier still going after N iterations
+- calling overloaded function with known dictionaries (could be SPECIALIZEd)
+
+## Issues
+
+
+- Warning about (\>\>=) not inlined will warn about all monad-overloaded functions.
+- Something simple would still give useful information.
+
+## Output format
+
+
+
+We could emit warnings about line / col number of values that "probably should be strict" or "have unnecessary bang patterns".
+
+
+
+A more advanced option would be to reuse `-fhpc` to emit colorized source.
+
+
+## Assertions
+
+
+
+Once we can spot problems, the user could assert, via ANNOTATIONs, that particular properties must hold. These could trigger `-Werror`s.
+
+
+## Results
+
+
+
+Results for quality of the warnings can be measured:
+
+
+- Apply `-fwarn-performance` to a program
+- Do what it says
+- Measure the speedup.
+
+## Implementation
+
+
+
+Add a `-fwarn-performance` flag that does two things:
+  
+
+
+- unnec. bang patterns/seq after strictness analysis
+- uses a library of heuristics (programmable?) to lint-check core.
+- The pass would be a core-to-warnings pass.
