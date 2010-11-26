@@ -1,0 +1,24 @@
+
+[[PageOutline]]
+
+= Low-level Profiling =
+
+Cross-platform tools:
+
+ * RTS Tracing
+
+Linux tools:
+
+ * '''perf''': [wiki:Debugging/LowLevelProfiling/Perf]
+ * '''PAPI''': [wiki:Debugging/LowLevelProfiling/PAPI]
+ * '''oprofile''' [wiki:Debugging/LowLevelProfiling/oprofile]
+ * '''qprof''' [wiki:Debugging/LowLevelProfiling/QProf]
+ * '''mutrace''': pthread mutex profiling [wiki:Debugging/LowLevelProfiling/mutrace]
+
+Mac & BSD tools:
+
+ * dtrace
+
+Windows tools
+
+ * ETW
