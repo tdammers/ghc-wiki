@@ -1,0 +1,29 @@
+## Type-Naturals and GADTs
+
+
+```wiki
+{-# LANGUAGE TypeNaturals, GADTs #-}
+
+import GHC.TypeNats
+
+data Vec :: Nat -> * -> * where
+  Nil  :: Vec 0 a
+  Cons :: a -> Vec n a -> Vec (n + 1) a
+
+cat :: Vec m a -> Vec n a -> Vec (m + n) a 
+cat Nil ys          = ys
+cat (Cons x xs) ys  = Cons x (cat xs ys)
+
+data UNat :: Nat -> * where
+  Zero :: UNat 0
+  Succ :: UNat n -> UNat (n + 1)
+
+split :: UNat m -> Vec (m + n) a -> (Vec m a, Vec n a)
+split Zero xs = (Nil, xs)
+split (Succ n) (Cons x xs)  = case split n xs of
+                                (as,bs) -> (Cons x as, bs)
+
+instance Show a => Show (Vec n a) where
+  show Nil = "[]"
+  show (Cons x xs) = show x ++ " : " ++ show xs
+```
