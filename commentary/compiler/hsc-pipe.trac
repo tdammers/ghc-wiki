@@ -1,0 +1,5 @@
+= Picture of the main compiler pipeline =
+
+See [wiki:Commentary/Compiler compiling one module] for the commentary on this diagram.
+
+[[Image(HscPipe2.png)]]
