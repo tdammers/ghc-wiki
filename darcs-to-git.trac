@@ -1,0 +1,55 @@
+
+= Migrating patches from darcs to git =
+
+Suppose `ghc/darcs` is a darcs GHC tree containing patches that need to be migrated to git, and `ghc/git` is a git GHC tree.
+
+This assumes that all your changes are in the ghc repo itself. Otherwise, if you have made changes to other repos (e.g. `libraries/base`) you'll need to do a similar procedure for those repos too.
+
+We'll assume the following directory setup, where `$root` is some directory in your file system
+ * `$root/my-darcs`: the Darcs repo that contains the patches you'd like to move over into Git.  We will make no changes to this repo.
+ * `$root/baseline-git` (initially non-existent): the Git repo at the moment of switchover
+ * `$root/migrate` (initially non-existent): during the transfer process this is going to be ''both'' a Darcs repo ''and'' a Git repo
+
+'''Step 1''': create `migrate`:
+{{{
+cd $root
+darcs get http://darcs.haskell.org/ghc
+mv ghc migrate
+}}}
+This gets a Darcs copy of the repo, precisely at the switchover point.  (We don't need a tag, because the Darcs repos were frozen precisely at switchover, so the HEAD will do.)
+
+'''Step 2''': create `baseline-git`:
+{{{
+cd $root
+git clone http://darcs.haskell.org/ghc.git/ baseline-git
+cd baseline-git
+git checkout -b "some-descriptive-name" ghc-darcs-git-switchover
+}}}
+This gets a Git copy of the repo, precisely at the point of switchover (that's what the `ghc-darcs-git-switchover` tag does).  At this moment all the source files in `migrate` and `baseline-git` should be bit-for-bit identical.  Check this.
+
+'''Step 3''': make `migrate/` into a Git repo too!  All we need do is to copy over Git's meta-data.
+{{{
+cd $root/migrate
+mv ../baseline-git/.git .
+}}}
+
+'''Step 4''': transfer patches.  For each patch (or group thereof) you want to transfer, do this:
+ * Pull the patch into `tmp-git`:
+{{{
+cd $root/migrate
+darcs pull ../my-darcs
+ ...interactively pull the patches you want...
+}}}
+ * Record a Git patch for this patch group
+{{{
+git commit -a
+}}}
+
+'''Step 5''': merge the patches into the git master:
+{{{
+git checkout master
+git merge "some-descriptive-name"
+}}}
+
+'''Step 6''': validate and push to Git.
+
