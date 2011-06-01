@@ -604,7 +604,7 @@ These are notes on specific modules and why they are the colour they are... ect.
 **GHC.Base** and **GHC.Prim:**
 Leaving unsafe. Had a go at making safe versions but gets
 pretty ugly and complex quickly. See 
-[Base Module](safe-haskell/base-package#ase-module) for
+[Base Module](safe-haskell/base-package#base-module) for
 a more detailed discussion.
 
 
