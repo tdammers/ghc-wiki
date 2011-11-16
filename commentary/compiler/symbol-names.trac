@@ -1,0 +1,74 @@
+= Symbol Names =
+Since Haskell allows many symbols in constructor and variable names that C compilers or assembly might not allow (e.g. :, %, #) these have to be encoded using z-encoding.  The encoding is as follows.  See [[GhcFile(compiler/utils/Encoding.hs)]].
+
+== Tuples ==
+
+|| Decoded || Encoded || Comment ||
+|| `()`  || Z0T     || Unit / 0-tuple ||
+||         ||         || There is no Z1T ||
+|| `(,)` || Z2T || 2-tuple ||
+|| `(,,)` || Z3T || 3-tuple ||
+|| ... || || And so on ||
+
+== Unboxed Tuples ==
+|| Decoded || Encoded || Comment ||
+||         ||         || There is no Z0H ||
+|| `(# #)` || Z1H  || unboxed 1-tuple (note the space) ||
+|| `(#,#)` || Z2H  || unboxed 2-tuple ||
+|| `(#,,#)` || Z3H  || unboxed 3-tuple ||
+|| ... || || And so on ||
+
+== Alphanumeric Characters ==
+
+|| Decoded || Encoded || Comment ||
+|| a-y, A-Y, 0-9 || a-y, A-Y, 0-9 || Regular letters don't need escape sequences ||
+|| z, Z || zz, ZZ || 'Z' and 'z' must be escaped ||
+
+== Constructor Characters ==
+|| Decoded || Encoded || Comment ||
+|| `(` || ZL || Left ||
+|| `)` || ZR || Right ||
+|| `[` || ZM || 'M' before 'N' in [] ||
+|| `]` || ZN || ||
+|| `:` || ZC || Colon ||
+
+== Variable Characters ==
+|| Decoded || Encoded || Mnemonic ||
+|| `&` || za || Ampersand ||
+|| `|` || zb || Bar ||
+|| `^` || zc || Caret ||
+|| `$` || zd || Dollar ||
+|| `=` || ze || Equals ||
+|| `>` || zg || Greater than ||
+|| `#` || zh || Hash ||
+|| `.` || zi || The dot of the 'i' ||
+|| `<` || zl || Less than ||
+|| `-` || zm || Minus ||
+|| `!` || zn || Not ||
+|| `+` || zp || Plus ||
+|| `'` || zq || Quote ||
+|| `\` || zr || Reverse slash ||
+|| `/` || zs || Slash ||
+|| `*` || zt || Times sign ||
+|| `_` || zu || Underscore ||
+|| `%` || zv || (TODO: I don't know what the mnemonic for this one is. Perhaps relatiVe or diVide?) ||
+
+== Other ==
+Any other character is encoded as a 'z' followed by its hex code (lower case, variable length) followed by 'U'.  If the hex code starts with 'a', 'b, 'c', 'd', 'e' or 'f', then an extra '0' is placed before the hex code to avoid conflicts with the other escape characters.
+
+== Examples ==
+
+|| Before       || After ||
+|| `Trak`      || `Trak` ||
+|| `foo_wib` || `foozuwib` ||
+|| `>`          || `zg` ||
+|| `>1`        || `zg1` ||
+|| `foo#`     || `foozh` ||
+|| `foo##`   || `foozhzh` ||
+|| `foo##1` || `foozhzh1` ||
+|| `fooZ`     || `fooZZ` ||
+|| `:+`        || `ZCzp` ||
+|| `()`          || `Z0T` ||
+|| `(,,,,)`      || `Z5T` ||
+|| `(# #)`     || `Z1H` ||
+|| `(#,,,,#)`  || `Z5H` ||
