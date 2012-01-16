@@ -1,0 +1,18 @@
+# Heap and Stack checks
+
+
+
+Source files: [rts/HeapStackCheck.cmm](/trac/ghc/browser/ghc/rts/HeapStackCheck.cmm)
+
+
+
+When allocating a heap object, we bump `Hp` and compare to `HpLim`. If the test fails we branch to ???.  Usually this code tests an interrupt flag (to see if execution should be brought tidily to a halt); grabs the next block of allocation space; makes `Hp` point to it and `HpLim` to its end; and returns.  If there are no more allocation-space blocks, garbage collection is triggered.
+
+
+---
+
+
+
+[CategoryStub](category-stub)
+
+
