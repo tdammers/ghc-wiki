@@ -243,7 +243,7 @@ map f (map g xs) = map (f . g) xs
 ```
 
 
-Likewise, FAF composes multiple mutator functions together. It then passes the resulting function to a single `loop` combinator to produce the desired result without the intermediate steps. It get a little more complicated that that since we have to deal with the accumulators, as well as the fact that a mutator function is not obliged to produce an element at every iteration. We will present the code for the composition operator in the section on [Live Fusion](data-parallel/live-fusion#lattening).
+Likewise, FAF composes multiple mutator functions together. It then passes the resulting function to a single `loop` combinator to produce the desired result without the intermediate steps. It get a little more complicated that that since we have to deal with the accumulators, as well as the fact that a mutator function is not obliged to produce an element at every iteration. We will present the code for the composition operator in the section on [Live Fusion](data-parallel/live-fusion#flattening).
 
 
 ---
