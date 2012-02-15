@@ -1,0 +1,18 @@
+= GHC IRC meetings =
+
+'''The Wednesday 4pm meetings appear to have stopped at some point between 2008-09-03 and 2012-02-15.'''
+
+Held in #ghc on [http://www.haskell.org/haskellwiki/IRC_channel FreeNode], every Wednesday at 4pm UK time.
+
+If you don't live in the UK, you can run the following to see when the next meeting is for you:
+{{{
+date -d 'wed 4pm BST'
+}}}
+
+||[attachment:ghc-2008-07-16.log Log]||First meeting, 2008-07-16, 4pm UK time||The Haskell Platform||
+||[attachment:ghc-metting-2008-07-23.log Log]||Second meeting, 2008-07-23, 4pm UK time||Version Control System for GHC||
+||[attachment:ghc-meeting-2008-07-30.log Log]||Third meeting, 2008-07-30, 4pm UK time||Build System and Version Control System for GHC||
+||[attachment:ghc-meeting-2008-08-06.log Log]||Fourth meeting, 2008-08-06, 4pm UK time||Build System, Build System and Version Control System||
+||[attachment:ghc-meeting-2008-08-13.log Log]||Fifth meeting, 2008-08-13, 4pm UK time||Darcs vs. Git - The War Continues||
+||[attachment:ghc-meeting-2008-08-20.log Log]||Sixth meeting, 2008-08-20, 4pm UK time||build system, epoll for GHC rts ||
+||[attachment:ghc-meeting-2008-09-03.log Log]||Eighth meeting, 2008-09-03, 4pm UK time||GHC 6.10 release, HP/extralibs ||
