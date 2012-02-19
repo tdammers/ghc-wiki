@@ -1,0 +1,68 @@
+# Polymorphic record patterns (***speculative*** future)
+
+
+
+John Meacham has requested the ability to put polymorphic record syntax in a pattern. [
+http://www.haskell.org/pipermail/glasgow-haskell-users/2012-February/021918.html](http://www.haskell.org/pipermail/glasgow-haskell-users/2012-February/021918.html)
+
+
+
+Without trying to match his request exactly, here's a possible desugarring within the DORF framework. (I am not suggesting this gets implemented until we've more experience with DORF.)
+
+
+
+Syntax like this in a pattern:
+
+
+```wiki
+case r of {
+    r{customer_id, firstName, lastName } -> ... customer_id ...
+    }
+```
+
+
+Note:
+
+
+- there's a lower-case name prefix to the `{ ... }` body, so this is not a data constructor
+- this is an irrefutable name binding, not really a pattern
+- (That is, if `r` doesn't happen to have all those fields, we'll just fail to compile, we won't try to go on to the next case branch.)
+- This example is using **-XNamedFieldPuns**, we could also use the `{ blah = foo }` syntax John gives.
+
+
+The obvious way to desugar:
+
+
+```wiki
+let { customer_id = customer_id r; ...
+  in { ... customer_id ...}
+```
+
+
+won't work because we get name capture inside the let declarations. (The dangers of punning!) So it'll have to be:
+
+
+```wiki
+let { customer_id_via = customer_id r; ... }
+  in { let { customer_id = customer_id_via; ... }
+         in { ... customer_id ...}
+```
+
+>
+>
+> \[Implementor's note: can we improve this?\]
+>
+>
+
+
+Within the body we can indeed use polymorphic record update syntax to reconstitute the record:
+
+
+```wiki
+... r{ lastName = map toUpper lastName } ...
+```
+
+
+Note that since there's no data constructor, this will continue `r`'s existing data constructor.
+
+
