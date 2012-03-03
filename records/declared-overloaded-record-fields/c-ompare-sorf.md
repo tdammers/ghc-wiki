@@ -1,0 +1,332 @@
+# DORF -- comparison to SORF (and to TDNR)
+
+
+
+This is a brief point-by-point comparison to [Simple Overloaded Record Fields](records/overloaded-record-fields)
+
+
+
+I'll only dwell on where the DORF proposal differs.
+
+
+
+The 'Base Design' is very similar: a library class `Has`, methods `get/set`, with an instance generated for each declared record/field. Field selection (either prefix per H98 or dot notation) is desugared to a call to the `get` method.
+
+
+### The `String` type parameter to `Has`, and Scope control
+
+
+
+DORF uses a Proxy type for the type/kind-level 'peg' on which to hang the instances. Using a Proxy is a superficial difference, and mostly for practical reasons -- I was building a proptotype in 7.2.1 (which doesn't have user-definable or `String` Kinds).
+
+
+
+There is, however, a significant difference on scoping/namespacing: the Proxy type (being a type) is bound by the usual module scoping, export/import and module qualification, etc. Are (`String`) Kinds bound by module scope?
+
+
+
+The module namespacing in DORF is deliberate, and for exactly the same reason as namespacing in general: a different developer in a different module might 'accidentally' create a clashing name which is unrelated (that is, a name for a field or a record or both). As far as DORF is concerned, these are different names, so need the module name qualification.
+
+
+
+In contrast: "The \[SORF\] proposal ... doesn't allow label names to be scoped: if one module internally uses "field" as a label name then another module can break the abstraction by using the same string "field".". DORF does not need any innovations around instances or type inference.
+
+
+
+**Wild afterthought:** 
+
+
+- DORF does need to apply module control/representation hiding to the field selector function.
+- But if that's controlled, perhaps it doesn't need to control the Proxy type(?)
+- (In fact, the Proxy type is a bit of an annoyance, with a shadowy existence just out of sight from the application programmer, except for the need to export/import it.)
+- Perhaps we could use Kinds instead, and *take advantage of* the inability to control their scope:
+
+  - Kinds could be just used, not declared.
+  - They could be `String` Kinds or some more abstract/compact/hidden representation.
+  - There'd be no issues with name clashes, because different modules using the same named field could *share* the Kind; but have 'private' namespaces for the field selector function.
+
+
+**Wilder aftererthought:** 
+Perhaps then we could avoid the need for the new `fieldLabel`, instead this declaration:
+
+
+```wiki
+    customer_id :: r{ customer_id :: Int } => r -> Int           -- explicit record constraint
+                                                                 -- field name same as the declared function
+                                                                 -- record type same as the function's argument
+                                                                 -- field type same as the function's result
+```
+
+>
+>
+> makes `customer_id` available as a field label. (That is, the record constraint is not added by the compiler, you must put it explicitly.)
+>
+>
+
+>
+>
+> (The compiler still needs to generate the binding for `customer_id = Library.Has.get` -- eta-reduced, because I'm assuming the proxy/Kind argument is not needed.)
+>
+>
+
+>
+>
+> \[Phew! avoided a reserved word.\]
+>
+>
+
+>
+>
+> \[I'm liking this, it's getting more minimal: If you don't want field selector functions, don't declare them. The instances for `Has/get/set` (generated from the record decl) don't need them, only the 'peg' provided by the Kind. Occam's razor rules!
+>
+>
+
+>
+>
+> Perhaps we then provide something like [Polymorphic Record Pattern](records/declared-overloaded-record-fields/poly-record-pattern) as an alternative record access mechanism??\]
+>
+>
+
+>
+>
+> Note that declaration for customer\_id is different to something like:
+>
+>
+> ```wiki
+>         fullName :: r{ firstName, lastName :: String } => r -> String   -- yes, an explicit record constraint,
+>                                                                  -- but: field name(s) different to the declared function
+>                                                                  -- field type not nec. same as the function's result
+> ```
+>
+>
+> The program must provide a binding.
+>
+>
+
+
+**Except ... (sober reflection):** 
+Did that just re-open the back door to the abstraction?
+
+
+```wiki
+       e{ x = True } ===> set (undefined ::: "x") True e       -- desugarred to use a String Kind
+```
+
+>
+>
+> ?I didn't need `e`'s record type in scope nor its field `x` to call `set`.
+>
+>
+
+>
+>
+> So I can break the abstraction by updating a record/field I can't even `get` ?? Perhaps the desugarring should be:
+>
+>
+> ```wiki
+>                 ===> set (undefined ::: "x")
+>                          (True `asTypeOf` x (set (undefined ::: "x") True e))
+>                                       -- ^^^ make sure the selector function is in scope (and with the right types inferencable)
+>                          e                                     --         yeuch!! hack with bells on 
+> ```
+
+
+>
+>
+> Also, without the signature for `customer_id`, I don't know its result type. So I can't cleanly generate type instances for `GetResult`. (That is, I'd generate a type instance for each record type it appears in, with every one returning result `Int`.)
+>
+>
+
+### Should `get` have a Proxy argument? (and should `set` ?)
+
+
+
+"This choice does not make a major difference either way." \[SPJ\]. DORF likewise doesn't care. The prototype does use a Proxy argument, because it's implemented using types not Kinds, and GHC doesn't (yet) have type application.
+
+
+### Higher Rank Types and Type Functions
+
+
+
+DORF follows SORF in using a "functional-dependency-like mechanism (but using equalities) " to manage the type inference for `Has/get/set`.
+
+
+### Virtual record selectors
+
+
+
+Are a valuable feature, and particularly valuable because they 'look' just like record field selectors. DORF supports them as ordinary (overloaded) functions, defined in terms of field selectors (so that their types are inferred to need the records/fields).
+
+
+
+Under DORF, virtual record selectors do not need `Has` instances, so don't run into the problem of what to do about the definition for `set`.
+
+
+
+(Perhaps DORF has a contrary problem: what if we do want a `set` for a virtual field? -- for example to update a fullName into `firstName` and `lastName`. There's food for thought in Wadler's original paper that led to View Patterns "Views: A way for pattern matching to cohabit with data abstraction" \[1987\], 4. "Viewing a complex number in cartesian and polar coordinates". We may want our implementation of complex to be abstract. We provide (pseudo-) fields to select the coordinates. Then they're ever-so like methods for an (abstract) object. Also we want the (pseudo-) fields to be updatable, which means we need an instance for `Has/get/set` for fields that are not explicit in the record.) 
+
+
+### Selectors as functions
+
+
+
+We need to support H98-style record selectors. One of the design objectives for DORF is that field selectors continue to be functions, just as H98. (The difference is that DORF's are overloaded whereas H98's are monomorphic.)
+You can use dot notation with H98 field selectors without changing the H98 record definition.
+
+
+### Representation hiding
+
+
+
+See the discussion under [No Mono Record Fields](records/declared-overloaded-record-fields/no-mono-record-fields). SORF has an issue, because (in effect) it needs to control export of instances. "Solving this issue is important" \[SPJ\]. DORF doesn't have this issue, because the field selector is just a function, so the module system can control its visibility, as usual.
+
+
+### Syntax - The dot notation
+
+
+
+DORF pretty much agrees with SORF, including in keeping it simple by not supporting part-applied dot. Note that DORF does not rely on dot notation whatsoever -- it's purely syntactic sugar for function application. See [Dot as Postfix Function Apply](records/declared-overloaded-record-fields/dot-postfix)
+
+
+### Syntax - Syntactic sugar for `Has`
+
+
+
+SPJ is spot-on. DORF follows SORF.
+
+
+### Record updates
+
+
+
+DORF follows SORF in having a `set` method within class `Has`. It's definition and instances are tricky, to support changing the type \[**\] of records/fields, and higher-ranked fields.
+**
+
+
+
+SPJ is "not very happy with any of this" (that is, any of the SORF approach to field update). DORF has implemented record update using (admitted) hacks. DORF has tried to hide the implementation behind syntactic sugar (for the `Has` constraint), to make available some design space for improvements. (Including possibly the alternative proposal using Quasifunctor.)
+
+
+
+To answer SPJ's question "what does `e { x = True }` mean if there are lots of "`x`" fields in scope? ": Under DORF, there is only a single "`x`" in scope(overloaded to appear in many record types). So
+
+
+```wiki
+   e { x = True } :: r{ x :: Bool} => r
+   e { x = True } ===> set (undefined :: Proxy_x) True e            -- desugarred call
+```
+
+
+\[**\] changing the type of records fields at update seems to be a required feature. DORF has implemented it to be compatible with H98, but this adds considerable complexity. We avoid the question of whether it's desirable.
+**
+
+
+
+DORF does not have the issues trying to support or avoid `set` for virtual fields, because those are not defined using `Has`. 
+
+
+
+(Source code that attempts to update via them, such as :
+
+
+```wiki
+    myCust { fullName = "Fred Dagg" }
+```
+
+
+will get type failure:
+
+
+```wiki
+    no instance Has Customer_NameAddress Proxy_fullName String
+```
+
+
+or earlier still (if we implement DORF using proxies):
+
+
+```wiki
+    no type Proxy_fullName
+```
+
+### Updating polymorphic/higher-ranked fields
+
+
+
+The prototype for this proposal originally included a method of updating Higher-ranked fields.
+
+
+
+It used an extra type function `SetTy`, with an extra forall'd type argument bound from the definition of method `set`:
+
+
+```wiki
+    type family SetTy r fld t _a :: *        -- type of the argument to set into the record
+        ...
+        set :: fld -> (forall _a. SetTy r fld t _a) -> r -> SetResult r fld t
+        ...
+    type instance SetTy HR Proxy_rev t _a = [_a] -> [_a]
+        ...
+        set _ fn HR{..} = HR{rev = fn}        -- now works
+```
+
+>
+>
+> SPJ has quickly reviewed the prototype:
+>
+>
+> >
+> >
+> > "Your trick with `SetTy` to support update of polymorphic fields is, I belive, an (ingenious) hack that does not scale. I think it works only for fields that are quantified over one type variable with no constraints.
+> >
+> > So, I think that update of polymorphic fields remains problematic. "
+> >
+> >
+>
+
+- Note that the "(ingenious)" and unscalable "hack" appears only in compiler-generated code.
+
+- We could scale up the hack by providing arbitrarily many forall-bound type variables to `SetTy` (`_a _b _c ...`). How many is more than enough?)
+
+- But we can't support constraints over the type variables. (Because constraints can't appear on the RHS of a type function instance.) Perhaps this could be hacked using Constraints Kinds when they mature? They'd have to be declared on the method `set` within `Has`. Something like:
+
+  ```wiki
+        type family SetTy r fld t _a _b _c :: *        -- type of the argument to set into the record
+                                                       -- up to 3 forall'd typevars (could easily be more!)
+            ...
+        type family SetConstr r fld t _a _b _c :: Constraint  -- constraint(s) on the forall'd typevars
+            ...
+            set :: fld
+                -> (forall _a _b _c. (SetConstr r fld t _a _b _c) => SetTy r fld t _a _b _c)
+                -> r
+                -> SetResult r fld t
+            ...
+  ```
+
+>
+> >
+> >
+> > \[I suspect this'll score no more merits for "ingenious", and a great many more demerits for "hack".\]
+> >
+> >
+>
+
+
+Is it a requirement to be able to update polymorphic fields? Is it sufficient to be able to update other (monomorphic) fields in records that also contain poly fields?
+
+
+### Relationship to Type Directed Name Resolution \[TDNR\]
+
+
+
+DORF is in some ways a reversion to something closer to TDNR (especially dot notation "works with any function"). DORF, SORF and TDNR all use a `Has` constraint, generated from the record/field declaration.
+
+
+
+Unlike TDNR, DORF has no special syntax to trigger name resolution. (DORF's dot postfix notation is just syntactic sugar for function application, and name 'resolution' is type-directed only in the sense of familiar instance resolution.)
+
+
+
+But the crucial difference is that TDNR still treats multiple declarations of the same field name (in different record types) as being different names. DORF treats these as multiple instances of the same name.
+
+
