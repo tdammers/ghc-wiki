@@ -71,7 +71,7 @@ That is: the `r{ ... }` constraint is added by the desugarer (and will be furthe
 
 >
 >
-> \[Or perhaps the new `fieldLabel` declaration isn't needed. See a *very speculative* discussion at [Wilder aftererthought](records/declared-overloaded-record-fields/c-ompare-sorf#he-string-type-parameter-to-has-,-and-scope-control) \]
+> \[Or perhaps the new `fieldLabel` declaration isn't needed. See a *very speculative* discussion at [Wilder aftererthought](records/declared-overloaded-record-fields/c-ompare-sorf#the-string-type-parameter-to-has-,-and-scope-control) \]
 >
 >
 
@@ -604,6 +604,6 @@ Nothing so far suggests they should. (And there's obvious dangers in allowing it
 
 
 
-But updating through virtual fields might need it. See [Virtual Record selectors](records/declared-overloaded-record-fields/c-ompare-sorf#irtual-record-selectors).
+But updating through virtual fields might need it. See [Virtual Record selectors](records/declared-overloaded-record-fields/c-ompare-sorf#virtual-record-selectors).
 
 
