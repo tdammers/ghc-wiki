@@ -1,0 +1,451 @@
+
+It is useful to see the vector instructions "in action" in LLVM human readable form (a ".ll" file) prior to implementing the Cmm -\> LLVM backend (within the ./compiler/llvmGen section of the code).  LLVM code is somewhere between Java byte code authoring and direct assembly language authoring.  Here is the process:
+
+
+- Generate or Create a human readable file (a ".ll" file), for example, create "add\_floats.ll"
+- Compile this file to byte code using the LLVM compiler:  llvm-as add\_floats.ll.  This generates a ".bc" file, in this case, add\_floats.bc.  The byte code is unreadable.
+- Now there are a few options once byte code is available
+
+  - Generate native machine code:  llc add\_floats.bc will create a native assembler instruction set in a ".s" file (add\_floats.s)
+  - Run the byte codes on the JIT compiler:  lli add\_floats.bc should run the instructions and produce the result
+
+
+To demonstrate the vector instructions, we can start with a basic C program (just to illustrate ... remember, LLVM is not functional so starting in an imperative language makes a lot of sense):
+
+
+```wiki
+#include <stdio.h>
+
+int main()
+{
+   float x[4], y[4], z[4];
+   x[0] = 1.0;
+   x[1] = 2.0;
+   x[2] = 3.0;
+   x[3] = 4.0;
+   y[0] = 10.0;
+   y[1] = 20.0;
+   y[2] = 30.0;
+   y[3] = 40.0;
+
+   z[0] = x[0] + y[0]; 
+   z[1] = x[1] + y[1]; 
+   z[2] = x[2] + y[2]; 
+   z[3] = x[3] + y[3];
+   printf("%f %f %f %f\n", z[0], z[1], z[2], z[3]);
+}
+```
+
+
+Compiling and running this in C is easy and left to the user.
+
+
+
+This converts easily to LLVM human readable format (use the [
+online generator](http://llvm.org/demo/index.cgi) if you'd like):
+
+
+```wiki
+; ModuleID = '/tmp/webcompile/_21191_0.bc'
+target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64"
+target triple = "x86_64-unknown-linux-gnu"
+
+@.str = private unnamed_addr constant [13 x i8] c"%f %f %f %f\0A\00"
+
+define i32 @main() nounwind {
+  %1 = alloca i32, align 4
+  %x = alloca [4 x float], align 16
+  %y = alloca [4 x float], align 16
+  %z = alloca [4 x float], align 16
+  store i32 0, i32* %1
+  %2 = getelementptr inbounds [4 x float]* %x, i32 0, i64 0
+  store float 1.000000e+00, float* %2
+  %3 = getelementptr inbounds [4 x float]* %x, i32 0, i64 1
+  store float 2.000000e+00, float* %3
+  %4 = getelementptr inbounds [4 x float]* %x, i32 0, i64 2
+  store float 3.000000e+00, float* %4
+  %5 = getelementptr inbounds [4 x float]* %x, i32 0, i64 3
+  store float 4.000000e+00, float* %5
+  %6 = getelementptr inbounds [4 x float]* %y, i32 0, i64 0
+  store float 1.000000e+01, float* %6
+  %7 = getelementptr inbounds [4 x float]* %y, i32 0, i64 1
+  store float 2.000000e+01, float* %7
+  %8 = getelementptr inbounds [4 x float]* %y, i32 0, i64 2
+  store float 3.000000e+01, float* %8
+  %9 = getelementptr inbounds [4 x float]* %y, i32 0, i64 3
+  store float 4.000000e+01, float* %9
+  %10 = getelementptr inbounds [4 x float]* %x, i32 0, i64 0
+  %11 = load float* %10
+  %12 = getelementptr inbounds [4 x float]* %y, i32 0, i64 0
+  %13 = load float* %12
+  %14 = fadd float %11, %13
+  %15 = getelementptr inbounds [4 x float]* %z, i32 0, i64 0
+  store float %14, float* %15
+  %16 = getelementptr inbounds [4 x float]* %x, i32 0, i64 1
+  %17 = load float* %16
+  %18 = getelementptr inbounds [4 x float]* %y, i32 0, i64 1
+  %19 = load float* %18
+  %20 = fadd float %17, %19
+  %21 = getelementptr inbounds [4 x float]* %z, i32 0, i64 1
+  store float %20, float* %21
+  %22 = getelementptr inbounds [4 x float]* %x, i32 0, i64 2
+  %23 = load float* %22
+  %24 = getelementptr inbounds [4 x float]* %y, i32 0, i64 2
+  %25 = load float* %24
+  %26 = fadd float %23, %25
+  %27 = getelementptr inbounds [4 x float]* %z, i32 0, i64 2
+  store float %26, float* %27
+  %28 = getelementptr inbounds [4 x float]* %x, i32 0, i64 3
+  %29 = load float* %28
+  %30 = getelementptr inbounds [4 x float]* %y, i32 0, i64 3
+  %31 = load float* %30
+  %32 = fadd float %29, %31
+  %33 = getelementptr inbounds [4 x float]* %z, i32 0, i64 3
+  store float %32, float* %33
+  %34 = getelementptr inbounds [4 x float]* %z, i32 0, i64 0
+  %35 = load float* %34
+  %36 = fpext float %35 to double
+  %37 = getelementptr inbounds [4 x float]* %z, i32 0, i64 1
+  %38 = load float* %37
+  %39 = fpext float %38 to double
+  %40 = getelementptr inbounds [4 x float]* %z, i32 0, i64 2
+  %41 = load float* %40
+  %42 = fpext float %41 to double
+  %43 = getelementptr inbounds [4 x float]* %z, i32 0, i64 3
+  %44 = load float* %43
+  %45 = fpext float %44 to double
+  %46 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([13 x i8]* @.str, i32 0, i32 0), double %36, double %39, double %42, double %45)
+  %47 = load i32* %1
+  ret i32 %47
+}
+
+declare i32 @printf(i8*, ...)
+```
+
+
+This is easy enough to run using the JIT compiler:  lli add\_floats.ll
+
+
+```wiki
+[root@pg155-n19 pgms]# lli add_floats.ll 
+11.000000 22.000000 33.000000 44.000000
+[root@pg155-n19 pgms]# 
+```
+
+
+The core of the instructions can be replaced with vectorization (obviously, optimizing this program will result in very little code and vectorization is not necessary, but this is an exercise.
+
+
+
+Here is the .ll code rewritten with vectorization:
+
+
+```wiki
+; ModuleID = '/tmp/webcompile/_21191_0.bc'
+target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64"
+target triple = "x86_64-unknown-linux-gnu"
+
+@.str = private unnamed_addr constant [13 x i8] c"%f %f %f %f\0A\00"
+
+define i32 @main() nounwind {
+  %1 = alloca i32, align 4
+
+  ; allocate three vectors
+  %x = alloca <4 x float>, align 16
+  %y = alloca <4 x float>, align 16
+  %z = alloca <4 x float>, align 16
+
+  store i32 0, i32* %1
+
+  ; store initial values to the x and y vectors
+  %2 = getelementptr inbounds <4 x float>* %x, i32 0, i64 0
+  store float 1.000000e+00, float* %2
+  %3 = getelementptr inbounds <4 x float>* %x, i32 0, i64 1
+  store float 2.000000e+00, float* %3
+  %4 = getelementptr inbounds <4 x float>* %x, i32 0, i64 2
+  store float 3.000000e+00, float* %4
+  %5 = getelementptr inbounds <4 x float>* %x, i32 0, i64 3
+  store float 4.000000e+00, float* %5
+  %6 = getelementptr inbounds <4 x float>* %y, i32 0, i64 0
+  store float 1.000000e+01, float* %6
+  %7 = getelementptr inbounds <4 x float>* %y, i32 0, i64 1
+  store float 2.000000e+01, float* %7
+  %8 = getelementptr inbounds <4 x float>* %y, i32 0, i64 2
+  store float 3.000000e+01, float* %8
+  %9 = getelementptr inbounds <4 x float>* %y, i32 0, i64 3
+  store float 4.000000e+01, float* %9
+
+  ; load the vectors
+  %xs = load <4 x float>* %x
+  %ys = load <4 x float>* %y
+
+  ; add the vectors
+  %zs = fadd <4 x float> %xs, %ys
+
+  ; store the result vector back to z
+  store <4 x float> %zs, <4 x float>* %z
+
+  ; get the elements out of the vector for printing
+  %10 = getelementptr inbounds <4 x float>* %z, i32 0, i64 0
+  %11 = load float* %10
+  %12 = fpext float %11 to double
+  %13 = getelementptr inbounds <4 x float>* %z, i32 0, i64 1
+  %14 = load float* %13
+  %15 = fpext float %14 to double
+  %16 = getelementptr inbounds <4 x float>* %z, i32 0, i64 2
+  %17 = load float* %16
+  %18 = fpext float %17 to double
+  %19 = getelementptr inbounds <4 x float>* %z, i32 0, i64 3
+  %20 = load float* %19
+  %21 = fpext float %20 to double
+
+  ; print the components of z that were extracted above
+  %22 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([13 x i8]* @.str, i32 0, i32 0), double %12, double %15, double %18, double %21)
+
+  ; return
+  %23 = load i32* %1
+  ret i32 %23
+}
+
+declare i32 @printf(i8*, ...)
+```
+
+
+Rerunning the program above yields the same results as the original, non-vectorized LLVM program.
+
+
+```wiki
+[root@pg155-n19 pgms]# lli add_floats_vec.ll 
+11.000000 22.000000 33.000000 44.000000
+```
+
+
+Let's take a look at a program with a substantially larger array of floats to add.  Again, optimizing this would yield very little code and, certainly, lazy evaluation would turn this program into basically a no-op.  Nonetheless, this should speed up by almost a factor of 4 when vectorized.  Here is the C code that helps guide the imperative implementation:
+
+
+```wiki
+#include <stdio.h>
+
+int main()
+{
+   int sz = 128;
+   float x[sz], y[sz], z[sz];
+   int i;
+   for (i = 0; i < sz; i++) {
+      x[i] = i;
+      y[i] = i + sz;
+   }
+
+   for (i = 0; i < sz; i += 4) {
+     z[i] = x[i] + y[i];
+     z[i+1] = x[i+1] + y[i+1];
+     z[i+2] = x[i+2] + y[i+2];
+     z[i+3] = x[i+3] + y[i+3];
+   }
+
+   printf("%f %f %f %f\n", z[0], z[1], z[2], z[3]);
+}
+```
+
+
+In this case, the LLVM code is more compact and easier to work with if we use the optimized version of it.  You will note in the LLVM code that this optimizer does not automatically vectorize and, instead, still has 4 "fadd" instructions at the heart of the addition loop.
+
+
+
+The resulting optimized LLVM code is as follows:
+
+
+```wiki
+; ModuleID = '/tmp/webcompile/_15374_0.bc'
+target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64"
+target triple = "x86_64-unknown-linux-gnu"
+
+@.str2 = private unnamed_addr constant [13 x i8] c"%f %f %f %f\0A\00"
+@str = internal constant [24 x i8] c"Entering initialization\00"
+@str3 = internal constant [18 x i8] c"Entering addition\00"
+
+define i32 @main() nounwind {
+; <label>:0
+  %1 = alloca [40000 x float], align 16
+  %2 = alloca [40000 x float], align 16
+  %3 = alloca [40000 x float], align 16
+  %puts = call i32 @puts(i8* getelementptr inbounds ([24 x i8]* @str, i64 0, i64 0))
+  br label %4
+
+; <label>:4                                       ; preds = %4, %0
+  %indvar21 = phi i64 [ 0, %0 ], [ %indvar.next22, %4 ]
+  %i.06 = trunc i64 %indvar21 to i32
+  %scevgep25 = getelementptr [40000 x float]* %2, i64 0, i64 %indvar21
+  %scevgep26 = getelementptr [40000 x float]* %1, i64 0, i64 %indvar21
+  %tmp27 = add i64 %indvar21, 40000
+  %tmp28 = trunc i64 %tmp27 to i32
+  %5 = sitofp i32 %i.06 to float
+  store float %5, float* %scevgep26, align 4, !tbaa !0
+  %6 = sitofp i32 %tmp28 to float
+  store float %6, float* %scevgep25, align 4, !tbaa !0
+  %indvar.next22 = add i64 %indvar21, 1
+  %exitcond23 = icmp eq i64 %indvar.next22, 40000
+  br i1 %exitcond23, label %7, label %4
+
+; <label>:7                                       ; preds = %4
+  %.sub3 = getelementptr inbounds [40000 x float]* %3, i64 0, i64 0
+  %puts4 = call i32 @puts(i8* getelementptr inbounds ([18 x i8]* @str3, i64 0, i64 0))
+  br label %8
+
+; <label>:8                                       ; preds = %8, %7
+  %indvar = phi i64 [ 0, %7 ], [ %indvar.next, %8 ]
+  %tmp = shl i64 %indvar, 2
+  %scevgep = getelementptr [40000 x float]* %3, i64 0, i64 %tmp
+  %scevgep7 = getelementptr [40000 x float]* %2, i64 0, i64 %tmp
+  %scevgep8 = getelementptr [40000 x float]* %1, i64 0, i64 %tmp
+  %tmp929 = or i64 %tmp, 1
+  %scevgep10 = getelementptr [40000 x float]* %3, i64 0, i64 %tmp929
+  %scevgep11 = getelementptr [40000 x float]* %2, i64 0, i64 %tmp929
+  %scevgep12 = getelementptr [40000 x float]* %1, i64 0, i64 %tmp929
+  %tmp1330 = or i64 %tmp, 2
+  %scevgep14 = getelementptr [40000 x float]* %3, i64 0, i64 %tmp1330
+  %scevgep15 = getelementptr [40000 x float]* %2, i64 0, i64 %tmp1330
+  %scevgep16 = getelementptr [40000 x float]* %1, i64 0, i64 %tmp1330
+  %tmp1731 = or i64 %tmp, 3
+  %scevgep18 = getelementptr [40000 x float]* %3, i64 0, i64 %tmp1731
+  %scevgep19 = getelementptr [40000 x float]* %2, i64 0, i64 %tmp1731
+  %scevgep20 = getelementptr [40000 x float]* %1, i64 0, i64 %tmp1731
+  %9 = load float* %scevgep8, align 16, !tbaa !0
+  %10 = load float* %scevgep7, align 16, !tbaa !0
+  %11 = fadd float %9, %10
+  store float %11, float* %scevgep, align 16, !tbaa !0
+  %12 = load float* %scevgep12, align 4, !tbaa !0
+  %13 = load float* %scevgep11, align 4, !tbaa !0
+  %14 = fadd float %12, %13
+  store float %14, float* %scevgep10, align 4, !tbaa !0
+  %15 = load float* %scevgep16, align 8, !tbaa !0
+  %16 = load float* %scevgep15, align 8, !tbaa !0
+  %17 = fadd float %15, %16
+  store float %17, float* %scevgep14, align 8, !tbaa !0
+  %18 = load float* %scevgep20, align 4, !tbaa !0
+  %19 = load float* %scevgep19, align 4, !tbaa !0
+  %20 = fadd float %18, %19
+  store float %20, float* %scevgep18, align 4, !tbaa !0
+  %indvar.next = add i64 %indvar, 1
+  %exitcond = icmp eq i64 %indvar.next, 10000
+  br i1 %exitcond, label %21, label %8
+
+; <label>:21                                      ; preds = %8
+  %22 = load float* %.sub3, align 16, !tbaa !0
+  %23 = fpext float %22 to double
+  %24 = getelementptr inbounds [40000 x float]* %3, i64 0, i64 1
+  %25 = load float* %24, align 4, !tbaa !0
+  %26 = fpext float %25 to double
+  %27 = getelementptr inbounds [40000 x float]* %3, i64 0, i64 2
+  %28 = load float* %27, align 8, !tbaa !0
+  %29 = fpext float %28 to double
+  %30 = getelementptr inbounds [40000 x float]* %3, i64 0, i64 3
+  %31 = load float* %30, align 4, !tbaa !0
+  %32 = fpext float %31 to double
+  %33 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([13 x i8]* @.str2, i64 0, i64 0), double %23, double %26, double %29, double %32) nounwind
+  ret i32 0
+}
+
+declare i32 @printf(i8* nocapture, ...) nounwind
+
+declare i32 @puts(i8* nocapture) nounwind
+
+!0 = metadata !{metadata !"float", metadata !1}
+!1 = metadata !{metadata !"omnipotent char", metadata !2}
+!2 = metadata !{metadata !"Simple C/C++ TBAA", null}
+```
+
+
+Instead of hand-optimizing the entire sequence, the exercise will merely convert the types to vectors and then alter the loop starting with "label 44" to use vector addition rather then the sequence of adds that is currently being used.  The resulting program is as follows:
+
+
+```wiki
+; ModuleID = '/tmp/webcompile/_15374_0.bc'
+target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64"
+target triple = "x86_64-unknown-linux-gnu"
+
+@.str2 = private unnamed_addr constant [13 x i8] c"%f %f %f %f\0A\00"
+@str = internal constant [24 x i8] c"Entering initialization\00"
+@str3 = internal constant [18 x i8] c"Entering addition\00"
+
+define i32 @main() nounwind {
+; <label>:0
+  %1 = alloca <128 x float>, align 16
+  %2 = alloca <128 x float>, align 16
+  %3 = alloca <128 x float>, align 16
+  %puts = call i32 @puts(i8* getelementptr inbounds ([24 x i8]* @str, i64 0, i64 0))
+  br label %4
+
+; <label>:4                                       ; preds = %4, %0
+  %indvar21 = phi i64 [ 0, %0 ], [ %indvar.next22, %4 ]
+  %i.06 = trunc i64 %indvar21 to i32
+  %scevgep25 = getelementptr <128 x float>* %2, i64 0, i64 %indvar21
+  %scevgep26 = getelementptr <128 x float>* %1, i64 0, i64 %indvar21
+  %tmp27 = add i64 %indvar21, 128
+  %tmp28 = trunc i64 %tmp27 to i32
+  %5 = sitofp i32 %i.06 to float
+  store float %5, float* %scevgep26, align 4, !tbaa !0
+  %6 = sitofp i32 %tmp28 to float
+  store float %6, float* %scevgep25, align 4, !tbaa !0
+  %indvar.next22 = add i64 %indvar21, 1
+  %exitcond23 = icmp eq i64 %indvar.next22, 128
+  br i1 %exitcond23, label %7, label %4
+
+; <label>:7                                       ; preds = %4
+  %.sub3 = getelementptr inbounds <128 x float>* %3, i64 0, i64 0
+  %puts4 = call i32 @puts(i8* getelementptr inbounds ([18 x i8]* @str3, i64 0, i64 0))
+  br label %8
+
+; <label>:8                                       ; preds = %8, %7
+;  %indvar = phi i64 [ 0, %7 ], [ %indvar.next, %8 ]
+
+
+;  %indvar.next = add i64 %indvar, 1
+;  %exitcond = icmp eq i64 %indvar.next, 10000
+;  br i1 %exitcond, label %9, label %8
+   br label %9
+
+; <label>:9                                      ; preds = %8
+  %xs = load <128 x float>* %1
+  %ys = load <128 x float>* %2
+  %zs = fadd <128 x float> %xs, %ys
+  store <128 x float> %zs, <128 x float>* %3
+
+  %10 = load float* %.sub3, align 16, !tbaa !0
+  %11 = fpext float %10 to double
+  %12 = getelementptr inbounds <128 x float>* %3, i64 0, i64 1
+  %13 = load float* %12, align 4, !tbaa !0
+  %14 = fpext float %13 to double
+  %15 = getelementptr inbounds <128 x float>* %3, i64 0, i64 2
+  %16 = load float* %15, align 8, !tbaa !0
+  %17 = fpext float %16 to double
+  %18 = getelementptr inbounds <128 x float>* %3, i64 0, i64 3
+  %19 = load float* %18, align 4, !tbaa !0
+  %20 = fpext float %19 to double
+  %21 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([13 x i8]* @.str2, i64 0, i64 0), double %11, double %14, double %17, double %20) nounwind
+  ret i32 0
+}
+
+declare i32 @printf(i8* nocapture, ...) nounwind
+
+declare i32 @puts(i8* nocapture) nounwind
+
+!0 = metadata !{metadata !"float", metadata !1}
+!1 = metadata !{metadata !"omnipotent char", metadata !2}
+!2 = metadata !{metadata !"Simple C/C++ TBAA", null}
+```
+
+
+Timing the execution of the optimized vs. non-optimized bytecodes yields:
+
+
+
+Finally, a note on converting from arrays to vectors and subsequently optimizing to use vector adds.  The simplest way to do this was to:
+
+
+- convert the code to multiply 4 of the array values at a time (depends on the register sizes, data sizes, etc...)
+
+  - convert the array types to vector (\[128 x float\] becomes \<128 x float\>), the program will work AS-IS with this simple conversion
+  - work through the loop again to move to a load of the proper location in the vector to a packed vector, then do the fadd of the vectors
+  - vector sizes MUST be the size of a power of 2 (1, 2, 4, 8, 16, ....)
+  - vector sizes seem to be limited, 32768 definitely did NOT work, 128 is working
