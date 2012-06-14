@@ -1,0 +1,150 @@
+= Converting from Darcs =
+
+== Conversion status ==
+
+Done:
+
+ * `.darcs-boring` -> `.gitignore`
+ * `darcs-all`, `push-all` -> `sync-all`
+ * `aclocal.m4`
+ * [wiki:Building/GettingTheSources] -> [wiki:DarcsConversion/Building/GettingTheSources] (not yet applied)
+ * [wiki:Building/QuickStart]
+ * [wiki:Building/Rebuilding]
+ * [wiki:Building/RunningNoFib]
+ * [wiki:DarcsRepositories] (inc. the sidebar)
+ * [wiki:GettingStarted]
+
+Pending:
+ * The buildbot scripts
+ * Deploy post-receive-email (http://darcs.haskell.org/ghc.git/hooks/post-receive and /usr/share/doc/git-core/contrib/hooks/post-receive-email on d.h.o)
+ * Deploy GitPlugin for Trac (http://trac-hacks.org/wiki/GitPlugin)
+ * Deploy gitweb (http://git.or.cz/gitwiki/InterfacesFrontendsAndTools#head-1dbe0dba1fdab64e839b2c4acd882446742e572e)
+ * Start a git server on darcs.haskell.org?
+ * `README`
+ * [wiki:Building/Windows]
+ * [wiki:WorkingConventions]
+ * [wiki:WorkingConventions/Darcs]
+ * [wiki:WorkingConventions/FixingBugs]
+ * [wiki:WorkingConventions/AddingFeatures]
+
+== Dependencies on darcs ==
+
+The following is intended to be a complete list of the things that would need to change if we were to switch away from darcs, in addition to the conversion of the repository itself, which I am assuming can be automatically converted using available tools.
+
+The following code/scripts would need to be adapted or replaced:
+
+ * The `darcs-all` script
+ * The `push-all` script
+ * The `aclocal.m4` code that attempts to determine the source tree date
+ * `.darcs-boring`
+ * The buildbot scripts
+ * checkin email script: `/home/darcs/bin/commit-messages-split.sh`
+ * Trac integration (the GHC Trac does not currently integrate with darcs, however)
+ * darcsweb (use whatever alternative is available)
+
+The following documentation would need to change:
+
+ * `README`
+ * [wiki:Building/GettingTheSources]
+ * [wiki:Building/Windows]
+ * [wiki:Building/QuickStart]
+ * [wiki:Building/Rebuilding]
+ * [wiki:Building/RunningNoFib]
+ * [wiki:DarcsRepositories] (inc. the sidebar)
+ * [wiki:WorkingConventions]
+ * [wiki:WorkingConventions/Darcs]
+ * [wiki:WorkingConventions/FixingBugs]
+ * [wiki:WorkingConventions/AddingFeatures]
+ * [wiki:GettingStarted]
+
+ * TestingPatches
+
+== Plan for libraries ==
+
+The remaining question is what to do about the library repositories.  It is possible to work with the GHC repository in git and all the other repositories in darcs, but this can't be a long-term strategy: our motivation for moving away from darcs is invalid if parts of the repository still require darcs.  We need a strategy for a single-VCS solution.
+
+Here's a tentative plan:
+
+ * Some repos belong to GHC, and for these we can convert
+   the repos to git and keep them as subrepos.
+   * ghc-tarballs
+   * libraries/extensible-exceptions
+   * libraries/ghc-prim
+   * libraries/hoopl
+   * libraries/hpc
+   * libraries/integer-gmp
+   * libraries/integer-simple
+   * libraries/template-haskell
+   * testsuite
+   * nofib
+   * libraries/stm
+   * libraries/dph
+
+ * Of the rest, base is somewhat special, because this alone often needs to be modified at the same time as GHC.  We propose migrating base to a git repository, along with other libraries that are maintained mostly by the GHC team:
+   * utils/hsc2hs
+   * libraries/base
+   * libraries/array
+   * libraries/containers
+   * libraries/directory
+   * libraries/filepath
+   * libraries/haskell98
+   * libraries/haskell2010
+   * libraries/mtl
+   * libraries/old-locale
+   * libraries/old-time
+   * libraries/pretty
+   * libraries/process
+   * libraries/random
+   * libraries/unix
+   * libraries/Win32
+   * libraries/deepseq
+   * libraries/parallel
+
+ * For the rest of the repos, GHC is just a client, and we don't expect to be modifying these libraries
+   often. Where the upstream repos are not git repos, we will make our own automated "upstream" git mirror,
+   and periodically manually pull from all the git upstreams into ghc-specific git repos.
+   * utils/haddock
+   * libraries/binary
+   * libraries/bytestring
+   * libraries/Cabal
+   * libraries/haskeline
+   * libraries/terminfo
+   * libraries/utf8-string
+   * libraries/xhtml
+   * libraries/primitive
+   * libraries/vector
+
+== The perspective on submodules ==
+
+== Submodules ==
+
+Things that work:
+
+ * when cloning a new repo, the submodules do point to the right place (the submodules of the parent)
+ * `git status` shows when a submodule is "dirty" (has local changes or new commits)
+ * `git diff` shows diffs in submodules too
+ * `git submodule status` tells you which local submodules have changes (+ at the beginning of the line)
+
+Gotchas:
+
+ * after `git pull`, you need to do `git submodule update`
+ * submodules are detached by default, so you must `git checkout master` before you can commit (you don't find out until you push)
+ * `git submodule update` detaches the local submodules from whatever branch they were on.  So if you had done `git checkout master` and committed local changes, the local changes are now invisible (but still stored in the repo).  Alternatively, you can use `git submodule update --merge` or `git submodule update --rebase`.  Neither seem like a good default.
+ * if you had local uncommitted changes in a submodule, then `git submodule update` refuses to update the submodule.  Then your repo is in a state where it appears you have a local change to the submodule, this could be confusing.
+ * need to `git submodule init` before you can `git submodule update` in a new tree (or use `git submodule update --init`)
+ * have to push to submodules before pushing GHC, otherwise other users will not be able to do `git submodule update`.
+ * every submodule commit needs to be accompanied by a GHC commit (not clear if this is really a disadvantage, but it's more work and there will be many more commits).
+
+Here's an article that explains the problems with submodules in more detail: [http://codingkilledthecat.wordpress.com/2012/04/28/why-your-company-shouldnt-use-git-submodules/]
+
+=== Google repo ===
+
+Google has a tool called [https://sites.google.com/a/android.com/opensource/download/using-repo repo] that they use for managing the Android repositories, which is basically the same as our `darcs-all` script but is much much larger (it probably does a bit more, to be fair).  It is written in Python and the list of git repositories is kept in an XML file.
+
+=== Older comments === 
+
+Submodules do not really seem to be designed for what we want to do (work on a cohesive set of components that are developed together): they seem more suited to tracking upstream branches that you do not modify locally.
+
+However, if we did want to use them there is a git-rake tool that provides many of the submodule commands to do this that are missing from Git proper: http://github.com/mdalessio/git-rake/tree/master/README.markdown. See also the discussion on his blog at http://flavoriffic.blogspot.com/2008/05/managing-git-submodules-with-gitrake.html.
+
+An alternative approach seems to be using a single repo and the "subtree" merge strategy. There are some tools for making this work nicely with external repositories, such as http://dysinger.net/2008/04/29/replacing-braid-or-piston-for-git-with-40-lines-of-rake/ and what looks like a nice tool called Braid http://github.com/evilchelu/braid/tree/master.
