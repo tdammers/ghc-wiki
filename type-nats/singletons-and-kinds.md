@@ -1,0 +1,125 @@
+## Kind Parameters
+
+
+
+We start by defining a *kind*, which is useful for passing kinds as parameters.
+
+
+```wiki
+data {-kind-} OfKind (a :: *) = KindParam
+```
+
+
+Note that we are only interested in the promoted version of this datatype,
+so basically we just defined a singe type constant with a polymorphic kind:
+
+
+```wiki
+KindParam :: OfKind k
+```
+
+
+In addition, it is also convenient to define the following type synonym:
+
+
+```wiki
+type KindOf (a :: k) = (KindParam :: OfKind k)
+```
+
+
+This makes it easy to write kind parameters in terms of existing types.
+Here are some examples:
+
+
+```wiki
+KindOf Int  ~ (KindParam :: OfKind *)
+KindOf 1    ~ (KindParam :: OfKind Nat)
+KindOf "Hi" ~ (KindParam :: OfKind Symbol)
+```
+
+## Kind-based Overloading
+
+
+
+Using these types we can define functions that are overloaded based on their *kind* (rather than *type*).
+An example of such a function is `fromSing`, which given an element of a singleton family returns the run-time
+value representing the singleton.  This function uses kind overloading because it uses the same representation
+for all singletons of a given kind.  For example, here are two concrete instances of its type:
+
+
+```wiki
+fromSing :: Sing (a :: Nat) -> Integer
+fromSing :: Sing (a :: Symbol) -> String
+```
+
+
+Here is how we can define `fromSing` in its full generality:
+
+
+```wiki
+class (kparam ~ KindParam) => SingE (kparam :: OfKind k) where
+  type DemoteRep kparam :: *
+  fromSing :: Sing (a :: k) -> DemoteRep kparam
+```
+
+
+Here are the different components of this declaration:
+
+
+1. The class has a single parameter `kparam`, which is of kind `OfKind k`.
+1. The super-class constraint makes it explicit that the value of the parameter will always be `KindParam`
+  (One we eliminate `Any`, GHC could probably work this out on its own, but for now we make this explicit.)
+1. The associated type synonym `DemoteRep` chooses the representation for singletons of the given kind.
+1. Finally, the method `fromSing` maps singletons to their representation.
+
+
+This might look a bit complex, but defining instances is pretty simple.  Here are some examples:
+
+
+```wiki
+instance SingE (KindParam :: OfKind Nat) where
+  type DemoteRep (KindParam :: OfKind Nat) = Integer
+  fromSing (SNat n) = n
+
+instance SingE (KindParam :: OfKind Symbol) where
+  type DemoteRep (KindParam :: OfKind Symbol) = String
+  fromSing (SSym s) = s
+```
+
+
+It is convenient to define another type synonym, which lets us name
+the representation type for a given singleton:
+
+
+```wiki
+type Demote a = DemoteRep (KindOf a)
+```
+
+
+Here are some examples of using this synonym:
+
+
+```wiki
+Demote 1    ~ Integer
+Demote 2    ~ Integer
+Demote "hi" ~ String
+```
+
+
+Using this synonym we can write the type of `fromSing` like this:
+
+
+```wiki
+fromSing :: SingE (KindOf a) => Sing a -> Demote a
+```
+
+
+Here is an example of using all this to provide a `Show` instance
+for singleton families:
+
+
+```wiki
+instance (SingE (KindOf a), Show (Demote a)) => Show (Sing a) where
+  showsPrec p = showsPrec p . fromSing
+
+```
