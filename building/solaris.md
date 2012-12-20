@@ -1,0 +1,133 @@
+# Building on Solaris
+
+
+
+These instructions have only been checked for GHC 6.12.1 on Solaris 10 on SPARC. They should also apply to later versions of GHC, Solaris 8 and later, and perhaps Solaris on x86. 
+
+
+
+GHC versions 6.10.1 and earlier don't have a working SPARC native code generator, and have many small build issues with Solaris. Use GHC 6.12.1 or later.
+
+
+## Get the latest development tools
+
+
+
+See [Solaris Preparations](building/preparation/solaris).
+
+
+## What can go wrong
+
+
+
+The rest of this page discusses problems with specific tool versions. If you stick to the versions in the above list then you shouldn't have to read further.
+
+
+### Only some GCC versions work
+
+
+- GCC version 4.1.2 is known to work. Use this version if possible.
+
+
+On Solaris 10, `/usr/bin/gcc` is "GCC for Sun Systems (gccfss)". This is a version that uses Sun's code generator backend. This is completely unusable for GHC because GHC has to post-process (mangle) the assembly output of GCC. GHC expects the format and layout that the normal GCC uses. Trying to compile a "hello world" program using gccfss will fail like this:
+
+
+```wiki
+benl@greyarea:~/tmp$ ghc --make Main.hs
+[1 of 1] Compiling Main             ( Main.hs, Main.o )
+/opt/gcc/bin/../../SUNW0scgfss/4.0.4/prod/bin/fbe: "/tmp/ghc19018_0/ghc19018_0.s", line 242: error: invalid character (0x40)
+/opt/gcc/bin/../../SUNW0scgfss/4.0.4/prod/bin/fbe: "/tmp/ghc19018_0/ghc19018_0.s", line 242: error: quoted-string operand required
+/opt/gcc/bin/../../SUNW0scgfss/4.0.4/prod/bin/fbe: "/tmp/ghc19018_0/ghc19018_0.s", line 242: error: statement syntax
+```
+
+
+GCC version 4.3.x produces assembly files that GHC's "evil mangler" does not yet deal with.
+
+
+
+GCC version 4.2.x works but takes hours and hours to build the large `.hc` files that GHC generates. It is reported ([\#1293](http://gitlabghc.nibbler/ghc/ghc/issues/1293), [\#2906](http://gitlabghc.nibbler/ghc/ghc/issues/2906)) that particular modules can take upwards of 5 hours and the overall build takes a couple days. This is due to complexity issues with respect to GCC moving to a unit-at-a-time compilation scheme instead of function-at-a-time.
+
+
+
+GCC version 4.0.2 does not support thread local state (TLS), at least on SPARC.
+
+
+
+GCC version 3.4.x is reported ([\#951](http://gitlabghc.nibbler/ghc/ghc/issues/951)) to mis-compile the runtime system leading to a runtime error `schedule: re-entered unsafely`.
+But such a gcc version is sufficient for most user programs in case you just installed a ghc binary distribution. 
+
+
+### Using the wrong assembler
+
+
+
+If you fail to install GNU binutils then GHC will try to use the native Sun assembler, and you'll get something like this:
+
+
+```wiki
+benl@greyarea:~/tmp$ ghc --make Main.hs -fforce-recomp
+[1 of 1] Compiling Main             ( Main.hs, Main.o )
+/usr/ccs/bin/as: "/tmp/ghc19665_0/ghc19665_0.s", line 242: error: invalid character (0x40)
+/usr/ccs/bin/as: "/tmp/ghc19665_0/ghc19665_0.s", line 242: error: quoted-string operand required
+/usr/ccs/bin/as: "/tmp/ghc19665_0/ghc19665_0.s", line 242: error: statement syntax
+```
+
+
+The offending line is:
+
+
+```wiki
+.section .note.GNU-stack,"",@progbits
+```
+
+### Split objects
+
+
+
+Split objects didn't work in GHC 6.10.x, not sure about GHC 6.12.1.
+
+
+
+It worked on Solaris 10 with ghc-6.8.3, gcc-4.1.2 and the system (not GNU) binutils (ie as, ld etc from /usr/ccs/bin).
+
+
+
+If you run into linker problems then you can try turning it off by adding the following to your `mk/build.mk`:
+
+
+```wiki
+SplitObjs=NO
+```
+
+### Test Failures
+
+
+
+The following regression tests are known to fail on SPARC/Solaris10 with GHC 6.12.1, using the 6.12.1 testsuite. Some of these are not platform specific.
+
+
+```wiki
+Unexpected failures:
+  1861(optc,profc)
+  3171(normal)
+  3586(normal)
+  T3016(hpc,optasm,profasm)
+  T3294(normal)
+  arith011(profc)
+  barton-mangler-bug(profc)
+  break024(ghci)
+  conc012(ghci)
+  concprog001(ghci)
+  concprog002(threaded2)
+  derefnull(profc,profthreaded)
+  divbyzero(profc,profthreaded)
+  hClose002(normal,optc,hpc,optasm,profc,profasm,ghci,threaded1,threaded2,profthreaded)
+  hClose003(normal,optc,hpc,optasm,profc,profasm,ghci,threaded1,threaded2,profthreaded)
+  joao-circular(optc,profc)
+  rtsflags001(normal)
+  seward-space-leak(ghci)
+  signals004(ghci,threaded1,threaded2,profthreaded)
+  space_leak_001(normal,optc,hpc,optasm,ghci)
+  testblockalloc(normal,threaded1)
+  user001(normal,optc,hpc,optasm,profc,profasm,ghci,threaded1,threaded2,profthreaded)
+```
