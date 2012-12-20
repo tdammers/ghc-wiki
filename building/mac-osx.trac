@@ -1,0 +1,94 @@
+= Building on MacOS X =
+
+These instructions were last updated for GHC 7.4.
+
+== Get the latest development tools ==
+
+See [wiki:Building/Preparation/MacOSX OS X Preparations].
+
+== Building OS X Installer Packages ==
+
+After making the binary-dist, you can create a Mac installer package (.pkg) by running
+{{{
+cd distrib/MacOS
+sh mkinstaller ../../ghc*.tar.bz2
+}}}
+The result will be a file `GHC-<version>-<arch>.pkg`, where `<version>` is the full version string and `<arch>` is `x86_64`, `i386` or `ppc`. The build process uses `xcodebuild` and `packagemaker`.
+
+More details about [wiki:Building/MacOSX/Installer building installer packages] are available.
+
+== Case insensitivity ==
+
+The default Mac OS X files systems (HFS+) is case-insensitive and Git is case sensitive (although this is configurable).  While this ususally doesn't cause any problems, occassionally a {{{Unapplicable patch}}} error can occur.  It's possible to work around this by using {{{Disk Utility}}} to create a case sensitive file system and apply the patches inside of it.  To do this:
+
+ 1. Open {{{/Applications/Utilities/Disk Utility}}}.
+ 2. Make sure that none of the images/disks on the left are highlighted/selected.  If any are, <Cmd>+Click them to unselect them.
+ 3. Click the "New Image" button.
+ 4. Set the "Volume Format" to "Mac OS X Extended (Case Sensitive)".
+ 5. Set "Encryption" to "None".
+
+ 6. Set "Partitions" to "Single Partition - Apple Partition Map"
+ 7. Set "Image Format" to "sparse disk image".
+ 8. Set "Volume Size" to "Custom..." and select an appropriately large size.  Sparse images only take up as much space is as needed, plus a little overhead, so it's better to overestimate than underestimate.  A 30 GB sparse image with no data in it takes up ~50 MB.
+ 9. Set "Volume Name" to something appropriate (e.g., "GHC").
+ 10. Set "Save As" to something appropriate (e.g., "GHC Disk").
+ 11. Click the "Create" button.
+
+This creates a file with a {{{.sparseimage}}} extension (e.g., {{{GHC Disk.sparseimage}}}) at the location that was set in step 10 and automatically mounts it.  The partition can be accessed through the {{{/Volumes}}} folder (e.g., {{{/Volumes/GHC}}}).  This partition behaves exactly like any other Apple partition except that it's case sensitive and git can apply the patches it couldn't on the case insensitive file system.  After the patches have been applied, the repository can be copied to the normal file system, the partition can be unmounted, and the sparse image can be deleted.
+
+== Building the documentation ==
+
+For some reason, convincing dblatex to build the docs can be tricky. This worked for me:
+
+From http://www.tug.org/mactex/ downloaded and installed
+    http://mirror.ctan.org/systems/mac/mactex/MacTeX.mpkg.zip
+
+From http://dblatex.sourceforge.net/ downloaded and built
+    http://prdownloads.sourceforge.net/dblatex/dblatex-0.3.tar.bz2?download
+
+Now building users_guide.pdf will fail, as we generate things like:
+{{{
+?t\nolinkurl{?uC:\Documents?u}\texttt{\ }\nolin[...]
+}}}
+rather than:
+{{{
+?t\nolinkurl{?uC:\\Documents?u}\texttt{\ }\nolin[...]
+}}}
+(note number of backslashes). To fix this, patch param.xsl:
+{{{
+--- param.xsl   2011-03-18 18:10:23.000000000 +0000
++++ /usr/share/dblatex/xsl/param.xsl    2010-10-27 08:56:16.000000000 +0100
+@@ -16,7 +16,7 @@
+ <xsl:param name="latex.class.article">article</xsl:param>
+ <xsl:param name="latex.class.book">report</xsl:param>
+ <xsl:param name="latex.unicode.use">0</xsl:param>
+-<xsl:param name="texlive.version">2010</xsl:param>
++<xsl:param name="texlive.version">2009</xsl:param>
+}}}
+This is a little odd. The Debian package has this patch applied, and on
+Debian:
+{{{
+$ latex --version
+pdfTeX 3.1415926-1.40.10-2.2 (TeX Live 2009/Debian)
+[...]
+}}}
+but on OS X:
+{{{
+$ latex --version
+pdfTeX 3.1415926-1.40.11-2.2 (TeX Live 2010)
+[...]
+}}}
+so it doesn't seem like it should be needed. But anyway...
+
+Now the PDF will fail to build with:
+{{{
+makeindex: Not writing to /private/tmp/tmpw4xTzV/users_guide.ind (openout_any = p).
+Can't create output index file /private/tmp/tmpw4xTzV/users_guide.ind.
+}}}
+So we put
+{{{
+openout_any = r
+}}}
+in `/usr/local/texlive/2010/texmf.cnf`
+
+And the docs will finally build!
