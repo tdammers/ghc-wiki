@@ -1,0 +1,72 @@
+= Glasgow Parallel Haskell (GpH) and Eden documentation =
+
+This page will describe the GpH and Eden parallel variants of GHC.  This is work in progress.
+
+St Andrews has hosted the HackPar parallel hackathon in December 2009.
+
+Heriot-Watt will host a HackSprint meeting 12-14th December 2010. 
+
+Heriot-Watt will host the [[http://saints.sqpn.com/blessed-clement-of-dunblane/ Blessed Clement of Dunblane]] [wiki:GpHEden/HackDay_Mar13 HackDay] on Tue March 19th, 2013.
+
+A series of [wiki:GpHEden/Meetings Parallel Hacker Meetings] has been launched.
+
+----
+
+What follows is an entry page to describe technical documentation of the Eden/GpH implementation in parallel systems with distributed memory.
+
+The different aspects are covered by separate pages reachable from here.
+
+== Modifications to implement Eden (and parallel RTS instances in general) ==
+
+ * [wiki:GpHEden/CompilerWays Compiler Ways] for parallelism
+ * [wiki:GpHEden/StartStop Startup and Shutdown] of the parallel system
+ * [wiki:GpHEden/Packing Packing and Unpacking Heap Structures]
+ * [wiki:GpHEden/Primitives Primitive Operations for Coordination Control]
+ * [wiki:GpHEden/PlaceholdersAndGC Placeholders, Garbage Collection, other Aspects]
+
+Future work
+ * event logging for parallel Haskell
+ * GUM variant of packing code, using global addressing
+
+== People ==
+
+Here is a list of hackers involved in the development of GpH/Eden
+ * [http://www.mathematik.uni-marburg.de/~berthold/ Jost Berthold (JB)]
+ * [http://www.cs.st-andrews.ac.uk/~jv Vladimir Janjic (VJ)], 
+ * [http://www.macs.hw.ac.uk/~hwloidl/ Hans-Wolfgang Loidl (HWL)]
+ * [http://www.cs.st-andrews.ac.uk/~kh/ Kevin Hammond (KH)] 
+ * [http://www.macs.hw.ac.uk/~mka19/ Mustafa Aswad (MKA)] 
+ * [http://www.madsgroup.org/staff/henrique/ Henrique Ferreiro (HE)]
+ * [http://www.macs.hw.ac.uk/~trinder/ Philip W Trinder (PWT)]
+ * [http://www.macs.hw.ac.uk/~pm175 Patrick Maier (PM)]
+ * [http://www.macs.hw.ac.uk/~ceeatia/ Abyd Al Zain (AAZ)]
+ * [http://www.mathematik.uni-marburg.de/~dieterle Mischa Dieterle (MD)]
+ * Thomas Horstmeyer (TH) 
+
+
+
+== Communication ==
+ 
+A mailing list for parallel Haskell implementors has been set up at HWU: 
+[http://www.macs.hw.ac.uk/mailman/listinfo.cgi/hackpar hackpar]
+
+== Tasks ==
+
+This list of tasks is based on the discussion during the parallel hackathon, Dec 2009.
+Each task has a maintainer associated with it, who looks after the software.
+
+ * GpH/Eden Code maintenance: (HWL to oversee)
+   * Scheduling: Per-PE scheduling and load distribution policies (VJ)
+   * Packing/Serialisation: Turning a graph into a write-/send-able format (JB)
+   * Distributed Shared Memory: Abstraction layer over distribution of heap (HWL)
+   * Communication: Sending and receiving work and data (MKA)
+   * Monitoring/Tracing: MD/TH
+ * Visualisation Tools: Visualising parallel execution (MD/TH)
+ * Parallel NoFib Suite: Parallel benchmark programs (HE)
+ * Testsuite: Programs testing the parallel RTS
+ * Packaging and building: ???
+ * Darcs repo maintenance: Main repos in Marburg (JB)
+ * GpH/Eden tracs ticketing: Bug reports (HWL)
+
+ 
+   
