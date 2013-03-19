@@ -1,0 +1,74 @@
+
+= Parallel Haskell Hack Day =
+
+== Organisation ==
+
+Dates : 19.3.2013, starting 10:30
+
+Location : Heriot-Watt University, Edinburgh, Earl Mountbatten Buildings, EM 1.70
+
+It's building 2 on [[http://www.macs.hw.ac.uk/~hwloidl/hw_map_colour.pdf this map]], with entrance from Boundary Road North.
+ 
+
+== Participants ==
+So far: Hans-Wolfgang Loidl (HWL), Jost Berthold (JB), Vladimir Janjic (VJ), Vladimir Komendantsky (VK), Malak Aljabri (MSA), Majed Al-Saeed (MMAA), Robert Stewart (RS), Evgenij Belikov (EB), Prabhat Totoo (PT)
+
+== Agenda ==
+
+|| 10:30 || Welcome and Setup ||
+|| 10:45 || Exchange of ideas and brainstorm ||
+|| 11:00 || Pair programming on selected topics || 
+||       || ||
+|| 13:00 || Lunch || 
+|| 14:00 || Short round of summaries and discussion || 
+|| 14:15 || TBC (pair programming, short talks...) ||
+|| X:00  || Summary Reports and Future Work||
+
+== Groups ==
+
+ * RTS group (MSA,EB,JB,HWL)
+ * Algorithms (PT,JB,HWL)
+ * Serialisation (VK,JB,HWL)
+ * Visualisation (MMAA,PWT,JB,HWL) 
+
+== General Info ==
+
+[[http://james.mathematik.uni-marburg.de:8080/gitweb/ Eden gitweb]]
+[[http://www.macs.hw.ac.uk/~hwloidl/hackspace/IDX IDX file]]
+
+== Potential Topics  ==
+
+ * GHC parallel RTS: general house-keeping and fixes  (MSA,EB,VJ,HWL,JB)
+   * Cleaning up non-main PEs in parcp way
+   * Behaviour of primops in non-parallel ways
+   * Start script optimisations
+   * eliminating start script in parcp way (i.e. in-RTS log archiving)
+   * change PrimOps.cmm to work with LLVM-way
+   * debugging issues:
+    * role of THUNK_SELECTOR in packing code
+    * RTTables in GUM execution
+    * Eden- vs GUM-style execution
+    * PAP un/packing (GUM)
+    * clean-up issue
+    * usage of GhostTSOs (GUM)
+   * ParTicky profiling (GUM)
+     * fix #fetches issue
+     * fix cmd line parsing (-N) + stats output (-qPg)
+     * discuss futher parameters to monitor
+   * code integration:
+     * migration
+     * bounded sparks
+     * sharks
+ * Light-weight concurrency
+   * See [[http://hackage.haskell.org/trac/ghc/wiki/LightweightConcurrency this Wiki page]] and checkout the ghc-lwc2 branch in the main GHC repo
+ * Eden/GpH programming (nbody, paraffins, sp mat mult etc) (PT,RS,EB,HWL,JB)
+   * nbody using Eden and GpH skeletons
+   * seq and par sp mat mult optimisation (-threaded Array/AssocList vs QuadTrees)
+   * move forward wrt. test suite
+ * Serialisation: (VK,RS,HWL,JB)
+   * Factor out from PARALLEL_RTS
+   * review API (for Par Sci usage)
+   * make good use of it 
+ * Eventlog and visualisation (MMAA,JB)
+
+
