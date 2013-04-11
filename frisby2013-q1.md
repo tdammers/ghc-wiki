@@ -128,10 +128,10 @@ TODO "estimations of various run time consequences"
     - (also, it seems that we're not tracking allocation by the array cloning primops, but I don't know how prevalent that is)
   - for runtime, entry counts and the general counters tracking the variety of closure entries will hopefully help
 
-    - cf [\#TickyCounters](frisby2013-q1#icky-counters)
+    - cf [\#TickyCounters](frisby2013-q1#ticky-counters)
 - inspect the compilation outputs for differences
 
-  - cf [\#CoreDiving](frisby2013-q1#ore-diving) [\#Core-STG-CMM](frisby2013-q1#)
+  - cf [\#CoreDiving](frisby2013-q1#core-diving) [\#Core-STG-CMM](frisby2013-q1#)
 - allocation changes probably won't require more work (unless its delicate GC stuff, I suppose)
 - for runtime, isolate the changes
 
@@ -454,11 +454,11 @@ There was no variant that bested the others on most programs' runtime. And the d
 
 
 
-I also saw some surprises in allocation. Roughly, we expect that more floating means (barely) less allocation but worse runtime (by how much?) because some known calls become unknown calls. But, eg, going from nn -\> yn --- ie floating functions that undersaturate free variables instead of not floating them --- caused worse allocation! This investigation led to [\#MitigatingLNEAbstraction](frisby2013-q1#itigating-lne-abstraction).
+I also saw some surprises in allocation. Roughly, we expect that more floating means (barely) less allocation but worse runtime (by how much?) because some known calls become unknown calls. But, eg, going from nn -\> yn --- ie floating functions that undersaturate free variables instead of not floating them --- caused worse allocation! This investigation led to [\#MitigatingLNEAbstraction](frisby2013-q1#mitigating-lne-abstraction).
 
 
 
-Based on that example, it occurred to me that we should only restrict the binding's saturation of its \*known\* free variables... duh. For example, we should floating a binding even if its RHS exactly applies a free variable when that free variable is lambda bound. Not floating in that case has no benefit, and indeed was causing knock-on effects that increase allocation (eg [\#MitigatingLNEAbstraction](frisby2013-q1#itigating-lne-abstraction)).
+Based on that example, it occurred to me that we should only restrict the binding's saturation of its \*known\* free variables... duh. For example, we should floating a binding even if its RHS exactly applies a free variable when that free variable is lambda bound. Not floating in that case has no benefit, and indeed was causing knock-on effects that increase allocation (eg [\#MitigatingLNEAbstraction](frisby2013-q1#mitigating-lne-abstraction)).
 
 
 
@@ -470,7 +470,7 @@ I have yet to determine that the preservation of fast entries is worth the troub
 
 
 
-To enable further measurements, I have identified the semantics of some ticky counters, cf [\#TickyCounters](frisby2013-q1#icky-counters), and started resurrecting useful ones that are no longer enabled.
+To enable further measurements, I have identified the semantics of some ticky counters, cf [\#TickyCounters](frisby2013-q1#ticky-counters), and started resurrecting useful ones that are no longer enabled.
 
 
 #### Mitigating LNE Abstraction
@@ -485,7 +485,7 @@ NB I think this will be mitigated "for free", since I'm predicting that we will 
 
 
 
-Using -flate-float-in-thunk-limit=10, -fprotect-last-arg, and -O1, I tested the libraries+NoFib for the four variants from [\#PreservingFastEntries](frisby2013-q1#reserving-fast-entries). In fish (1.6%), hpg (\~4.5%), and sphere (10.4%), allocation gets worse for ny and yy compared to nn and yn. The nn and ny do not change the allocation compared to the baseline library (ie no LLF).
+Using -flate-float-in-thunk-limit=10, -fprotect-last-arg, and -O1, I tested the libraries+NoFib for the four variants from [\#PreservingFastEntries](frisby2013-q1#preserving-fast-entries). In fish (1.6%), hpg (\~4.5%), and sphere (10.4%), allocation gets worse for ny and yy compared to nn and yn. The nn and ny do not change the allocation compared to the baseline library (ie no LLF).
 
 
 
