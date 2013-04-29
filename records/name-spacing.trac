@@ -1,0 +1,309 @@
+See [wiki:Records] for the bigger picture. This is a proposal to solve the records name-spacing issue with name-spacing and how to expand on that to make record access more convenient.
+
+This approach is an attempt to port the records solution in [http://code.google.com/p/frege/ Frege], a haskell-like language on the JVM. We can stop half-way to Frege and instead implement the Agda module-only solution - this is explained below.
+
+For information on Frege, please read Sections 3.2 (primary expressions) and 4.2.1 (Algebraic Data type Declaration - Constructors with labeled fields) of the [http://code.google.com/p/frege/downloads/detail?name=Language-411.pdf Frege user manual]
+Many thanks to the Frege author, Ingo Wechsung for explaining his implementation and exploring this implementation territory for us.
+The DDC language (very similar to Haskell) puts forth a similar solution to Frege. See the [http://www.cse.unsw.edu.au/~benl/papers/thesis/lippmeier-impure-world.pdf thesis] section 2.7 - 2.7.4 pages 115 - 119
+
+The Agda language [http://wiki.portal.chalmers.se/agda/pmwiki.php?n=ReferenceManual.Records generates a module (name space) for each record and also allows a record, like any module to be placed into the global scope by the programmer (opened in Agada terms)].
+
+== Better name spacing ==
+
+In Haskell, you can look at an occurrence of any identifier `f` or `M.f` and decide where it is bound without thinking about types at all.  Broadly speaking it works like this:
+ * For qualified names, `M.f`, find an import that binds `M.f`.
+ * For unqualified names, `f`, find the innermost binding of `f`; or, if that takes you to top level, look for top level binding of `f` or an import that binds `f`.
+If there is ambiguity (eg two imports both import something called `f`) then an error is reported.  And that's what happens for the `Record` and `RecordClash` example above.
+
+So the proposed solution for record field names is to specify more precisely which one you mean by using the type name. Note that a data declaration now creates a module-like namespace, so we aren't so much using the type name as using the data type namespace in the same way we use a module namespace.
+
+So you could say `Record.a` or `RecordClash.a` rather than `a`, to specify which field selector you mean.  This creates a potential ambiguity: did you mean `<module-name>.f` or `<record-name>.f`.  `Record` could be the name of a type or of a module.
+
+There are 2 cases to consider:
+1) inside module M naming a record M, and also importing both that module and record
+2) importing 2 different modules, M1 and M2, where M2 defines a record named M1.
+
+The module/record ambiguity is dealt with in Frege by preferring modules and requiring a module prefix for the record if there is ambiguity. So for 1) you need M.M.field. For 2) you need M2.M1.field.
+
+We could instead prefer a record rather than a module - this would normally be the desired behavior, but then we must figure out how to still be able to access the module. This is particularly the case for modules not marked as qualified - generally all modules are under a verbose namespace and the Module.identifier syntax is only used if the module is first qualified.
+
+Generally, programmers will avoid this situation by doing what they do now: structuring their programs to avoid name collisions. We can try and give the greater assistance in this regard by providing simpler ways for them to alter the names of import types.
+
+One way to avoid the Module.Record.x problem is to use type alias names, for example:
+
+{{{
+data InconvenientName = X { f :: Int }
+type IN = InconvenientName
+-- IN.f is the same as InconvenientName.f
+}}}
+
+
+== Agda: A case for why name-spacing alone is a good enough solution ==
+
+ * You can use a type synonym to abbreviate the namespace part (as shown above.)
+ * If there's no ambiguity you don't need to use a namespace (e.g. you can use 'a' instead of 'Record.a').
+ * The namespace name is predictable (e.g. <Typename>.<fieldname>) while ad-hoc prefixes tend to use different conventions e.g. the whole record name (e.g. 'recordA') or some abbreviation thereof (e.g. 'rcrdA'.)
+
+The main argument for this approach is its simplicity; it's simple to
+understand for users and (hopefully) simple to implement.
+
+The Agda language [http://wiki.portal.chalmers.se/agda/pmwiki.php?n=ReferenceManual.Records generates a module (name space) for each record and also allows a record, like any module to be placed into the global scope by the programmer (opened in Agada terms)].
+
+The downside of the pure module system is needing to always prefix the field: `Record.a r`. In Agda, a record is a module, and a module can be opened up. The "Record opening example" from the Agda page is transferred to a Haskell-like syntax here:
+
+{{{
+  data Record = Record { a :: String }
+  r = Record "A"
+
+  module Open where
+    open Record
+
+    -- record is in scope
+    aOK :: String
+    aOK = a r
+
+  -- alternative Agda syntax
+  again : String
+  again = a r where open Record
+}}}
+
+This works better in Agda which can have multiple modules per file, but could be very useful in Haskell even without local modules.
+
+
+== Frege: Getting rid of the Verbosity with the dot operator ==
+
+We have name-spaces, but it is hard to see how this is better than the current practice of adding prefixes to record fields: `data Record = Record { recordA :: String }`
+
+Verbosity is solved in Frege and DDC by using the dot syntax concept. In `data Record = Record {a::String};r = Record "A"; r.a` The final `r.a` resolves to `Record.a r`.
+
+This is the TDNR syntax concept. See 'Simple Type Resolution' for how we resolve the type of this code.
+Also see 'Details on the dot' for a lengthy discussion of the dot.
+
+
+== Type resolution ==
+
+Here's a complex example:
+
+{{{
+  type family F a b
+  data instance F Int [a] = Mk { f :: Int }
+
+  g :: F Int b  -> ()
+  h :: F a [Bool] -> ()
+
+  k x = (g x, x.f, h x)
+}}}
+
+Consider type inference on k.  Initially we know nothing about the
+type of x.
+ * From the application (g x) we learn that x's type has
+  shape (F Int <something>).
+ * From the application (h x) we learn that x's type has
+  shape (F <something else> [Bool])
+ * Hence x's type must be (F Int [Bool])
+ * And hence, using the data family we can see which field
+  f is intended.
+
+Notice that
+ a) Neither left to right nor right to left would suffice
+ b) There is significant interaction with type/data families
+   (and I can give you more examples with classes and GADTs)
+ c) In passing we note that it is totally unclear how (Plan A)
+   would deal with data families
+
+This looks like a swamp.  In a simple Hindley-Milner typed language
+you might get away with some informal heuristics, but Haskell is far
+too complicated.
+
+Fortunately we know exactly what to do; it is described in some detail
+in our paper "Modular type inference with local assumptions"
+http://www.haskell.org/haskellwiki/Simonpj/Talk:OutsideIn
+
+The trick is to *defer* all these decisions by generating *type constraints*
+and solving them later.  We express it like this:
+
+{{{
+  G, r:t1  |-  r.f : t2,  (Has t1 "f" t2)
+}}}
+
+This says that if r is in scope with type t1, then (r.f) has type t2,
+plus the constraint (Has t1 "f" t2), which we read as saying
+
+{{{
+  Type t1 must have a field "f" of type t2
+}}}
+
+We gather up all the constraints and solve them.  In solving them
+we may figure out t1 from some *other* constraint (to the left or
+right, it's immaterial. That allow us to solve *this* constraint.
+
+So it's all quite simple, uniform, and beautiful.  It'll fit right
+into GHC's type-constraint solver.
+
+But note what has happened: we have simply re-invented SORF.  So the
+conclusion is this: the only sensible way to implement FDR is using SORF.
+
+=== Frege solution: simple type resolution ===
+
+This is overly-simplistic for Haskell (see above)
+
+From the Frege Author:
+
+ * Expressions of the form T.n are trivial, just look up n in the namespace T.
+ * Expressions of the form x.n: first infer the type of x. If this is just an unbound type variable (i.e. the type is unknown yet), then check if n is an overloaded name (i.e. a class operation). If this is not the case, then x.n is not typeable. OTOH, if the type of x can be inferred, find the type constructor and look up n in the associated name space.
+
+Under no circumstances, however, will the notation x.n contribute in any way in inferring the type of x, except for the case when n is a class operation, where an appropriate class constraint is generated.
+
+Note that this means it is possible to improve upon Frege in the number of cases where the type can be inferred - we could look to see if there is only one record namespace containing n, and if that is the case infer the type of x -- Greg Weber
+
+Greg, that's dangerous territory: in general Haskell requires evidence for inferrence, rather than defaulting. Suppose we add an import. Then suddenly code that was working fine fails to compile. (Or worse: it compiles but gives different results because it's inferring a different record type.) Compare the experience with overlapping instances. -- AntC
+
+For example, lets say we have:
+
+{{{
+data R = R { f :: Int }
+
+bar R{f=42} = true
+bar R{} = false
+
+foo r = bar r || r.f==43
+baz r = r.f==47 || bar r
+
+foobaz r = r.f
+}}}
+
+Function bar has no difficulties, after desugaring of the record patterns it's just plain old pattern matching.
+
+Function foo is also ok, because through the application of `r` to bar the type checker knows already that r must be an R when it arrives at `r.f`
+
+Function baz is ok as long as the type checker does not have a left to right bias (Frege currently does have this bias, but will hopefully be improved).
+
+The last function foobaz gives a type error too, as there is no way to find out the type of `r`.
+
+Hence, the records in Frege are a very conservative extension to plain old algebraic data types, actually all record constructs will be desugared and reduced to non-record form in the way I have described in the language reference. For example, the data R above will become:
+
+{{{
+data R = R Int where
+    f (R x) = x
+    ...
+}}}
+
+To be sure, the where clause is the crucial point here. It puts f in the name space R. The global scope is not affected, there is nothing named f outside the R namespace.
+
+The record namespace is searched only in 3 cases:
+ * when some name is explicitly qualifed with `R`:   `R.f`
+ * when the type checker sees `x.f` and knows that `x::R`
+ * In code that lives itself in the namespace `R`, here even an unqualified `f` will resolve to `R.f` (unless, of course, if there is a local binding for `f`)
+
+=== Increased need for type annotation ===
+
+Note that the Frege type system is less complex: to the extent that records are being used in code with simpler types this may hold. The Frege author says:
+
+I estimate that in 2/3 of all cases one does not need to write `T.e x` in sparsely type annotated code, despite the fact that the frege type checker has a left to right bias and does not yet attempt to find the type of `x` in the code that "follows" the `x.e` construct (after let unrolling etc.) I think one could do better and guarantee that, if the type of `x` is inferrable at all, then so will be `x.e` (Still, it must be more than just a type variable.)
+
+Does Frege have record fields with higher-ranked types? (As are needed to simulate object-oriented behaviour using records.) Does it cope with extracting a h-r field and applying it to different argument types? See the discussion under SORF, and SPJ's 'trick' using equality constraints on the `Has` class instance. -- AntC
+
+
+== Syntax for updates (in the Frege manual) ==
+
+  * the function that updates field `x` of data type `T` is `T.{x=}`
+  * the function that sets field x in a `T` to `42` is `T.{x=42}`
+  * If `a::T` then `a.{x=}` and `a.{x=42}` are equivalent to `T.{x=} a` and `T.{x=42} a`
+  * the function that changes field x of a T by applying some function to it is `T.{x <-}`
+
+The function update syntax is a new addition to Haskell that we do not need to immediately implement.
+
+  Does this cope with the tricky cases discussed in the SORF proposal? -- AntC
+    * An update to an existing record that changes the type of a field.
+    * An update to an existing record that changes the type of the record.[[BR]] (Such as where it's parametric in the type of a field.)
+    * An update to a higher-ranked field.
+    * An update to a higher-ranked field with constraints.
+
+=== Alternative update syntax: let syntax ===
+
+As an example, we define a record type and value:
+{{{
+data R = R { ..., w :: W, x :: X, y :: Y, z :: Z, a :: A, ... }
+
+r = R { ..., x = undefined, y = undefined, z = undefined, ... }
+}}}
+
+Then to change x, y, z, we write
+{{{
+let { r.x = x'; r.y = y'; r.z = z'; } in r
+}}}
+
+For brevity, if we allow tuples of selectors:
+{{{
+r.(x, y, z) = (r.x, r.y, r.z)
+}}}
+
+then one can simply write
+{{{
+let r.(x, y, z) = (x', y', z') in r   
+}}}
+
+Thus the language would be simpler (little/no new syntax to define),
+and it would keep to the principle of Least Surprise (little/no new
+syntax to learn).
+
+I don't prefer this syntax because 1) I actually think is more surprising because it is very different from the current record syntax and 2) the updated value is not right next to the field, so it requires some mental translation. -- Greg Weber
+
+== Interaction with Typeclasses ==
+
+In the Frege system, the record's namespace is closed where it is defined.
+However, making a record an instance of a type class lifts the class functions into the record name-space.
+
+{{{
+module RecordExtension where
+
+import original.M(R)    -- access the R record defined in module original.M
+
+class Rextension1 r where
+      f :: .....
+      g :: .....
+
+instance Rextension1 R where
+     -- implementation for f and g
+}}}
+
+the new functions `f` and `g` are accessible (only) through R: `r.f, r.g`.
+So we have a technique for lifting new functions into the Record namespace.
+For the initial records implementaion we would want to maintain `f` and `g` at the top-level, but should consider also adding through the record name-space. See related discussion below on future directions.
+
+== Compatibility with existing records ==
+
+The new record system would be enabled with `-XNAMESPACEDATA`.
+Records from modules without this extension by default should still pollute the global namespace, even in a module using this extension. To make old records use the new style, one should add `-XNOGLOBALRECORDFIELDS`
+
+Until this is a Haskell standard, we should try to avoid this being infectious. If I turn the extension on for my module and export a record, a user that wants to import the record should be able to use the old style. This would be the default if there is no `-XNAMESPACEDATA`, or should the user have to specify a different pragma and the default would be a compilation error forcing them to specify one or the other?
+
+Ideally, with `-XNOGLOBALRECORDFIELDS` we would also be able to strip any now useless field prefixes.
+
+{{{
+module OldModule ( Record(..) ) where data Prefix = Prefix { prefixA :: String }
+
+module NewModule where
+import OldModule ( Prefix(..) strip prefix )
+
+aFunc = let r = Prefix "A" in r.a
+}}}
+
+
+                                                                                
+
+
+
+
+
+== Extending data name-spacing ==
+
+This is mostly just something interesting to contemplate.
+
+Dot syntax does not have to be limited to records (although it probably should be for the initial implementation until this new record system is vetted). I think it is a bad idea to attempt to attempt to extend the dot syntax to accomplish general function chaining through extending the dot syntax - we are simply asking too much of the dot right now. However, it is consistent to extend the function name-spaced to a record data type concept to any data type (as it is in Frege), and use dot syntax for that. The dot (without spaces) then *always* means tapping into a namespace (and simple type resolution).
+
+Placing functions within a data name-space can make for nicer data-structure oriented code where the intent is clearer. It can help to achieve the data-oriented goal of OO (without the entanglement of state). With control over how the data namespace is exported (similar to controlling module namesapces), it is possible to create virtual record field setters and getters that can be accessed through dot syntax.
+
+Both Frege and the DDC thesis take this approach.
+
+In this brave new world (see above where typeclass functions are also placed under the namespace of the data), there are few functions that absolutlely must be at the top level of a module. Although a library author might take attempt the approach of no top-level functions, most library users will likely find it more convenient to define functions at the top level of modules rather than to always lift them into data structure name-spaces with typeclasses.
