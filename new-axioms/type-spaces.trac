@@ -1,0 +1,40 @@
+= Declaring a type space with a branched axiom =
+
+The [wiki:NewAxioms/Nonlinearity proposal] to change the way GHC deals with nonlinear type family instances can work for branched type family instances as-is -- we would simply linearize each branch separately during the overlap check. However, it is possible to be more efficient and perhaps easier to understand by forcing users to declare a ''type space'' with every branched instance.
+
+For example: 
+{{{
+type family Equals a b :: Bool
+
+type instance Equals x y where
+  Equals x x = True
+  Equals x y = False
+}}}
+The header "`type instance Equals x y`" declares the "type space" of the declaration; the `where` part says how to match calls within that type space (top to bottom).
+
+In this case the type space is the whole space, but that need not be the case:
+{{{
+type family F a b :: *
+
+type instance F Int x where
+  F Int Bool = Double
+  F Int Int  = Char
+  F Int a    = Bool
+
+type instance F Bool y = Int
+}}}
+Here the first `type instance` covers calls of form `(F Int x)`, while the second covers
+calls of form `(F Bool y)`.
+
+All the equations in the `where` part must be part of (i.e. an instance of) the 
+type space declared in the header.  For example, this will be disallowed:
+
+{{{
+type instance Bad [x] y where
+  Bad [Int] Int = Bool -- OK
+  Bad a     b   = ()   -- not OK: outside the type space (Bad [x] y)
+}}}
+
+The declared type space will be checked for overlap with other instances using the same linearization check that unbranched instances use.
+
+This type space declaration makes it easier to see which branched instances are applicable to a certain use site and make the overlap check more efficient. Furthermore, it is easier to reason about (nonlinear) branches once we know what space they are in.
