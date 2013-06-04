@@ -1,0 +1,489 @@
+# A Kind System for GHC
+
+
+
+**Note: As of June 2013, this page is rather out of date. There are lots of interesting ideas here, but various pieces of this page have already been implemented, and parts have been subsumed by other work.**
+
+
+
+Currently thinking about adding a more expressive **Kind System** to GHC.  This page is currently a WIP ...
+
+
+## Rationale
+
+
+
+Haskell has a very powerful and expressive static type system.  The problem is when you come to do any programming at the type level, that is typed by an unsatisfactorily inexpressive kind system.    We propose to make it just a little bit stronger.
+
+
+
+Note: the aim here initially is to implement a small useful extension to Haskell, and not to retrofit the entirety of e.g. [
+Omega](http://web.cecs.pdx.edu/~sheard/Omega/index.html) into GHC yet ;))
+
+
+## Motivation
+
+
+
+Consider the simple example of lists parameterised by their lengths.  There are many variations on this theme in the Haskell lore, this authors favourite follows thusly:
+
+
+```
+data Zero
+data Succ n
+
+data List :: * -> * -> * where
+  Nil   :: List a Zero
+  Cons  :: a -> List n a -> List a (Succ n)
+```
+
+
+There are many eugh moments in this code:
+
+
+- We first declare two new types (`Zero` and `Succ`), and, thanks to the EmpyDataDecls extension, say that they are uninhabited by values (except bottom/error).
+- `Zero` has kind `*`, and `Succ` has kind `* -> *`, so it is perfectly valid to create a haskell function with a signature:
+
+```
+foo :: Zero -> Succ Zero -> Bool
+```
+
+>
+> >
+> >
+> > Really the programmers intent is that `Zero` and `Succ` are in a disjoint namespace from \*-kinded types, and thus this function signature should be disallowed.
+> >
+> >
+>
+
+- `Succ` has kind `* -> *`, whereas really the programmer wants to enforce that the argument to `Succ` will only ever consist of `Zero`s or `Succ`s.  i.e. the `* -> *` kind given to `Succ` is far to relaxed.
+
+- We then declare a new data type to hold lists parameterised by their lengths.
+
+- `List` has kind `* -> * -> *`, which really doesn't tell us anything other than its arity.  An alternative definition could have been: `data List item len where ... `, although this adds only pedagogical information, and nothing new that the compiler can statically check.
+
+- The `Cons` constructor actually has a mistake in it.  The second argument (`List n a`) has the names to the type parameters flipped.  The compiler cannot detect this, and the error will become apparent at use sites which are at a distance from this declaration site.
+
+- Nothing stops a user creating the silly type `List Int Int` even though the intention is that the second argument is structured out of `Succ`s and `Zero`s.
+
+---
+
+
+## Basic proposal
+
+
+
+We propose to add new base kinds other than `*` using a simple notation.  The above example *could* become:
+
+
+```
+data kind Nat = Zero | Succ Nat
+
+data List :: * -> Nat -> * where
+  Nil :: List a Zero
+  -- Cons :: a -> List n a -> List a (Succ n)  -- Compiler detects error 
+  Cons :: a -> List a n -> List a (Succ n)
+```
+
+- We first declare a new *kind* `Nat`, that is defined by two types, `Zero` and `Succ`.  Although `Zero` and `Succ` are types, they do not classify any haskell values (including undefined/bottom).  So the ` foo :: Zero -> Succ Zero -> Bool ` type signature from earlier would be rejected by the compiler.
+
+- We then declare the type `List`, but we now say the second argument to `List` has to be a type of kind `Nat`.  With this extra information, the compiler can statically detect our erroneous `Cons` declaration and would also reject silly types like `List Int Int`.
+
+
+In the basic proposal the `data kind` declaration has no kind parameters.  (See below for kind polymorphism.)
+
+
+### Syntax
+
+
+
+The idea would be to mirror existing Haskell data declarations.  There is a clear analogy as we are now creating new kinds consiting of type constructors as opposed to new types consisting of data constructors.
+
+
+
+To destinguish kind declarations from data declarations we can either add a new form of *kind* declaration:
+
+
+```
+kind Bool = True | False
+```
+
+
+However this steals `kind` as syntax with the usual problems of breaking existing programs.
+
+
+
+Alternatively (preferably), we can add a modifier to data declarations to indicate that we mean a kind declaration:
+
+
+```
+data kind Bool = True | False
+```
+
+### Interaction with normal functions
+
+
+
+Functions cannot have arguments of a non \* kind.  So the following would be disallowed:
+
+
+```wiki
+bad :: Zero -> Bool   -- Zero has kind Nat
+```
+
+
+This follows straighforwardly from the kind of (-\>) in GHC already: `?? -> ? -> *`, see [IntermediateTypes](intermediate-types)
+
+
+
+Type variables may however be inferred to have non-\* kinds.  E.g.
+
+
+```
+data NatRep :: Nat -> * where
+  ZeroRep :: NatRep Zero
+  SuccRep :: (NatRep n) -> NatRep (Succ n)
+
+tReplicate :: forall n a . NatRep n -> a -> List a n
+...
+```
+
+
+In the above, `n` would be inferred to have kind `Nat` and `a` would have kind `*`.
+
+
+### Interaction with (G)ADTs
+
+
+
+(G)ADTs can already be annotated with a mixture of names with optional explicit kind signatures and just kind signatures. These kind signatures would now be able to refer to the newly declared, non-\* kinds.  However the ultimate kind of a (G)ADT must still be `*`. i.e.
+
+
+```
+data Ok a (b :: Bool) :: Nat -> * where
+  OkC :: Ok Int True Zero
+  OkC' :: Ok String False (Succ Zero)
+
+data Bad a :: Nat -> Nat where  -- result kind is not *
+  ...
+```
+
+
+In the above example, there is the question of what kind we should assign to `a` in `Ok`.  Currently it would be inferred to be `*`.  That inference engine would need to be improved to include inference of other kinds. 
+
+
+
+GADT constructors must only accept arguments of kind `*` (as per the restrictions on (-\>) described above), but may also collect constraints for the kind inference system.
+
+
+### Interaction with Type Classes
+
+
+
+Type classes are currently indexed by variables with a fixed kind.  Type classes could now be indexed by variables with non-value kinds.  E.g.
+
+
+```wiki
+class LessThanOrEqual (n1 :: Nat) (n2 :: Nat)       -- ok
+
+instance LessThanOrEqual Zero Zero
+instance LessThanOrEqual n m => LessThanOrEqual n (Succ m)
+```
+
+
+This example is ill-kinded though:
+
+
+```wiki
+class Bad x           -- Defaults to x::*
+instance Bad Int   -- OK
+instance Bad Zero  -- BAD: ill-kinded 
+```
+
+
+By default declaration arguments are inferred to be of kind `*` if there is nothing in the class declaration (member functions or explicit kind signature) to change this.  This seems sensible for backward-compatibility.
+
+
+### Interaction with Data/Type Synonym Families
+
+
+
+Follows as per type classes
+
+
+### Kind inference
+
+
+
+Kind inference figures out the kind of each type variable.   There are often ambiguous cases:
+
+
+```wiki
+  data T a b = MkT (a b)
+```
+
+
+These are resolved by Haskell 98 with `(a :: *->*)` and `(b :: *)`.  We propose no change.
+But see kind polymorphism below.
+
+
+### Kind Namespace
+
+
+
+Also see: [Design/TypeNaming](design/type-naming)
+
+
+
+Strictly, the new kinds that have been introduced using `data kind` syntax inhabit a new namespace.  Mostly it is unambiguous when you refer to a type and when you refer to a kind.  However there are some corner cases, particularly in module import/export lists.
+
+
+
+**Option 1 : Collapse Type and Kind namespace**
+
+
+
+*Pros:*
+
+
+- Simple
+- Follows behaviour of type classes, type functions and data type functions.
+
+
+*Cons:*
+
+
+- Inconsistent.  It would allow the user to create `True` and `False` as types, but not to be able to put them under kind `Bool`.  (You'd need to name your kind a `Bool'` or `Bool_k`)
+
+
+**Option 2 : Fix ambiguities**
+
+
+
+*Pros:*
+
+
+- As more extensions are put into the language, it'll have to happen sooner or later
+
+
+*Cons:*
+
+
+- Will involve creating a whole new namespace
+- Several corner cases
+
+## Auto Promotion of Types to Kinds
+
+
+
+Many simple data declarations it would be convinient to also have at the type level.  Assuming we resolve [Design/TypeNaming](design/type-naming) and some ambiguity issues, we could support automatically deriving the data kind based on the data.
+
+
+
+There are some other issues to be wary of (care of Simon PJ):
+
+
+- Auto lifting of:
+
+
+    
+
+
+```wiki
+data Foo = Foo Int
+```
+
+>
+> >
+> >
+> > Automated lifting this would try and create a kind `Foo` with type constructor `Foo`.  But we've just declared a type `Foo` in the data declaration.
+> >
+> >
+>
+
+- Automatic lifting of GADTs / existentials and parametric types is tricky until we have a story for them.
+
+- Automatic lifting of some non-data types could be problematic (what types parameterise the kind `Int` or `Double`?)
+
+- We have no plan to auto-lift term \*functions\* to become type functions.  So it seems odd to auto-lift the type declarations which are, after all, the easy bit.
+
+
+Syntactically however, there are some options for how to do this in cases when it is safe to do: 
+
+
+
+**Option 0: Always promote \[when safe\]**
+
+
+
+E.g. writing
+
+
+```wiki
+data Foo = Bar | Baz
+```
+
+
+will impliclty create a kind `Foo` and types `Bar` and `Baz`
+
+
+
+**Option 1: Steal the `deriving` syntax**
+This has an advantage of allowing standalone deriving for those data types that are declared elsewhere but not with Kind equivalents
+
+
+```
+
+data Bool = True | False
+  deriving (Kind)
+
+deriving instance (Kind Bool)
+```
+
+
+**Option 2: Add an extra flag to the `data` keyword**
+
+
+```wiki
+data and kind Bool = True | False
+```
+
+
+This has the problems of verbosity and is hard to apply after the fact to an existing data type.
+
+
+---
+
+
+## Polymorphic kinds
+
+
+
+Also see [PolymorphicKinds](polymorphic-kinds) which this would build upon...
+
+
+
+Data kinds could also be parameterised by kinds in the same way that data types can be parameterised by types.  This will require *polymorphic kinds*, see below:
+
+
+### Syntax
+
+
+
+We need a syntax for sorts as well as kinds:
+
+
+```wiki
+  kind variable ::= k, ... etc
+  monokind ::= * | monokind -> monokind | k
+  polykind ::= forall k1.. kn. monokind
+
+  sort ::= ** | sort -> sort
+```
+
+
+Choices
+
+
+- What to use for the sort that classifies `*`, `*->*` etc?  
+
+  - `*2` (as in Omega; but \*2 isn't a Haskell lexeme)
+  - `**` (using unary notation)
+  - `*s` (Tristan)
+  - `kind` (use a keyword)
+
+- Do we have sort polymorphism?  No!
+
+- Do we have higher ranked kinds?  No (for now)!  Only a monokind on either side of an `(->)` in a kind.  The things that have polykinds are (top-level) type constructors and type functions.
+
+- Impredicative kinds?  No!
+
+### Examples
+
+
+```wiki
+data kind MaybeK k = NothingK | JustK k
+```
+
+
+So here we have
+
+
+```wiki
+  MaybeK   :: ** -> **                      -- Sort of MaybeK
+  NothingK :: forall k::**. MaybeK k        -- Kind of NothingK
+  JustK    :: forall k::**. k -> MaybeK k   -- Kind of JustK
+```
+
+
+It might also be nice to support GADK (Generalized Algebraic Data Kind) syntax for declaring kinds, ala:
+
+
+```wiki
+data kind MaybeK :: ** -> ** where
+  NothingK :: MaybeK k
+  JustK :: k -> MaybeK k
+```
+
+
+Again, note that `Maybe` above is decorated with a `sort` signature.
+
+
+
+or
+
+
+```wiki
+data kind MaybeK k where
+  NothingK :: MaybeK k
+  JustK :: k -> MaybeK k
+```
+
+
+However no GADTs or existentials at the kind level (yet).  TODO think about motivating examples.
+
+
+
+Note: I don't think it's worth having existential kinds without kind-refinement as we don't have kind-classes, and so no user could ever make use of them.  Kind refinement does allow existential kinds to make sense however (or at least be usable).  The question then is when does kind-refinement come into play - pattern matches.  TODO generate some examples to motivate this.
+
+
+### Sort Signatures
+
+
+
+GHC currently allows users to specify simple kind signatures.  By allowing declaration of other kinds, and parameterisation of kinds, we will require kinds to have sorts.  Initially we may want to push everything up one layer, so our language of sorts is generated by the sort that classifies kinds `**`, or functions `sort -> sort`.
+
+
+
+This means we could allow explicit sort-signatures on kind arguments, e.g.:
+
+
+```wiki
+data kind With (k :: ** -> **) = WithStar (k *) | WithNat (k Nat)
+```
+
+
+or
+
+
+
+Alternate formulation of With using GADK syntax.
+
+
+```wiki
+data kind With :: (** -> **) -> ** where
+  WithStar :: forall (k :: ** -> **). (k *) -> With k
+  WithNat  :: forall (k :: ** -> **). (k Nat) -> With k
+```
+
+### Kind Synonyms
+
+
+
+Simple type synonyms have a natural analogy at the kind level that could be a useful feature to provde once we have parameterizable kinds.  Depending on whether we keep the kind and type namespaces separate (above) we could just abuse the current `type Foo = Either Baz Bang` syntax to also allow creating `kind synonyms`, or if we need to invent some new syntax.  `kind Foo = Either Baz Bang` would seen natural, or perhaps more safely `type kind Foo = Either Baz Bang`.
+
+
+
+`newkind` doesn't make sense to add as there is no associated semantics to gain at the type level that `data kind` doesn't already provide.
+
+
