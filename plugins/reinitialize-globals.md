@@ -257,7 +257,7 @@ Ian Lynagh](http://www.haskell.org/pipermail/ghc-devs/2013-July/001651.html).
 
 - [\#8039](http://gitlabghc.nibbler/ghc/ghc/issues/8039) — might be blocking 3658
 
-- [DynamicByDefault\#Performance](dynamic-by-default#erformance) — the dynamically-link compiler may be significantly slower than the statically-linked one. So people may prefer to have a statically-linked ghc, which would then mean they couldn't (safely) use the Core plugins that use the `FastString.string_table`.
+- [DynamicByDefault\#Performance](dynamic-by-default#performance) — the dynamically-link compiler may be significantly slower than the statically-linked one. So people may prefer to have a statically-linked ghc, which would then mean they couldn't (safely) use the Core plugins that use the `FastString.string_table`.
 
 
 And what about the corner-case where someone statically-links a libHSghc copy into their own plugin DSO? That's sounds possible, but also like they're *trying* to break things. Solution 1 would handle it.
