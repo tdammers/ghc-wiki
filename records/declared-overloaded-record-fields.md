@@ -224,7 +224,7 @@ We need a way to declare that a name is available as an overloadable field name 
 
 >
 >
-> (See discussion at [Wild afterthought](records/declared-overloaded-record-fields/c-ompare-sorf#he-string-type-parameter-to-has-,-and-scope-control).)
+> (See discussion at [Wild afterthought](records/declared-overloaded-record-fields/c-ompare-sorf#the-string-type-parameter-to-has-,-and-scope-control).)
 >
 >
 
