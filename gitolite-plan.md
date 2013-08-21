@@ -5,7 +5,7 @@
 
 
 
-**In case of TLDR, go straight to [\#Developerchanges](gitolite-plan#eveloper-changes).**
+**In case of TLDR, go straight to [\#Developerchanges](gitolite-plan#developer-changes).**
 
 
 ## Motivation
