@@ -1,0 +1,24 @@
+= The LLVM backend =
+
+David Terei wrote a new code generator for GHC which targets the LLVM compiler infrastructure. Most of the work was done as part of an honours thesis at the University of New South Wales under the supervision of Manuel Chakravarty. It was merged into GHC Head around May of 2010 and has been included in GHC since the 7.0 release.
+
+Documentation:
+ * [wiki:Commentary/Compiler/Backends/LLVM/Installing Installing & Using]
+ * [wiki:Commentary/Compiler/Backends/LLVM/Design Design & Implementation]
+ * [wiki:Commentary/Compiler/Backends/LLVM/Mangler LLVM Mangler]
+ * [wiki:Commentary/Compiler/Backends/LLVM/DevelopmentNotes Bugs & Other Problems]
+ * [wiki:Commentary/Compiler/Backends/LLVM/GHC_LLVMPorting Porting GHC/LLVM to another platform]
+
+Work in Progress:
+ * [wiki:SIMD SIMD instructions and LLVM]
+ * [wiki:Commentary/Compiler/Backends/LLVM/Alias Improving Alias Analysis]
+
+Future Ideas:
+ * [wiki:Commentary/Compiler/Backends/LLVM/WIP ToDo List of Sorts]
+ * [wiki:Commentary/Compiler/Backends/LLVM/ReplacingNCG Replacing the Native Code Generator]
+ * [http://dterei.blogspot.com/2011/09/ghc-project-for-all.html David Terei blog post of LLVM-related projects]
+
+Other information:
+ * The [http://www.cse.unsw.edu.au/~pls/thesis/davidt-thesis.pdf thesis paper] which offers a detailed performance evaluation, as well as the motivation and design of the back-end.
+ * [http://blog.llvm.org/2010/05/glasgow-haskell-compiler-and-llvm.html Blog post] on the LLVM blog about the backend.
+ * A more recent [http://www.cse.unsw.edu.au/~chak/papers/TC10.html paper] submitted to the Haskell Symposium '10, gives updated design overview and performance numbers.
