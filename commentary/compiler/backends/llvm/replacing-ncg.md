@@ -1,0 +1,33 @@
+# Replacing the Native Code Generator
+
+
+
+The existence of LLVM is definitely an argument not to put any more effort into backend optimisation in GHC, at least for those optimisations that LLVM can already do. There's also the question of whether it's worth extending the NCG to support SIMD primops. At the moment only the LLVM backend supports these, but current processor architectures will rely more and more on wide vector SIMD instructions for performance. Given that the LLVM project is now stable and widely used, it may be better to drop the NCG entirely (and delete the code).
+
+
+
+However, there are a few ways that the LLVM backend needs to be improved before it can be considered to be a complete replacement for the existing NCG:
+
+
+1.  Compilation speed.  LLVM approximately doubles compilation time. Avoiding going via the textual intermediate syntax would probably help here.
+
+1. Shared library support ([\#4210](http://gitlabghc.nibbler/ghc/ghc/issues/4210), [\#5786](http://gitlabghc.nibbler/ghc/ghc/issues/5786)).  It works (or worked?) on a couple of platforms.  But even on those platforms it generated worse code than the NCG due to using dynamic references for \*all\* symbols, whereas the NCG knows which symbols live in a separate package and need to use dynamic references.
+
+1. Some low-level optimisation problems ([\#4308](http://gitlabghc.nibbler/ghc/ghc/issues/4308), [\#5567](http://gitlabghc.nibbler/ghc/ghc/issues/5567)).  The LLVM backend generates bad code for certain critical bits of the runtime, perhaps due to lack of good aliasing information.  This hasn't been revisited in the light of the new codegen, so perhaps it's better now.
+
+
+Someone should benchmark the LLVM backend against the NCG with new codegen in GHC 7.8.  It's possible that the new codegen is getting a slight boost because it doesn't have to split up proc points, so it can do better code generation for let-no-escapes. It's also possible that LLVM is being penalised a bit for the same reason.
+
+
+
+Other considerations:
+
+
+1. The GHC distribution would need to start shipping with its own copy of LLVM. The LLVM code that GHC produces typically lags the current version of LLVM, so we'd need to ensure there was a usable version.
+
+1. If we did ship our own version of LLVM, we could add custom plugins to improve the GHC generated code. At one stage Max Bolingbroke wrote an LLVM alias analysis plugin, but making it work against an arbitrary existing LLVM version would be infeasible.
+
+
+note (carter): If we're very thoughtful about the changes / extensions to llvm needed for GHC, I'm somewhat confident that we could get any such patches upstreamed to llvm proper. The down side of this is that any such features would be subject to the llvm release cycle, plus we'd want to make sure that we're not just completely changing what we'd like upstreamed every ghc release cycle. The upside is that we'd get a lot more scrutiny / feedback / checking by llvm devs than we'd get with our own patched variant
+
+
