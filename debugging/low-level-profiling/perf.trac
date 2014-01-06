@@ -1,0 +1,105 @@
+= Linux perf tool =
+
+Since Linux 2.6.31, linux has had a new [https://perf.wiki.kernel.org/index.php/Main_Page performance counter subsystem] (initially called "perf counters" and later renamed to "perf events").  The facilities provided by perf events, and the associated tool "perf", are generally a superset of what you can do with [wiki:Debugging/LowLevelProfiling/oprofile oprofile] and [wiki:Debugging/LowLevelProfiling qprof], so it's a good idea to use perf if you can.  It does support fewer processors than the other systems, although more are being added over time.
+
+The perf events subsystem is compiled in by default in the kernel shipped with most distros (e.g. Ubuntu) which means there's no fiddling around compiling your own kernel or modules.
+
+== Installation ==
+
+=== !Debian/Ubuntu ===
+
+On Debian and Ubuntu you can install "perf" by installing the `linux-tools-<your kernel version>` package:
+
+{{{
+$ sudo apt-get install linux-tools-<your kernel version>
+}}}
+
+=== From source ===
+
+If your distro doesn't include "perf" as a package you can build it manually like so:
+
+ * `apt-get install binutils-dev libdwarf-dev libelf-dev` (or equivalent on your distro)
+ * download a kernel source tree, matching your kernel version, from [http://kernel.org]
+ * unpack it
+ * `cd tools/perf`
+ * `make`
+ * if you want, `make install`, or just copy the binary somewhere appropriate
+
+== Usage ==
+
+Check that it works:
+
+{{{
+$ perf stat true
+
+ Performance counter stats for 'true':
+
+       3.684489  task-clock-msecs         #      0.410 CPUs 
+              1  context-switches         #      0.000 M/sec
+              0  CPU-migrations           #      0.000 M/sec
+            158  page-faults              #      0.043 M/sec
+        2920646  cycles                   #    792.687 M/sec
+        2962512  instructions             #      1.014 IPC  
+         687407  branches                 #    186.568 M/sec
+          24356  branch-misses            #      3.543 %    
+  <not counted>  cache-references        
+  <not counted>  cache-misses            
+
+    0.008976351  seconds time elapsed
+}}}
+
+if you see some zeroes here it probably means your processor isn't fully supported by the kernel's perf events subsystem.
+
+Now to profile a GHC-compiled executable:
+
+{{{
+$ perf record ./queens
+$ perf report
+}}}
+
+The output looks something like this:
+
+{{{
+# Samples: 9161149923
+#
+# Overhead  Command      Shared Object  Symbol
+# ........  .......  .................  ......
+#
+    30.65%   queens  queens             [.] s1ql_info
+    18.67%   queens  queens             [.] s1qj_info
+    12.17%   queens  queens             [.] s1qi_info
+     9.94%   queens  queens             [.] s1o9_info
+     5.85%   queens  queens             [.] r1nI_info
+     5.33%   queens  queens             [.] s1sF_info
+     5.18%   queens  queens             [.] s1sG_info
+     3.69%   queens  queens             [.] s1oP_info
+     1.68%   queens  queens             [.] stg_upd_frame_info
+     0.88%   queens  queens             [.] stg_ap_2_upd_info
+     0.62%   queens  queens             [.] s1sE_info
+     0.56%   queens  [kernel]           [k] read_hpet
+     0.39%   queens  queens             [.] stg_ap_p_info
+     0.35%    :2030             f76beb  [.] 0x00000000f76beb
+     0.31%   queens  queens             [.] s1oD_info
+     0.28%  swapper  [kernel]           [k] mwait_idle_with_hints
+     0.25%   queens  queens             [.] __stg_gc_enter_1
+     0.23%   queens  queens             [.] evacuate
+     0.18%  swapper  [kernel]           [k] read_hpet
+     0.12%   queens  queens             [.] scavenge_block
+}}}
+
+which is great for pointing to the hotspots.  You can also annotate the source code (of the RTS) or the assembly, using `perf annotate`.
+
+== Perf with !NoFib ==
+
+There is a caveat to using perf on an executable built by the nofib Makefiles.
+
+To more accurately measure changes in binary sizes, nofib strips the symbols out of the final executable. Therefore, the useful names like "stg_ap_p_info" and "s1ql_info" will not show up in the perf report output. IE The following commands will yield information that is difficult to use.
+
+{{{
+$ cd nofib/your/favorite/test
+$ make clean; make boot; make NoFibRuns=0 >& log
+$ perf record ./test <test inputs>
+$ perf report
+}}}
+
+One workaround is to find the ghc options used in the log file and invoke `ghc <options from log> --make Main.hs -o test` directly. The useful symbol names will then show up in the `perf report` output. NB The symbols '''are''' in the .o files that nofib's make generates; only the linking must be done without using the Makefiles.
