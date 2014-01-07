@@ -1,0 +1,1 @@
+The relevant paper describing weak pointers is [http://research.microsoft.com/apps/pubs/default.aspx?id=67497 Stretching the storage manager: weak pointers and stable names in Haskell].
