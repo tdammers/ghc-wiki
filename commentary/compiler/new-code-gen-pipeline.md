@@ -61,7 +61,7 @@ The first two steps are described in more detail here:
   - The analysis produces a set of `BlockId` that should become proc-points
   - The transformation inserts a function prologue at the start of each proc-point, and a function epilogue just before each branch to a proc-point.
 
-- **(OUTDATED - CmmSpillReload does not exist any more)** **Add spill/reload**, implemented in `CmmSpillReload`, to spill live C-- variables before a call and reload them afterwards.  The spill and reload instructions are simply memory stores and loads respectively, using symbolic stack offsets (see [stack layout](commentary/compiler/stack-areas#aying-out-the-stack)).  For example, a spill of variable 'x' would look like `Ptr32[SS(x)] = x`.
+- **(OUTDATED - CmmSpillReload does not exist any more)** **Add spill/reload**, implemented in `CmmSpillReload`, to spill live C-- variables before a call and reload them afterwards.  The spill and reload instructions are simply memory stores and loads respectively, using symbolic stack offsets (see [stack layout](commentary/compiler/stack-areas#laying-out-the-stack)).  For example, a spill of variable 'x' would look like `Ptr32[SS(x)] = x`.
 
   - `dualLivenessWithInsertion` does two things:
 
@@ -82,7 +82,7 @@ The first two steps are described in more detail here:
 - **Figure out the stack layout**, implemented in `CmmStackLayout`.
 
   - Each variable 'x', and each proc-point label 'K', has an associated *Area*, written SS(x) and SS(k) resp, that names a contiguous portion of the stack frame.  
-  - The stack layout pass produces a mapping of: *(`Area` -\> `StackOffset`)*. For more detail, see [the description of stack layout.](commentary/compiler/stack-areas#aying-out-the-stack)
+  - The stack layout pass produces a mapping of: *(`Area` -\> `StackOffset`)*. For more detail, see [the description of stack layout.](commentary/compiler/stack-areas#laying-out-the-stack)
   - A `StackOffset` is the byte offset of a stack slot from the old end (high address) of the frame.  It doesn't vary as the physical stack pointer moves.
 
 - **Manifest the stack pointer**, implemented in `CmmStackLayout`.  Once the stack layout mapping has been determined, a second pass walks over the graph, making the stack pointer, `Sp` explicit. Before this pass, there is no `Sp` at all.  After this, `Sp` is completely manifest.
