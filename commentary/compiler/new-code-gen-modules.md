@@ -12,8 +12,8 @@ This page describes state of the new code generator sometime back in 2008. It is
 This page gives an overview of the new code generator, including discussion of:
 
 
-- the [new Cmm type](commentary/compiler/new-code-gen-modules#he-new-cmm-data-type)
-- the [module structure of the new code generator](commentary/compiler/new-code-gen-modules#odule-structure-of-the-new-code-generator)
+- the [new Cmm type](commentary/compiler/new-code-gen-modules#the-new-cmm-data-type)
+- the [module structure of the new code generator](commentary/compiler/new-code-gen-modules#module-structure-of-the-new-code-generator)
 
 
 See also [the description of the new code generation pipeline](commentary/compiler/new-code-gen-pipeline).
