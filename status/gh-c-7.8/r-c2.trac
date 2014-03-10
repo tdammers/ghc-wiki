@@ -1,0 +1,10 @@
+
+== Tickets scheduled for 7.8.1
+
+See milestone:7.8.1
+
+Note however, that not all tickets with a 7.8.1 milestone will be addressed for the final 7.8.1 release.
+
+== Tickets filed against RC1
+
+[[TicketQuery(version=7.8.1-rc2,milestone=7.8.1,format=table,col=type|summary|priority|owner,group=status)]]
