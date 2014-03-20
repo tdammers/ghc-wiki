@@ -1,0 +1,74 @@
+= Generalized monad comprehensions =
+This is a proposal to generalize MonadComprehensions (in conjunction with the `ParallelListComp` and `TransformListComp` extensions) from ticket #8914 as well as do-notation.
+
+== Related proposals ==
+* ApplicativeDo.
+
+== Motivation ==
+A `Monad` constraint is sometimes too powerful both with with `MonadComprehensions` extension and using do-notation. 
+
+=== Functor ===
+Ideally the following functions could be desugared into `fmap` with a `Functor` constraint:
+
+{{{
+{-# LANGUAGE MonadComprehensions #-}
+
+fmapM :: Functor f => (a -> b) -> f a -> f b
+fmapM f xs = [ f x | x <- xs ]
+
+fmapDo :: Functor f => (a -> b) -> f a -> f b
+fmapDo f xs = do
+  x <- xs
+  return (f x)
+}}}
+
+but their inferred signatures are `Monad m => (a -> b) -> m a -> m b`.
+
+=== Applicative functor ===
+The following are equivalent to, and could be safely replaced with, `liftA3`:
+
+{{{
+threeM :: Applicative f => (a -> b -> c -> d) -> f a -> f b -> f c -> f d
+threeM f a1 a2 a3 = [ f x1 x2 x3 | x1 <- a1, x2 <- a2, x3 <- a3 ]
+
+threeDo :: Applicative f => (a -> b -> c -> d) -> f a -> f b -> f c -> f d
+threeDo f a1 a2 a3 = do
+  x1 <- a1
+  x2 <- a2
+  x3 <- a3
+  return (f x1 x2 x3)
+}}}
+
+but get a more restricted `Monad` constraint.
+
+=== MonadZip ===
+`MonadZip` (from [http://hackage.haskell.org/package/base-4.4.0.0/docs/Control-Monad-Zip.html Control.Monad.Zip]) is a type class that requires a `Monad` constraint but could make do with a `Functor` constraint (or possibly no constraint at all but then the default implementations could not be implemented and the laws could not be expressed. The definition is currently^[http://hackage.haskell.org/package/base-4.4.0.0/docs/src/Control-Monad-Zip.html source]^
+
+{{{
+class Monad m => MonadZip m where
+    mzip :: m a -> m b -> m (a,b)
+    mzip = mzipWith (,)
+
+    mzipWith :: (a -> b -> c) -> m a -> m b -> m c
+    mzipWith f ma mb = liftM (uncurry f) (mzip ma mb)
+
+    munzip :: m (a,b) -> (m a, m b)
+    munzip mab = (liftM fst mab, liftM snd mab)
+}}}
+but could be
+{{{
+class Functor f => FunctorZip f where
+    fzip :: f a -> f b -> f (a,b)
+    fzip = fzipWith (,)
+
+    fzipWith :: (a -> b -> c) -> f a -> f b -> f c
+    fzipWith f fa fb = fmap (uncurry f) (fzip fa fb)
+
+    funzip :: f (a,b) -> (f a, f b)
+    funzip fab = (fmap fst fab, fmap snd fab)
+}}}
+
+I noticed this in particular when I wanted to use length-indexed lists with a monad comprehension using ''only'' the (trivially defined) `Applicative` and `FunctorZip` instances, but was forced to define the `Monad` instance that was of no use for my particular case.
+
+== Specification ==
+''To be done!''
