@@ -1,0 +1,199 @@
+= GHC Code Owners =
+
+[[PageOutline]]
+
+GHC has an enormous "surface area", and has grown way beyond the
+capacity of any individual, or even research group, to maintain and
+develop.  Its continued success is built on the active contributions
+of a large group of highly talented people, who take responsiblity 
+for significant parts of the system.  This page summarises who does
+what. 
+
+See also 
+ * The [wiki:TeamGHC GHC Team] page, which includes a list of committers.
+ * The [wiki:WorkingConventions working on GHC] page, which tell you how we work together.
+
+== What it means to "own" part of GHC ==
+
+What does it mean to be the "owner" of a chunk of GHC, say X?
+
+ * Being the owner of a chunk of GHC is a public service.  Everyone else gives the owner lots of kudos for looking after X on our behalf.
+ * The owner is the first port of call for guidance about how X works.
+ * If you want to work on X, it makes sense to talk to the owner first, to see what he or she is planning, and to debate the design.
+ * The owner feels a sense of ownership. That means taking responsibility for keeping it clean and beautiful, and refactoring when necessary.
+ * The owner can't be expected to fix every buglet, but feels a sense of responsibility to make sure that serious bugs are fixed.
+ * Owners are expected to step down if they are no longer able to make the time commitment required.
+
+Ownership means being the "first among equals" rather than "having exclusive control":
+ * It does not mean that everyone else can relax and say "oh Fred is dealing with X".  Fred needs help!
+ * It does not mean that no changes can happen to X without the owner's say-so, most especially if the owner becomes hard to contact.
+ * It does not mean that the owner can make decisions that the community disagrees with. Being willing to roll up your sleeves lends weight to your voice, but owners should seek consensus for contentious issues.
+ 
+When contacting an owner, always cc `ghc-devs@haskell.org`, so that others can contribute.  It's a community thing.
+
+The GHC repository is held on a machine called "Rock" (TODO: link to new infrastructure information.)
+
+== Current Owners ==
+
+This section lists the current owners of various parts of GHC.  If
+you'd like to take responsibility for something, tell us (on the
+`ghc-devs` list). Ideally all parts of GHC should have someone who
+claims responsibility for it.  Although some of these parts are
+cross-cutting concerns, we also list the directories in the GHC source
+tree that are most directly implicated.
+
+ * Overall guidance and advice (the GHC Tsars)
+   * [mailto:simonpj@microsoft.com Simon Peyton Jones], [mailto:marlowsd@gmail.com Simon Marlow]
+
+ * Build system, release process.
+   * [mailto:austin@well-typed.com Austin Seipp]
+   * Directories: `mk/`, `distrib/, `ghc-tarballs/, `rules/`, `utils/`, `compiler/main`
+ 
+ * Foreign function interface (FFI)
+   * [mailto:austin@well-typed.com Austin Seipp]
+   * Directories: `libffi/`
+
+ * Documentation
+   * [mailto:austin@well-typed.com Austin Seipp]
+   * Directories: `docs/`
+
+ * The main `HsSyn` data type
+   * [mailto:simonpj@microsoft.com Simon Peyton Jones]
+   * Directories: `compiler/hsSyn`
+
+ * Renamer
+   * [mailto:simonpj@microsoft.com Simon Peyton Jones]
+   * Directories: `compiler/rename`
+
+ * Type inference and interface files
+   * [mailto:simonpj@microsoft.com Simon Peyton Jones]
+   * Directories: `compiler/types`, `compiler/typecheck`, `compiler/iface`
+   
+ * Core, System FC, Simplifier and other optimisations on Core
+   * [mailto:simonpj@microsoft.com Simon Peyton Jones]
+   * Directories: `compiler/coreSyn`, `compiler/deSugar`, `compiler/simplCore`, `compiler/specialise`, `compiler/stranal`
+
+ * Native code generator, register allocation
+   * [mailto:benl@ouroborus.net Ben Lippmeier], [mailto:marlowsd@gmail.com Simon Marlow]
+   * Directories: `compiler/nativeGen`
+
+ * LLVM code generation
+   * [mailto:dave.terei@gmail.com David Terei]
+   * Directories: `compiler/llvmGen`
+
+ * Runtime system, SMP support
+   * [mailto:marlowsd@gmail.com Simon Marlow]
+   * Directories: `rts/`, `includes/`
+
+ * GHCi, and debugger
+   * '''Needs love'''
+   * Directories: `compiler/ghci`, `ghc/`, `driver/`.
+
+ * Template Haskell
+   * [mailto:simonpj@microsoft.com Simon Peyton Jones]
+   * Directories: `libraries/template-haskell`, plus bits scattered over `compiler/`
+
+ * Data Parallel Haskell
+   * [mailto:chak@cse.unsw.edu.au Manuel Chakravarty], [mailto:benl@ouroborus.net Ben Lippmeier]
+   * Directories: `compiler/vectorise`
+
+ * Safe Haskell
+   * [mailto:dave.terei@gmail.com David Terei]
+   * Directories: `compiler/basicTypes`, `compiler/deSugar`, `compiler/ghci`, `compiler/hsSyn`, `compiler/iface`, `compiler/main`, `compiler/parser`, `compiler/rename`, `compiler/typecheck`, `compiler/types`
+
+ * Cloud Haskell
+   * [mailto:watson.timothy@gmail.com Tim Watson], [mailto:jepst79@gmail.com Jeff Epstein]
+   * Code at: `http://haskell-distributed.github.com`
+
+ * Performance Tsars
+   * [mailto:johan.tibell@gmail.com Johan Tibell], [mailto:dave.terei@gmail.com David Terei], [mailto:bos@serpentine.com Bryan O'Sullivan]
+   * Directories: `nofib/`
+
+Cross-cutting compiler directories: `parser/`, `prelude/`, `profiling/`, `utils/`.
+
+== Platform maintainers ==
+
+The following table lists the people who have generously agreed to be responsible for the GHC port to a particular platform, or to produce binary packages for a certain platform.
+
+For a full description of GHC support for various platforms, see [wiki:Platforms].
+
+ * '''x86'''
+   * Windows (targetting [http://www.mingw.org mingw]): [mailto:sof@galois.com Sigbjorn Finne]
+   * Windows (targetting [http://www.cygwin.com Cygwin]): Position open; port bitrotted
+   * Linux (generic): [mailto:marlowsd@gmail.com Simon Marlow],
+     [mailto:simonpj@microsoft.com Simon Peyton Jones]
+   * FreeBSD/i386: [mailto:haskell@FreeBSD.org FreeBSD Haskell Team]
+   * OpenBSD: [mailto:kili@openbsd.org Matthias Kilian]
+   * openSUSE Linux/x86 packages: [mailto:peter.trommler@th-nuernberg.de Peter Trommler]
+   * Gentoo Linux/x86 packages: [mailto:haskell@gentoo.org Gentoo Haskell team]
+   * Debian GNU/Linux/x86 packages: [mailto:kaol@debian.org Kari Pahula]
+   * MacOS X: [mailto:chak@cse.unsw.edu.au Manuel Chakravarty]
+   * Fedora packages: [mailto:haskell-devel@lists.fedoraproject.org Fedora Haskell SIG]
+
+ * '''PowerPC'''
+   * AIX: [mailto:audreyt@audreyt.org Audrey Tang]
+   * Linux: [mailto:desrt@desrt.ca Ryan Lortie], [mailto:erikd@mega-nerd.com Erik de Castro Lopo]
+   * Gentoo Linux packages (32 and 64bit): [mailto:haskell@gentoo.org Gentoo Haskell team]
+   * Debian GNU/Linux/powerpc packages: [mailto:kaol@debian.org Kari Pahula]
+   * MacOS X: [mailto:wolfgang.thaller@gmx.net Wolfgang Thaller],[mailto:naur@post11.tele.dk Thorkil Naur]
+   * Fedora packages: [mailto:haskell-devel@lists.fedoraproject.org Fedora Haskell SIG] (until F12)
+   * openSUSE Linux packages: [mailto:peter.trommler@th-nuernberg.de Peter Trommler]
+
+ * '''Sparc'''
+   * Solaris: Position open
+   * Linux:   Position open
+   * Gentoo Linux packages: [mailto:haskell@gentoo.org Gentoo Haskell team]
+   * Debian GNU/Linux/sparc packages: [mailto:kaol@debian.org Kari Pahula]
+
+ * '''x86_64'''
+   * Linux: [mailto:marlowsd@gmail.com Simon Marlow]
+   * Gentoo Linux packages: [mailto:haskell@gentoo.org Gentoo Haskell team]
+   * Debian GNU/Linux/amd64 packages: [mailto:kaol@debian.org Kari Pahula]
+   * FreeBSD/amd64: [mailto:haskell@FreeBSD.org FreeBSD Haskell Team]
+   * OpenBSD: [mailto:kili@openbsd.org Matthias Kilian]
+   * Fedora packages: [mailto:haskell-devel@lists.fedoraproject.org Fedora Haskell SIG]
+   * openSUSE Linux packages: [mailto:peter.trommler@th-nuernberg.de Peter Trommler]
+
+ * '''Mips64'''
+   * Irix: [mailto:dons@cse.unsw.edu.au Don Stewart]
+
+ * '''Mips'''
+   * Debian GNU/Linux/mips packages: [mailto:kaol@debian.org Kari Pahula]
+
+ * '''Mipsel'''
+   * Debian GNU/Linux/mipsel packages: [mailto:kaol@debian.org Kari Pahula]
+
+ * '''IA-64'''
+   * Linux: [mailto:matthewc@cse.unsw.edu.au Matt Chapman]
+   * Gentoo Linux packages: [mailto:haskell@gentoo.org Gentoo Haskell team]
+   * Debian GNU/Linux/ia64 packages: [mailto:kaol@debian.org Kari Pahula]
+
+ * '''Alpha'''
+   * Dec OSF: [mailto:ken@digitas.harvard.edu Ken Shan]
+   * Linux: Position open.
+   * Gentoo Linux packages: [mailto:haskell@gentoo.org Gentoo Haskell team]
+   * Debian GNU/Linux/alpha packages: [mailto:kaol@debian.org Kari Pahula]
+
+ * '''HPPA'''
+   * Gentoo Linux packages: [mailto:haskell@gentoo.org Gentoo Haskell team]
+   * Debian GNU/Linux/hppa packages: [mailto:kaol@debian.org Kari Pahula]
+
+ * '''S/390'''
+   * Debian GNU/Linux/s390 packages: [mailto:kaol@debian.org Kari Pahula]
+
+ * '''Arm'''
+   * Debian GNU/Linux/arm packages: [mailto:kaol@debian.org Kari Pahula]
+   * iOS packages: [mailto:lukexi@me.com Luke Iannini]
+
+== Libraries ==
+
+Some [wiki:Commentary/Libraries libraries] are very closely coupled to GHC, come with any GHC installation, and are properly considered part of GHC.  (This list is very incomplete.)
+
+ * IO Manager
+   * [mailto:johan.tibell@gmail.com Johan Tibell], [mailto:andreas.voellmy@gmail.com Andreas Voellmy]
+
+== The Full Glasgow Haskell Team ==
+
+Aside from general code owners, there is a fairly large group of people who commit to GHC, many for different reasons, and all of various backgrounds. When writing patches or looking for help, it's good to see if anyone is interested in the same area.
+
+For more details including the full list of people involved, see [wiki:TeamGHC].
