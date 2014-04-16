@@ -1,0 +1,36 @@
+# Autocomplete GHC's command line options
+
+
+
+GHC 7.8 adds `--show-options` flag that prints on standard output all supported flags. This can be used to enable autocompletion of options on the command line (in shells that support such feature).
+
+
+## Bash
+
+
+
+Add this code to your `~/.bashrc` file:
+
+
+```wiki
+# Autocomplete GHC commands
+_ghc()
+{
+    local envs=`ghc --show-options`
+    # get the word currently being completed
+    local cur=${COMP_WORDS[$COMP_CWORD]}
+ 
+    # the resulting completions should be put into this array
+    COMPREPLY=( $( compgen -W "$envs" -- $cur ) )
+}
+complete -F _ghc -o default ghc
+```
+
+## Zsh
+
+
+
+Zsh autocompletion for GHC can be also accomplished using scripts that don't use --show-options flag. See [
+HaskellWiki](http://www.haskell.org/haskellwiki/Zsh) for details.
+
+
