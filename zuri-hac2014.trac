@@ -1,0 +1,37 @@
+= Bug squashing at ZuriHac2014 =
+
+Joachim (nomeata) wants to run a small bugsquashing sprint at [http://www.haskell.org/haskellwiki/ZuriHac2014/Projects ZuriHac 2014]. 
+
+== Requirements ==
+
+You should bring some Haskell experience and be confident reading other people’s Haskell code. You do not need to know all the latest fancy type hackery – GHC itself is written in quite plain Haskell. Some knowledge of git is also useful.
+
+Obviously, you need a machine to work on. The more core it has, the less you’ll have to wait.
+
+== Setup ==
+
+If you want to join in, you can come prepared:
+ * Read through [wiki:Newcomers]
+ * Make sure that you have built GHC once yourself.
+ * Your changes need to be validated. So make sure you validated GHC once. I suggest to have a second working copy of GHC that you only use to validate. There is a [WorkingConventions/Git#Workflowwithvalidate section] explaining how to do this.
+ * Fork [https://github.com/ghc/ghc/ ghc on github] (or otherwise publish a fork of the GHC repo) for easier collaboration during the hackathon.
+ * Get an account on this trac.
+ * Join `#ghc` on freenode.
+ * (optional, if you plan to stick around) Subscribe to `ghc-dev` and `ghc-tickets` mailing lists.
+
+== Optional tips ==
+
+If you have a strong remote machine with lots of cores, you can have the validate tree remotely.
+
+For more convenient validation, especially if the validate repository is remotely, I (Joachim) have a script `ci-validate.sh` that waits for a new branch calls `validate/foo`, then validates it cleanly and either moves it to `validated/foo` or `broken/foo`. If you want to set up that as well, fetch the script from my [https://github.com/nomeata/ghc-devscripts ghc-devscripts repository].
+
+
+== Possible tickets ==
+
+This is a list of tickets that might be suitable for a hacking sprint, but feel free to look for others (click “All Bugs“ and “All Tasks” on the left). And of course, feel free to extend this list.
+
+[[TicketQuery(id=9095\,9122\,9127\,9132\,9136\,95\,1388\,8959\,9156\,17\,9177\,8429\,9178\,4836\,9127\,8613\,393\,1262\,3314\,9086,format=table)]]
+
+== Summary ==
+ * ''4'' people particitpated: nomeata, gintas, skeuchel, Lorenzo ''please add yourself''
+ * ''8'' Tickets worked on: #9177, #8959, #9127, #9178, #9132, #393, #95, #9181
