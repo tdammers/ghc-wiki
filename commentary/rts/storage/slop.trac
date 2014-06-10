@@ -1,0 +1,43 @@
+
+
+= Slop =
+
+Slop is unused memory between objects in the heap.
+
+|| Object1 || ... Slop ... || Object2 ||
+
+== Why do we want to avoid slop? ==
+
+Slop makes it difficult to traverse an area of memory linearly, visiting all the objects, because we can't tell where `Object2` starts in the above diagram.  We need to do linear traversals for two reasons, currently:
+
+ * [wiki:Commentary/Profiling/Heap Heap profiling] needs to perform a census on the whole heap.
+ * [wiki:Commentary/Rts/Sanity Sanity checking] needs to ensure that all the pointers in the heap
+   point to valid objects.
+
+Additionally, linear traversals are useful for the mark phase of the [wiki:Commentary/Rts/Storage compacting garbage collector], and would be useful if we were to allow objects to be pinned arbitrarily (currently pinned objects cannot contain pointers, which means they don't need to be scavenged by the GC).
+
+== How does slop arise? ==
+
+Slop can arise for two reasons:
+
+ * The compiled code allocates too much memory, and only fills part of it with objects.  For example,
+   when compiling code for a function like this:
+{{{
+f = \x -> case x of
+            True  -> e1
+            False -> e2
+}}}
+   the code generator takes the maximum of the heap requirements of e1 and e2 and aggregates it into
+   the heap check at the beginning of the function `f` (to avoid doing too many heap checks).  
+   Unfortunately that means either `e1` or `e2` has too much heap allocated to it, leaving some slop.
+   We solve this problem by moving the heap pointer ''backwards'' before making a tail-call if
+   there is any heap slop.
+
+ * When an object is overwritten with a smaller object.  This happens in two ways:
+   [wiki:Commentary/Rts/HaskellExecution/Updates Updates] and [wiki:Commentary/Rts/Storage/HeapObjects#Blackholes Black Holes].
+
+== What do we do about it? ==
+
+We avoid the problem for [wiki:Commentary/Profiling/Heap heap profiling] by arranging that we only ever do a census on a newly garbage-collected heap, which has no slop in it (the garbage collector never leaves slop between objects in the heap).
+
+Slop does arise due to updates and black holes during normal execution, and GHC does not attempt to avoid it (because avoiding or filling slop during an update is costly).  However, if we're doing [wiki:Commentary/Rts/Sanity sanity checking], then we need to arrange that slop is clearly marked: so in a `DEBUG` version of the RTS (see [wiki:Commentary/Rts/Config RTS configurations])  the update code and the blackhole code both arrange to fill slop with zeros: see the `FILL_SLOP` macro in [[GhcFile(rts/Updates.h)]].  Hence sanity checking only works with a `DEBUG` version of the RTS.
