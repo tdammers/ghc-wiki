@@ -1,0 +1,62 @@
+
+
+= GHC Commentary: The Runtime System =
+
+GHC's runtime system is a slightly scary beast: 50,000 lines of C and C-- code, much of which seems at first glance to be completely obscure.  What on earth does the RTS ''do''?  Here are the highlights:
+
+ * It includes all the bits required to execute Haskell code that aren't compiled into the code itself.
+   For example, the RTS contains the code that knows how to raise an exception when you call {{{error}}},
+   code to allocate {{{Array#}}} objects, and code to implement `takeMVar#`.
+
+ * It includes a sophisticated storage manager, including a multi-generational garbage collector with copying
+   and compacting strategies.
+
+ * It includes a user-space scheduler for Haskell threads, together with support for scheduling Haskell threads
+   across multiple CPUs, and allowing Haskell threads to call foreign functions in separate OS threads.
+
+ * There's a byte-code interpreter for GHCi, and a dynamic linker for loading up object code into a GHCi session.
+
+ * Heap-profiling (of various kinds), time-profiling and code coverage of Haskell code are included.
+
+ * Support for Software Transactional Memory.
+
+Next, we try to make sense of how it all fits together.
+
+== Block Diagram ==
+
+[[Image(rts-overview.png)]]
+
+== Find your way around the code ==
+
+ * [wiki:Commentary/Rts/Conventions Coding conventions in the RTS]
+ * [wiki:Commentary/SourceTree/Includes the layout of header files in includes/]
+
+== Basics you should know about ==
+
+ * [wiki:Commentary/Rts/Config RTS Configurations]
+ * [wiki:Commentary/Rts/Word The Word]
+ * [wiki:Commentary/Rts/Cmm What on earth is a .cmm file?]
+
+== Major subsystems ==
+
+ * '''[wiki:Commentary/Rts/Storage Storage]''': memory layout and garbage collection
+ * '''[wiki:Commentary/Rts/HaskellExecution Haskell Execution]''': how Haskell code is executed
+ * '''[wiki:Commentary/Rts/Scheduler The Scheduler]''': threads, multi-processor support, FFI
+
+== Other topics ==
+
+ * [wiki:Commentary/Rts/Sanity Sanity Checking]
+ * [wiki:Commentary/Rts/FFI So how does foreign import "wrapper" work?]
+ * [wiki:Commentary/Rts/Interpreter GHCi support: the byte-code interpreter and dynamic linker]
+ * [wiki:Commentary/Rts/AsyncExceptions Asynchronous exceptions]
+ * [wiki:Commentary/Rts/STM Software Transactional Memory (STM)]
+ * [wiki:Commentary/Rts/Weak Weak Pointers and Finalizers]
+ * [wiki:Commentary/Rts/Signals How Signals are handled]
+ * [wiki:Commentary/Rts/IOManager The IO Manager thread]
+ * [wiki:Commentary/HeapAlloced The HEAP_ALLOCED macro]
+
+Also check the list of cross-cutting concerns in [wiki:Commentary].
+
+== External documentation ==
+
+ * Blog posts by Edsko de Vries: [http://www.well-typed.com/blog/94/ Understanding the Stack] and [http://www.well-typed.com/blog/95/ Understanding the RealWorld]
