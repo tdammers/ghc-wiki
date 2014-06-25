@@ -62,7 +62,7 @@ Moreover, the following packages are tightly coupled to specific GHC versions (a
 
 
 
-See also some older notes: [DarcsConversion\#Theperspectiveonsubmodules](darcs-conversion#he-perspective-on-submodules)
+See also some older notes: [DarcsConversion\#Theperspectiveonsubmodules](darcs-conversion#the-perspective-on-submodules)
 
 
 - based on the current access patterns, a few repositories are modified often (specifically,  ghc.git and testsuite.git are often updated in a inter-dependent way); most repositories aren't updated for several weeks; therefore some of the issues outlined with the usability of submodules might have less weight here.
