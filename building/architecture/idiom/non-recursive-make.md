@@ -1,0 +1,54 @@
+# Idiom: non-recursive make
+
+
+
+Build systems for large projects often use the technique commonly
+known as "recursive make", where there is a separate `Makefile` in
+each directory that is capable of building that part of the system.
+The `Makefile`s may share some common infrastructure and configuration
+by using GNU **make**'s `include` directive; this is exactly what the
+previous GHC build system did.  However, this design has a number of
+flaws, as described in Peter Miller's
+[
+Recursive Make Considered Harmful](http://miller.emu.id.au/pmiller/books/rmch/).  
+
+
+
+The GHC build system adopts the non-recursive **make** idiom.  That is, we
+never invoke **make** from inside a `Makefile`, and the whole build system
+is effectively a single giant `Makefile`.
+
+
+
+This gives us the following advantages:
+
+
+- Specifying dependencies between different parts of the tree is
+  easy.  In this way, we can accurately specify many dependencies
+  that we could not in the old recursive-make system.  This makes it much more likely that when you say "make"
+  after modifying parts of the tree or pulling new patches,
+  the build system will bring everything up-to-date in the correct order, and leave you with a working
+  system.
+
+- More parallelism: dependencies are more fine-grained, and there
+  is no need to build separate parts of the system in sequence, so
+  the overall effect is that we have more parallelism in the build.
+
+
+Doesn't this sacrifice modularity?  No - we can still split the build
+system into separate files, using GNU **make**'s `include`.
+
+
+
+Specific notes related to this idiom:
+
+
+- Individual directories usually have a `ghc.mk` file which
+  contains the build instructions for that directory.
+
+- Other parts of the build system are in `mk/*.mk` and `rules/*.mk`.
+
+- The top-level `ghc.mk` file includes all the other `*.mk` files in
+  the tree.  The top-level `Makefile` invokes **make** on `ghc.mk`
+  (this is the only recursive invocation of **make**; see the
+  [phase ordering](building/architecture/idiom/phase-ordering) idiom).
