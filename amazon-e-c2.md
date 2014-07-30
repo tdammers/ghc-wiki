@@ -1,0 +1,239 @@
+
+
+
+# Using Amazon EC2 for building GHC
+
+
+
+[ Amazon EC2](http://aws.amazon.com/ec2/) is a way to get access to
+remote compute server capabilities, for which you pay by the hour.  It
+costs [ pennies per hour](http://aws.amazon.com/ec2/pricing), so it's
+perfect for doing the occasional GHC build if
+
+
+- you are cycle-challenged. e.g. I (simonmar) use this when I'm
+  working at home on my laptop, so I can use my laptop for
+  development while having a validate going on EC2 in the background.
+
+- you want to validate on a different platform
+
+
+Right now it's suitable for doing GHC validate on x86/Linux, but we
+could expand this in the future to include x86\_64, more flavours of
+Linux, and OpenSolaris, all of which will be useful for testing.
+
+
+
+It takes a bit of setting up, but once set up you can:
+
+
+- issue one command to start up an EC2 machine ready to build GHC.  A
+  script is provided for this below; it usually takes a couple of
+  minutes to run.
+- issue one command to push patches to your machine.
+- issue one command to validate.
+- issue another command to shut it down (don't forget this, you're
+  paying by the hour!)
+
+
+The way I have this set up, EC2 costs about $0.06 per hour (I use
+"spot instances" to make it cheaper).  I use a "Medium High-CPU"
+instance, which is equivalent to a fast dual-core machine; the
+ordinary bog-standard instance took 1 hour 40 mins to validate when I
+tried it, whereas the medium high-CPU instance completes validate in
+under 30 minutes.
+
+
+## Getting set up
+
+
+
+Set up access to EC2 using the
+[
+Amazon instructions](http://docs.amazonwebservices.com/AWSEC2/latest/GettingStartedGuide/): get as far as being able to fire up an instance
+and SSH to it.
+
+
+
+Using the
+[
+ElasticFox Firefox plugin](http://developer.amazonwebservices.com/connect/entry.jspa?externalID=609) is a good way to keep an eye on things from
+Firefox, it's a more responsive alternative to using the web-based
+management tool.
+
+
+
+You'll need to install the [
+Amazon EC2 command-line tools](http://docs.amazonwebservices.com/AWSEC2/latest/CommandLineReference/), which require Java to be installed (unfortunately).  Install the up-to-date versions from Amazon, not the ones from your Linux distro (even the ones in Ubuntu 9.10 are too outdated).  Follow the instructions, and check that things are working by running `ec2-describe-instances`.
+
+
+
+Add to your `.bash_profile`, or equivalent (replacing keys as appropriate):
+
+
+```wiki
+export EC2_PRIVATE_KEY=~/.ec2/<your-private-key-file>
+export EC2_CERT=~/.ec2/<your-certificate-file>
+# export EC2_URL=https://ec2.eu-west-1.amazonaws.com
+# export EC2_URL=https://ec2.us-west-1.amazonaws.com
+export EC2_URL=https://ec2.us-east-1.amazonaws.com
+```
+
+
+Now, take the attached scripts [attachment:start-ec2-instance](/trac/ghc/attachment/wiki/AmazonEC2/start-ec2-instance)[](/trac/ghc/raw-attachment/wiki/AmazonEC2/start-ec2-instance),
+[attachment:validate](/trac/ghc/attachment/wiki/AmazonEC2/validate)[](/trac/ghc/raw-attachment/wiki/AmazonEC2/validate), and [attachment:prep\_instance](/trac/ghc/attachment/wiki/AmazonEC2/prep_instance)[](/trac/ghc/raw-attachment/wiki/AmazonEC2/prep_instance) and save them in
+your home directory in the same place you saved your key-pair file.
+Edit `start-ec2-instance` to point to your key-pair file.
+
+
+
+In your `~/.ssh/config` file, add this:
+
+
+```wiki
+# This entry is automatically tweaked by start-ec2-instance
+Host ec2
+   Hostname ec2-XXX.compute-1.amazonaws.com
+   User ubuntu
+   IdentityFile XXX.pem
+```
+
+
+the idea behind this is that `start-ec2-instance` is going to fix this
+entry to point to your EC2 instance when it starts up, so that no
+matter what hostname you are given, you can connect to it with `ssh ec2`.
+
+
+
+Notice that the `start-ec2-instance` script is configured to use a
+particular AMI: `ami-916c81f8`.  This is an EBS-backed image with
+32-bit Ubuntu Karmic, and tools needed to build GHC installed.  The
+`ubuntu` user has a full set of GHC HEAD repositories, and it mounts an ephemeral disk to use for builds.
+
+
+
+This AMI is in the US-East region for now, because that's where I
+found the Ubuntu EBS-backed AMI that I used as a base.  Ubuntu [
+plan to make EBS-backed images](https://wiki.ubuntu.com/ServerLucidEc2EBSRoot) of future releases, so this should get easier.  (see below for more AMIs you can use).
+
+
+
+Why EBS-backed? This means the image is backed by a persistent disk,
+so I can update it easily, e.g. to bring the repos up to date, or add
+more tools.
+
+
+
+To use EC2, just run `start-ec2-instance`, wait until it finishes, and
+it will then tell you that your instance is available and what
+commands you can run.  I normally use GNU screen to manage my session,
+so the script will copy up the file `~/.screenrc` if it exists.
+
+
+
+The script is set up to create a
+[ spot instance](http://aws.amazon.com/ec2/spot-instances/) request for
+a `c1.medium` instance, and then wait for it to be fulfilled.  This is
+cheaper than just creating an ordinary instance - the price varies
+depending on demand, but it seems to hover around $0.06 for
+`c1.medium` at the moment, and the script uses a maximum of $0.08;
+this is less than half the price of an on-demand (instead of spot)
+instance, but the script is easy to modify to use an on-demand instance if you want.
+
+
+
+Don't forget to "ssh ec2 sudo halt" when you've finished.
+
+
+## AMIs
+
+
+
+We've prepared the following AMIs for GHC development:
+
+
+<table><tr><th>**Region**</th>
+<th>**AMI**
+</th>
+<th></th></tr>
+<tr><th>us-east</th>
+<th>ami-916c81f8</th>
+<th>Ubuntu 9.10 x86
+</th></tr>
+<tr><th>us-east</th>
+<th>ami-6cd13905</th>
+<th>Ubuntu 10.04 x86\_64
+</th></tr></table>
+
+
+## Future improvements
+
+
+- validate should contact you when it finishes, One way I'd like to
+  do this is to use twidge to send a tweet, which could then be
+  forwarded via SMS to my phone.
+
+- We should make more AMIs available (x86\_64, different flavours of
+  Linux, OpenSolaris).
+
+- Make it more suitable for development: e.g. add instructions for
+  using a persistent EBS volume for storage.
+
+## Notes on how to create a new EBS image
+
+
+
+Ubuntu EBS images are listed at [
+http://uec-images.ubuntu.com/releases/](http://uec-images.ubuntu.com/releases/).  e.g. for Lucid,  [
+http://uec-images.ubuntu.com/releases/10.04/release/](http://uec-images.ubuntu.com/releases/10.04/release/).
+
+
+
+Start a new instance with the appropriate AMI, and SSH into it.
+
+
+
+Check that it has an ephemeral disk mounted, `df` should say something like
+
+
+```wiki
+ubuntu@domU-12-31-38-00-B0-F1:~$ df
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/sda1             15481840    744060  13951348   6% /
+devtmpfs               3813968       112   3813856   1% /dev
+none                   3932272         0   3932272   0% /dev/shm
+none                   3932272        48   3932224   1% /var/run
+none                   3932272         0   3932272   0% /var/lock
+none                   3932272         0   3932272   0% /lib/init/rw
+/dev/sdb             433455904    203016 411234584   1% /mnt
+```
+
+
+So `/mnt` is the ephemeral disk (unbacked-up storage) where we can do builds.
+
+
+
+Run the following script to get the GHC repo set up:
+
+
+```wiki
+#!/bin/sh -e
+
+cd $HOME
+
+REPO_TARBALL=ghc-HEAD-2010-05-19-ghc-corelibs-testsuite.tar.bz2
+
+# install required packages
+sudo apt-get install darcs ghc happy alex autoconf automake libtool ncurses-dev zlib1g-dev
+
+# grab the repo tarball
+wget http://darcs.haskell.org/${REPO_TARBALL}
+
+# unpack the repos
+tar xvjf ${REPO_TARBALL}
+
+# update the repos
+cd ghc
+chmod +x ./darcs-all ./validate ./boot
+./darcs-all pull -a
+```
