@@ -211,8 +211,8 @@ An [interface file](commentary/compiler/iface-files) contains:
   - The *export-list hash*, which depends on 
 
     - The export list itself.  The export-list hash only depends on the *names* of the exports for the modules. The *types* of these exports are ignored in calculating the hash. Only a change of name or removal or addition of an export will change the hash. Not a type change of definition change.
-    - the *orphan hash*, which depends on all the orphan instances/rules in the, and the orphan hashes of all orphan modules below this module in the dependency tree (see [Orphans](commentary/compiler/recompilation-avoidance#rphans)). 
-    - the package dependencies (see [Package Version Changes](commentary/compiler/recompilation-avoidance#ackage-version-changes)).
+    - the *orphan hash*, which depends on all the orphan instances/rules in the, and the orphan hashes of all orphan modules below this module in the dependency tree (see [Orphans](commentary/compiler/recompilation-avoidance#orphans)). 
+    - the package dependencies (see [Package Version Changes](commentary/compiler/recompilation-avoidance#package-version-changes)).
 - *exports*: what the module exports
 - *dependencies*: modules and packages that this module depends on
 - *usages*: what specific entities the module depends on
@@ -662,7 +662,7 @@ If the version of a package is bumped, what forces recompilation of
 the things that depend on it?
 
 
-1. If a module from the package is imported directly, then we will notice that the imported module is not amongst the dependencies of the module when it was compiled last, and force a recompilation (see [Deciding whether to recompile](commentary/compiler/recompilation-avoidance#eciding-whether-to-recompile)).
+1. If a module from the package is imported directly, then we will notice that the imported module is not amongst the dependencies of the module when it was compiled last, and force a recompilation (see [Deciding whether to recompile](commentary/compiler/recompilation-avoidance#deciding-whether-to-recompile)).
 
 1. If a module from the old package is imported indirectly, then the old package will be amongst the package dependencies (`dep_pkgs . mi_deps`), so we must recompile otherwise these dependencies will be inconsistent.  The way we handle this case is by including the package dependencies in the *export hash* of a module, so that other modules which import this module will automatically be recompiled when one of the package dependencies changes.  The recompiled module will have new package dependencies, which will force recompilation of its importers, and so on.  Therefore if a package version changes, the change will be propagated throughout the module dependency graph.
 
