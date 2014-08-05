@@ -1,0 +1,981 @@
+# Intrinsic Superclasses
+
+
+
+**Note** This page is a new version of the [DefaultSuperclassInstances](default-superclass-instances) proposal, and may ultimately supplant it. For now, I'm keeping the two separate as the delta is large, superficially at least. See also on [
+Reddit](http://www.reddit.com/r/haskell/comments/2avs16/intrinsicsuperclasses_for_haskell_new_proposal/). Another proposal in this space, worthy of comparison to the one below, is here: [InstanceTemplates](instance-templates).
+
+
+## The Problem
+
+
+
+Sometimes we want to refactor the type class hierarchy, and it always hurts.
+
+
+
+(More broadly, we have the recurrent problem of how to program defensively against progress. We may wish for benevolent evolution in the library, but we have to program against the library as it stands, and then the granting of our wishes breaks our code!)
+
+
+
+Moreover, whether refactoring a legacy hierarchy or not, some subclasses give rise to default definitions for some of their superclasses. E.g., `Ord` can induce a standard definition of `Eq`, `Monad` induces `Applicative`, `Applicative` and `Traversable` both induce `Functor`. In these cases, we commonly just want the obvious default implementations and it is a nuisance to spell them out longhand.
+
+
+###
+Requirement 1: Some instance definitions in source code should generate multiple internal instances.
+
+
+
+The typical scenario is that we have a library class
+
+
+```wiki
+class C x where
+  f :: ...
+  g :: ...
+```
+
+
+but then realise that `C` is the "has `g`" special case of a useful general notion `S`. (`Monad` and `Applicative` are useful real life models for `C` and `S`, respectively). We would really prefer to have had the library supply
+
+
+```wiki
+class S x where
+  f :: ...
+class S x => C x where
+  g :: ...
+```
+
+
+The cost of putting this generalization into the library is that all the client code will break.  Where the client previously wrote
+
+
+```wiki
+instance C a => C (T a) where
+  f = ...impl of f at type T...
+  g = ...impl of g at type T...
+```
+
+
+she must instead write
+
+
+```wiki
+instance C a => S (T a) where
+  f = ...impl of f at type T...
+instance C a => C (T a) where
+  g = ...impl of g at type T...
+```
+
+
+Busy people will complain bitterly that they haven't the time to add `S` instances everywhere, so the success of `C` will get in the way of insight about `S`. This is not a bad reason to resist making `Functor` and `Applicative` superclasses of `Monad`. It would have been pleasant to introduce `Applicative` as a generalization of `Monad` and somehow have all our old `Monad` instances generate `Applicative` instances too.
+
+
+
+We want to fix things so that `S` can be introduced in such a way that `C` instances in client code yield, by default, both `C` and `S` instances internally, each with the constraints given in the client code. We do not imagine that all superclasses should have this relationship with their subclasses, but that some **intrinsic** superclasses might. The various definitions in client instances will need to be distributed to the appropriate internal instances of the class itself and its intrinsic superclasses.
+
+
+###
+Requirement 2: Some subclasses should give default definitions for things declared in their superclasses.
+
+
+
+Our refactoring problem deepens when classes define default methods. What if our library defined class `C` with a default method for `f` that uses `g`, thus:
+
+
+```wiki
+class C x where
+  f :: ...
+  f =  ...g...
+  g :: ...
+```
+
+
+Now our split hits trouble. We cannot have
+
+
+```wiki
+class S x where
+  f :: ...
+  f =  ...g...
+class S x => C x where
+  g :: ...
+```
+
+
+because (technically) `g` is no longer in scope for the default `f` definition, and (morally) because only the `S`s which are also `C` should have that default definition anyway. 
+
+
+
+The default method for `S`'s method `f` rightly belongs in the declaration of `C`, not `S`, because
+
+
+- types with a `C` instance can be given an `S` instance in a "standard" way (using `..g..`), but
+- there are other types which have `S` instances defined differently and no `C` instance at all.
+
+
+Again, that is a familiar situation: every `Monad` has is `Applicative` with `(<*>) = ap`, but non-monadic `Applicative` instances have `(<*>)` defined in other ways.
+
+
+
+**Imagined solution.** If only we could write something like
+
+
+```wiki
+class S x where
+  f :: ...
+class (instance S x) => C x where
+  g :: ...
+  f =  ...g...
+```
+
+
+where the extra `instance` marking the superclass constraint makes `S` an **intrinsic** superclass of `C`. Accordingly, `f` can be treated as if it were a method of `C`, *both* for purposes of `C`'s instances, *and* for default definition in the `C` class declaration.
+
+
+
+If this machinery had been in place when `Applicative` was invented, we could just have given
+
+
+```wiki
+class (instance Functor f) => Applicative f where
+  return :: x -> f x
+  (<*>)  :: f (a -> b) -> f a -> f b
+  fmap = (<*>) . return
+class (instance Applicative m) => Monad m where
+  (>>=) :: m a -> (a -> m b) -> m b
+  mf <*> ma = mf >>= \ f -> ma >>= \ a -> return (f a)
+```
+
+
+Note that explicit `Functor` instances do not have a default implementation of `fmap` (that being rather the point of such instances), but that explicit `Applicative` and `Monad` would, under this proposal.
+
+
+
+The imagined solution delivers the instance of the intrinsic superclass by default, largely motivated by the refactoring issue, which has had nontrivial negative consequences for the evolution of the library, the Functor-Applicative-Monad hierarchy being a case in point. If we were gifted with foresight, we might prefer an "opt-in" approach, where default instances can be generated cheaply but not in total silence.
+
+
+
+Many default superclass instances are likely to define some but not all of the superclass members. E.g., we can make `return` a member of `Applicative`: we would then expect a `Monad` instance to define `return` but to acquire a default definition of `<*>`. An opt-in notation would need to (and could) say more than `deriving Applicative`.
+
+
+### Requirement 3: A member's most local definition is its definition.
+
+
+
+Requirement 2 implies that the default implementation of a method might come from somewhere other than the class declaration in which the method is declared. Indeed, there might be multiple defaults. We could choose to give `Monad` its own specialized `fmap`:
+
+
+```wiki
+class (instance Applicative m) => Monad m where
+  fmap f ma = ma >>= \ a -> return (f a)
+```
+
+
+So now where is a default defintion for `fmap` *both* in `Monad` *and* in its superclass `Applicative`.
+We need to choose between these candidate definitions, and the obvious way to do so is to apply the existing principle that the more local overrides the more generic.
+
+
+
+If we gave `Monad` a default `fmap`, we should then expect that 
+
+
+- explicit (i.e. user-written) `Functor` instances will not have a default `fmap` implementation, 
+- explicit `Applicative` instances will be offered the default `fmap` from the `Applicative` class declaration, 
+- explicit `Monad` instances should be offered the `Monad`-specific default instead.
+
+###
+Requirement 4: Transitionally, we must minimize damage to client code with explicit instances now duplicated by intrinsic superclass instances.
+
+
+
+Even if we can build a technology which supports such a treatment, we face further problems rolling it out across the legacy codebase. We hit some trouble if we take an *existing* subclass and make it intrinsic, e.g.,
+
+
+```wiki
+class (instance Eq x) => Ord x where
+  compare :: x -> x -> Ordering
+  x == y = case compare x y of {EQ -> True; _ -> False}
+```
+
+
+because every old `Ord` instance will now generate an `Eq` instance for which a duplicate *must* already exist.
+
+
+
+Worse is the situation with `Monad` and `Applicative` where we make an existing class into a *new* superclass *and* make it intrinsic: the prior constraints no longer make the whereabouts of duplicated `Applicative` instances particularly predictable.
+
+
+
+Note that we might need to keep explicit instances, especially when they have weaker constraints than the defaults. E.g., if we leave it to the intrinsic machinery, we will find that
+
+
+```wiki
+instance Monad m => Monad (StateT s m) where ...
+```
+
+
+generates
+
+
+```wiki
+instance Monad m => Applicative (StateT s m) where ...
+```
+
+
+which would have been enough to keep alive client code just involving `Monad`, but misses the opportunity to weaken the constraint to
+
+
+```wiki
+instance Applicative m => Applicative (StateT s m) where ...
+```
+
+
+The problem becomes worse when we make newly intrinsic an established superclass. We should very much dislike to have
+
+
+```wiki
+instance Ord a => Eq [a] where ...  -- overconstrained
+```
+
+
+thrust upon us.
+
+
+
+It is far from obvious how to automate the recipe for weakening constraints in generated instances, so we shall have to be content with manual override for the time being.
+
+
+
+As a matter of routine, client code contains "missing instances": we resent their absence from the library so we write them ourselves, and then we resent them when they are added to the library because our workaround breaks. It is not at all obvious how to mitigate this problem.
+
+
+###
+Requirement 5: Whatever mechanism we employ for generating instances, we need an explicit means to disable it.
+
+
+
+We face not only conflicts between explicit and intrinsic instances, but also between multiple intrinsic instances. We should expect
+
+
+```wiki
+class (instance Functor t, instance Foldable t) => Traversable t where
+  traverse :: Applicative f => (a -> f b) -> t a -> f (t b)
+  fmap f = runIdentity . traverse (Identity . f)
+  foldMap f = runConst . traverse (Const . f)
+```
+
+
+but now if we define
+
+
+```wiki
+data Square x = x :& x
+instance Monad Square where
+  return x = x :& x
+  (a :& a') >>= f = case (f a, f a') of
+    (b :& _, _ :& b') -> b :& b'
+instance Traversable Square where
+  traverse f (a :& a') = return (:&) <*> f a <*> f a'
+```
+
+
+then we have silently generated duplicate instances for `Functor Square` and no particular reason to choose one over the other.
+
+
+
+**Imagined solution.** We might perhaps write
+
+
+```wiki
+data Square x = x :& x
+instance Monad Square - Functor where
+  ...
+instance Traversable Square where
+  ...
+```
+
+
+to inhibit the `Functor` instance arising from `Monad` but retain that from `Traversable`. It is probably a good thing in any case to be clear about which instances should be generated and which not.
+
+
+
+We face the same problem when we want to declare multiple intrinsic superclasses. Imagine
+
+
+```wiki
+class (instance Monad f, instance Traversable f) => Transposable f where...
+
+instance Transposable Square where
+  ... -- which Functor Square do I get?
+```
+
+
+because we could then derive that `Functor` is an intrinsic superclass of `Transposable` (perhaps with different default `fmap` definitions) in two ways. We should adopt the same solution and allow exclusions when declaring intrinsic superclasses, e.g.,
+
+
+```wiki
+class (instance Monad f - Functor, instance Traversable f) => Transposable f where...
+```
+
+
+That is, we need a suitable language for describing which set of internal instances we mean, for use both in the heads of instance definitions and in the intrinsic superclasses of class declarations. In both cases, we need to perform a closure computation, tracing back from a given atomic constraint to find all the intrinsic superclasses which have not been explicitly excluded.
+
+
+###
+Desirable 6: The internal instances generated by an instance definition should be clear from its head and those of relevant class declarations.
+
+
+
+When you declare an instance, you should already be aware of which superclass instances must also exist, as documented in the head of the corresponding class declaration. This proposal changes the nature of the obligation (because some superclasses will be instantiated automatically unless you choose otherwise) but the specification is in the same place.
+
+
+
+The earlier [DefaultSuperclassInstances](default-superclass-instances) proposal did not have this property: default superclass instances were declared and given default implementations in the *bodies* of class declarations, duplicating some information from the head even though they had similar impact on the instances generated.
+
+
+
+Note that this property is in conflict with Requirement 4: to maintain legacy code, we must restrict the generation of internal instances for intrinsic superclasses with attention to the instances which otherwise exist already, so that the meaning of one instance definition vary with the presence or absence of another. We should recognize this anomaly as a necessary evil and minimize its impact.
+
+
+---
+
+
+## Terminology
+
+
+
+To nail down the technicalities of the proposal, we shall need names for things, and notation to present the things thus named.
+
+
+### Members, Defaults, Superclasses
+
+
+
+Firstly, let us talk about the stuff which gets declared in classes, defined by default in classes, and defined in instances:
+
+
+- The **members** of a class C are the methods and associated type and data families which may be defined in instance definitions for C.
+- A **defaulted member** of a class C is a member with a default definition: C instances may either omit them or override the default with an explicit definition.
+- A **superclass** S of a class C is a class which must be given a corresponding instance for each instance of C.
+
+
+We say "member" rather than "method" to include things like associated type families (which may be defaulted) and associated data families (which may not, because data constructors cannot be duplicated).
+
+
+
+E.g., in
+
+
+```wiki
+class Monoid c => Agglomeration c where
+  type Element c
+  glomOne :: Element c -> c
+  glomList :: [Element c] -> c
+  glomList = foldr mempty (mappend . glomOne)
+```
+
+
+`Monoid` is a superclass of `Agglomeration`, and the members are `Element`, `glomOne` and `glomList`, with `glomList` being defaulted.
+
+
+
+These definitions make sense in Haskell as at present and are not altered by this proposal. They are phrased carefully in terms of which *instances* one can or must write, and which things can or must be defined in those instances. The proposal *does* extend how classes acquire members and how members are defaulted, as a consequence of declaring some superclasses to be intrinsic.
+
+
+### Immediate members, defaults and superclasses
+
+
+
+We use the adjective "immediate" of class-C-related things to imply that the relationship is made explicit in the declaration of class C.
+
+
+- The **immediate members** of a class C are the methods and associated type and data families which are declared in the class declaration for C.
+
+
+In current Haskell, all members are immediate, but this proposal introduces a distinction. When we write
+
+
+```wiki
+class (instance Functor f) => Applicative f where
+  return :: x -> f x
+  (<*>)  :: f (a -> b) -> f a -> f b
+  fmap = (<*>) . return
+```
+
+
+we make `fmap` a member of `Applicative` by virtue of `fmap` being an *immediate* member of the *intrinsic* superclass `Functor`. However, `fmap` is not an *immediate* member of `Applicative`: the immediate members of `Applicative` are `return` and `(<*>)`.
+
+
+
+**Fact** *The name of a class member uniquely determines the class of which it is an immediate member and thus the internal instances in which its definitions belong.*
+
+
+- An **immediately defaulted member** of a class C is a member of class C which is given a default definition in the declaration of C.
+
+
+In current Haskell, the only defaulted members are immediately defaulted members (indeed, immediately defaulted immediate members). However, the above makes `fmap` an immediately defaulted member of `Applicative`, even though it is not an immediate member of `Applicative`: it is the defaulting which is immediate to the class declaration, not the membership. If we then add
+
+
+```wiki
+class (instance Applicative m) => Monad m where
+  (>>=) :: m a -> (a -> m b) -> m b
+  mf <*> ma = mf >>= \ f -> ma >>= \ a -> return (f a)
+```
+
+
+without giving a further definition of `fmap`, then
+we make `(<*>)` an immediately defaulted member of `Monad` and `fmap` a (not immediately) defaulted member of `Monad`.
+
+
+- An **immediate superclass** S of a class C is any class which heads a constraint in the declaration of C.
+- A **superclass** of C is either an immediate superclass of C or a superclass of an immediate superclass of C.
+
+
+The above declarations make `Applicative` an immediate superclass of `Monad` and `Functor` an immediate superclass of `Applicative`. `Functor` is then a superclass of `Monad`, but not an immediate superclass.
+
+
+### Intrinsic superclasses, roots and closures
+
+
+
+A class's declaration determines its immediate superclasses, thence transitively all of its superclasses. Some of those superclasses are now to be designated "intrinsic".
+
+
+- An **intrinsic** superclass of a class C is a superclass of C whose immediate members may be defined in an instance for C.
+
+
+In current Haskell, this classification is well defined, even though the set it classifies is empty. But there's still time to change all that!
+
+
+
+In the heads of class declarations, we shall need to say which superclasses are intrinsic. In the heads of instance declarations, we shall need to say which intrinsic superclasses are also being instantiated. We can do both by computing an *intrinsic superclass closure* from a given atomic class constraint with given explicit exclusions (e.g., `Monad Square - Functor`).
+
+
+- An **intrinsic superclass root** is the pair of an atomic class constraint with a list of excluded class names.
+
+
+The proposed syntax for an intrinsic superclass root is just
+
+
+
+*root* ::= *atom* (`-` *Name*+)?
+
+
+
+*atom* ::= *Name* *type*+
+
+
+
+(Grammar grammar: postfix ? for 0 or 1, postfix + for 1 or more, postfix ,\* for 0 or more comma-separated)
+
+
+
+Each class declaration head should designate left of `=>` the declared class's ordinary (i.e., non-intrinsic) superclasses and its intrinsic superclass roots. The proposal is to label the latter with keyword `instance`, as in
+
+
+```wiki
+class (instance Monad f - Functor, instance Traversable f) => Transposable f where...
+```
+
+- The **intrinsic superclass closure** of a given intrinsic superclass root, ISC(C ts - Xs), is the set of atomic class constraints given by the reflexive-transitive closure induced by the intrinsic superclass roots given in class declarations of C and its superclasses, excluding the named classes, Xs, and their intrinsic superclasses. Hence
+
+  ```wiki
+    ISC(Monad f) = {Monad f, Applicative f, Functor f}
+    ISC(Monad f - Functor) = {Monad f, Applicative f}
+    ISC(Monad f - Applicative) = {Monad f}
+    ISC(Transposable f) =
+      {Monad f, Applicative f,
+       Traversable f, Foldable f, Functor f}
+  ```
+
+
+The algorithm for computing intrinsic superclass closures is made precise in the technical presentation of the proposal.
+
+
+---
+
+
+## The Proposal
+
+
+
+The following proposal satisfies Requirements 1,2,3 and 5, and Desirable 6. We shall address Requirement 4 later on this page.
+
+
+### New Syntax
+
+
+
+We propose to change only the syntax of class and instance heads, allowing intrinsic superclasses declarations, `instance` *root*, in classes, and `instance` ... *root* `where` definitions.
+
+
+
+*toplevel* ::= ...
+
+
+>
+>
+> \| `class` (*sups* `=>`)? *Name* *name*+ `where` *declarations*
+>
+>
+
+>
+>
+> \| `instance` (*constrs* `=>`)? *root* `where` *definitions*
+>
+>
+
+
+*sups* ::= *sup* \| `(`*sup*,\*`)`
+
+
+
+*sup* ::= *atom* \| `instance` *root*
+
+
+
+*constrs* ::= *atom* \| `(`*atom*,\*`)`
+
+
+### Static semantics
+
+
+
+An intrinsic superclass root, `instance` S ss - Xs `=>` C xs in a class declaration, makes S ss a superclass constraint of C xs, with at least the same static checks (e.g. cycle avoidance) which are currently enforced.
+
+
+
+The heads of class declarations determine the intrinsic superclass closure ISC(R) of a given *root* R, as follows.
+
+
+>
+>
+> ISC(R) = ISC'(R, {})
+>
+>
+
+>
+>
+> ISC'(C ts - Ys, Xs) = {} if C in X; otherwise
+>
+>
+
+>
+>
+> ISC'(C ts - Ys, Xs) = {C ts} + ISC'(R1\[ts/xs\], Ys union Xs) +..+ ISC'(Rn\[ts/xs\], Ys union Xs) where
+>
+>
+> >
+> >
+> > `class` (`instance` R1,..,`instance` Rn,A1,..,Am) `=>` C xs
+> >
+> >
+>
+
+
+As + Bs is undefined if for some C, C ts in A and C ts' in B; otherwise, As + Bs = As union Bs
+
+
+
+So
+
+
+```wiki
+  ISC(Monad f - Functor)
+  = ISC'(Monad f - Functor, {})
+  = {Monad f} + ISC'(Applicative f, {Functor})
+  = {Monad f} + {Applicative f} + ISC'(Functor f, {Functor})
+  = {Monad f} + {Applicative f} + {}
+  = {Monad f, Applicative f}
+```
+
+
+An additional check is required: if the declaration of class C xs results in ISC(C xs) being undefined, then class C is *rejected*, which is the situation exactly when you try to make something an intrinsic superclass in more than one way, as in
+
+
+```wiki
+class (instance Monad f, instance Traversable f) => Transposable f where -- Functor twice
+```
+
+
+We also forbid
+
+
+```wiki
+class (instance Tweedle dum, instance Tweedle dee) => Diddly dum dee where ...
+```
+
+
+because we have no uniform way to send `Tweedle` members to the appropriate immediate instance, but we would permit any of
+
+
+```wiki
+class (instance Tweedle dum, Tweedle dee) => Diddly dum dee where ...
+class (Tweedle dum, instance Tweedle dee) => Diddly dum dee where ...
+class (Tweedle dum, Tweedle dee) => Diddly dum dee where ...
+```
+
+
+The members of a class C are taken to include not only the immediate members declared in C's declaration, but also the members of C's intrinsic superclasses. C's declaration may give default definitions for those of C's members (methods, type families) which admit defaulting, as in current Haskell but not restricted to immediate members.
+
+
+
+An instance definition, `instance` As `=>` R ..., is permitted exactly if the corresponding **internal** instances `instance` As `=>` A for each A in ISC(R) would be permitted in current Haskell. Each member defined in the body must be an immediate member for some A in ISC(R), allowing us to distribute the body of a source instance to its internal instances, which are then checked by the current rules. We may now write
+
+
+```wiki
+instance Applicative Square where
+  pure a = a :& a
+  (f :& g) <*> (a :& b) = f a :& g b
+  fmap f (a :& b) = f a :& f b
+```
+
+
+or
+
+
+```wiki
+instance Applicative Square - Functor where
+  pure a = a :& a
+  (f :& g) <*> (a :& b) = f a :& g b
+instance Functor Square
+  fmap f (a :& b) = f a :& f b
+```
+
+
+but not
+
+
+```wiki
+instance Applicative Square - Functor where
+  pure a = a :& a
+  (f :& g) <*> (a :& b) = f a :& g b
+  fmap f (a :& b) = f a :& f b  -- excluded
+```
+
+
+Instance inference is unaffected by this proposal. It applies, just as before, to the internal instances generated as indicated above, with intrinsic superclasses treated just as ordinary superclasses when deducing superclass constraints from subclass assumptions.
+
+
+### Dynamic Semantics
+
+
+
+Dictionary construction is unaffected by this proposal, following the derivation of internal instances just as before. The only issue we must resolve is the selection of default definitions from what might now be a stack of intrinsic superclasses.
+
+
+
+The defaulted members of a class C shall be the immediately defaulted members of C or the defaulted members of C's immediate intrinsic superclasses, with the immediate default definitions prioritized over the superclass defaults.
+
+
+
+We may thus write
+
+
+```wiki
+class (instance Functor f) => Applicative f where
+  return, pure :: x -> f x
+  pure = return
+  (<*>)  :: f (a -> b) -> f a -> f b
+  fmap = (<*>) . return
+class (instance Applicative m) => Monad m where
+  (>>=) :: m a -> (a -> m b) -> m b
+  pure = return
+  mf <*> ma = mf >>= \ f -> ma >>= \ a -> return (f a)
+  fmap f ma = ma >>= \ a -> return (f a)
+```
+
+
+and note that
+
+
+- `<*>` is not a defaulted member of `Applicative`, but it is a defaulted member of `Monad`;
+- `fmap` is a defaulted member of both `Applicative` and `Monad` but with different default definitions.
+
+
+(By the way, the above negotiation with `return` and `pure` should allow existing `Applicative` instances to work as intended, but generate a warning that `return` has not been defined.)
+
+
+---
+
+
+## Transitional Relief for Legacy Code
+
+
+
+In the discussion of the static semantics, an example conspicuous by its absence is the status quo:
+
+
+```wiki
+instance Applicative Square where
+  pure a = a :& a
+  (f :& g) <*> (a :& b) = f a :& g b
+instance Functor Square
+  fmap f (a :& b) = f a :& f b
+```
+
+
+The proposal as it stands implies that the `Applicative Square` instance would generate an instance for `Functor`, duplicating the explicit instance. Indeed, whenever we make an existing superclass intrinsic, every instance of the subclass duplicates an instance which must exist in the legacy codebase. Think of all those `deriving (Eq,Ord)`s!
+Requirement 4 is distinctly unsatisfied.
+
+
+
+To do better at Requirement 4, we can choose to dilute Desirable 6 by throwing out the parts of an intrinsic closure which are already "pre-empted" by explicit instances. To do so would recover the above legacy declaration, but still exclude
+
+
+```wiki
+instance Applicative Square where
+  pure a = a :& a
+  (f :& g) <*> (a :& b) = f a :& g b
+  fmap = (<*>) . pure
+instance Functor Square
+  fmap f (a :& b) = f a :& f b
+```
+
+
+We should not encourage such definitions, but we surely must be able to live with them until people update to the new technology. One suitably nuanced approach might be to support a pragma in class declarations which allows intrinsic superclasses to be pre-empted on an individual basis. For the above, we should have written
+
+
+```wiki
+class ({-# PRE-EMPT #-}instance Functor f) => Applicative f where
+  ...
+```
+
+
+to signal that an intrinsic closure computation can be cut short at that point by an explicit instance.
+
+
+
+**Proposal** *An immediate intrinsic superclass marked `{-# PRE-EMPT #-}` will not contribute to an intrinsic superclass closure if the corresponding instance is explicitly in scope. A warning will be issued when this pre-emption happens.*
+
+
+
+This proposal requires no more checking than is already required to rule out duplicate instances: it just prioritizes the explicit instance over its implicitly generated counterpart instead of complaining.
+
+
+
+When we make an existing superclass intrinsic, we can thus ensure no code breakage for the transitional period where we allow pre-emption, whilst issuing warnings to fix code soon.
+
+
+
+We still face legacy problems when we make an old class into a new intrinsic superclass, as we will with `Applicative` for `Monad`. Modules which make new things `Applicative` and `Monad`ic will be fine, but if a module imports a `Monad` and makes it `Applicative`, we will have an unavoidable duplicate. It seems dangerous to allow silently generate code to pre-empt explicit code, and even if we did, we could not be sure that the generated instance would have constraints as generous as the later explicit instance, so code compiled with the latter might break against the former.
+
+
+
+We might hope that, in future, people might become sufficiently good at deciding to make immediate superclasses intrinsic from the start that we can do away with the need for pre-emption. It seems a necessary evil now.
+
+
+---
+
+
+## Multiple Instances
+
+
+
+We might consider allowing a single `instance` declaration to define multiple instances explicitly, provided we retain the property that it is clear how to split their members into immediate instances and how to find default members. E.g. we might write
+
+
+```wiki
+data Fred = Fred
+instance (Read Fred, Show Fred) where
+  read _ = Fred
+  show _ = "Fred"
+```
+
+
+Just as before, we should have to exclude
+
+
+```wiki
+instance (Monad Square, Traversable Square) where
+  return a = a :& a
+  (a :& a') >>= f = case (f a, f a') of
+    (b :& _, _ :& b') -> b :& b'
+  traverse f (a :& a') = return (:&) <*> f a <*> f a'
+```
+
+
+because it is not clear which default `Functor` instance is intended. But we would allow
+
+
+```wiki
+instance (Monad Square - Functor, Traversable Square) where
+  return a = a :& a
+  (a :& a') >>= f = case (f a, f a') of
+    (b :& _, _ :& b') -> b :& b'
+  traverse f (a :& a') = return (:&) <*> f a <*> f a'
+```
+
+
+It would seem churlish to require such definitions to exclude explicitly instances which are present explicitly in the very same header. Nor would it be in violation of Requirement 6, as the pre-emption would happen within a single instance declaration. Such pre-emption needs no warning.
+
+
+
+Note that one could then write
+
+
+```wiki
+instance (Monad Square, Traversable Square, Functor Square) where
+  return a = a :& a
+  (a :& a') >>= f = case (f a, f a') of
+    (b :& _, _ :& b') -> b :& b'
+  traverse f (a :& a') = return (:&) <*> f a <*> f a'
+```
+
+
+and compile to get a warning that the promised explicit `Functor` instance is missing its implementation of `fmap`.
+
+
+
+The same logic should clearly apply to `deriving` clauses, so that (e.g. for `Square`)
+
+
+- `deriving Ord` gives `Ord a => Ord (Square a)` as usual and `Ord a => Eq (Square a)` with default implementation;
+- `deriving (Ord, Eq) gives `Ord a =\> Ord (Square a)` and `Eq a =\> Eq (Square a)\`, with no pre-emption warning;
+- `deriving (Ord - Eq)` gives just `Ord a => Ord (Square a)` requiring a separate hand-rolled `Eq (Square a)` instance.
+
+---
+
+
+## Counterfactuals
+
+
+
+Arising from discussion, further modifications are worth considering, if only to step back from them.
+
+
+### Liberalization 7 Use type inference to disambiguate member distribution.
+
+
+
+We could imagine permitting
+
+
+```wiki
+class Foo x where
+  foo :: x -> x
+
+class (instance Foo x, instance Foo y) => Goo x y where
+  goo :: x -> y
+```
+
+
+and if we saw
+
+
+```wiki
+instance Goo Int Bool where
+  foo x = 3
+  foo x = True
+  goo = (0 <)
+```
+
+
+it would be obvious that we meant
+
+
+```wiki
+instance Foo Int where
+  foo x = 3
+instance Foo Bool where
+  foo x = True
+instance Goo Int Bool where
+  goo = (0 <)
+```
+
+
+because type information tells us which `foo` belongs where.
+
+
+
+That is, we could adopt a policy of complaining only if type inference fails to disambiguate the distribution of members to internal instances.
+
+
+
+We might need enough notation to opt out of `Foo x` but not `Foo y`. More explicit notation will be necessary
+whenever the given definitions. E.g.,
+
+
+```wiki
+instance Goo Int Bool where
+  foo 0 = 3
+  foo x = x
+  foo x = True
+  goo = (0 <)
+```
+
+
+does not establish in which instance the `foo x = x` line belongs.
+
+
+
+Of course, one could reject such programs as ambiguous, but certainly, the static semantics of such a system is far more subtle than the present proposal.
+
+
+### Liberalization 8 Make superclasses intrinsic by default.
+
+
+
+We could drop the use of `instance` to mark which superclasses are intended as intrinsic. Again adopting a complain-on-ambiguity semantics, we could generate a superclass instance automatically from a subclass instance whenever there is at least one candidate member definition: either a default in the subclass, or an explicit definition in the subclass instance. So
+
+
+```wiki
+class Bing x where
+  bing :: x
+class Bing x => Bong x where
+  bong :: x
+instance Bong Int where
+  bing = 1
+  bong = 0
+```
+
+
+generates a `Bing Int` instance too, as does 
+
+
+```wiki
+class Bing x where
+  bing :: x
+class Bing x => Bong x where
+  bong :: x
+  bing = bong
+instance Bong Int where
+  bong = 0
+```
+
+
+but
+
+
+```wiki
+class Bing x where
+  bing :: x
+class Bing x => Bong x where
+  bong :: x
+instance Bong Int where
+  bong = 0
+```
+
+
+generates only a `Bong Int` instance (rather than an empty `Bing Int` instance).
+
+
+
+Such a proposal would require a little more subtlety to determine which instances are generated, but might be sustainable.
+
+
+
+Certainly, it would still require authors of client code to be aware of whether a given class is likely to generate superclass instances. If I define some rather special purpose library with
+
+
+```wiki
+class Eq x => WhizzBanger x where
+  whizz :: x -> x -> x
+  bang  :: x -> Bool
+```
+
+
+then clients need to know whether their `WhizzBanger` instances need to bring an `Eq` instance or will get one. This liberalization cuts the `instance` notation in class declarations but not the necessity to be aware of what it makes explicit.
+
+
