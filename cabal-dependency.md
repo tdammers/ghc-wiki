@@ -1,0 +1,197 @@
+
+This page describes how GHC depends on and makes use of Cabal.  It describes the situation
+after the changes implemented in [\#8244](http://gitlabghc.nibbler/ghc/ghc/issues/8244) are complete.
+
+
+## Design of GHC-library's non-dependency on Cabal
+
+
+
+Here is the overall architecture for Cabal, ghc-pkg, GHC, and bin-package-db:
+
+
+```wiki
+                     ........................
+                     :                      :
+                     :  +--------------+  +-v----------+  +------------+
+                     :  |    cabal     |  |  ghc-pkg   |  |    GHC     |   EXECUTABLES
+                     :  |  executable  |  | executable |  | executable |
+                     :  +--------------+  +---+----+---+  +--+---------+
+           executes  :          |             |    |         |
+(an "up-dependency") :          |             |    |  +------v------+
+                     :          |       +-----+    |  |     ghc     |      PACKAGES
+                     :          |       |          |  |   package   |
+                     :          |       |          |  +-+-----------+
+                     :          |       |          |    |
+                     :        +-v-------v-+    +---v----v-------+
+                     :........+   Cabal   |    | bin-package-db |          PACKAGES
+                              |  package  |    |    package     |
+                              +-----+-----+    +--------+-------+
+                                    |                |
+                                    |                |
+                              ......v.......    .....v........
+                              :    text    :    :   binary   :     DATA FILES
+                              :  database  :    :  database  :
+                              ..............    ..............
+```
+
+
+These components are:
+
+
+- Cabal:
+
+  - The `cabal` executable, often called "cabal-install" is what you run from the command line (e.g. `cabal install pkg`, `cabal build` etc).
+  - The `Cabal` package contains much of the guts of Cabal.
+    GHC ships with the Cabal library pre-installed. This is as a convenience to users, and as asked for in the original Cabal specification.
+
+- Package database:
+
+  - The `ghc-pkg` executable ships with GHC and gives read/write access to the binary package database.
+  - `bin-package-db` is a Haskell library that reads and writes the binary package database
+
+- GHC consists of:
+
+  - The `ghc` executable, which is a very thin layer on top of the `ghc` package
+  - The `ghc` package, which implements the GHC API.  Most of GHC is in here.
+
+
+The GHC build system itself makes of Cabal. See [Building/Architecture/Idiom/Cabal](building/architecture/idiom/cabal).
+
+
+
+Things we want to be true:
+
+
+- You can upgrade Cabal (including the `Cabal` package and `cabal` executable) without upgrading GHC.
+- You can manually use `ghc-pkg` to install packages.  Hence, all manipulation of the package database must be done via `ghc-pkg`.
+- The "text database" is really just a bunch of text files, each describing one package, scattered in the file system in places that Cabal knows.  This is what operating system installers expect.
+
+
+Consequences:
+
+
+- Cabal only reads/writes the binary package db via the `ghc-pkg` executable.  Cabal cannot maintain a private binary cache of package information, because then it would not know about a package added by a manual call to `ghc-pkg`.  So if Cabal wants a binary cache, it has to rely on `ghc-pkg` to maintain it.
+
+- GHC reads the binary package db, via `bin-package-db` library.
+
+- Cabal communicates with `ghc-pkg` via text files representing the Cabal `InstalledPackageInfo` type.  The `Cabal` library offers a parser and pretty-printer for this type, which `ghc-pkg` uses.
+
+- When you upgrade Cabal, you probably want to upgrade `ghc-pkg` too, since it depends on the `Cabal` package.  But you don't *have* to.  Cabal and `ghc-pkg` communicate through a text file interface. If new sexy Cabal adds a field, old `ghc-pkg` simply ignores it. Everything works, except that new sexy Cabal won't benefit from the new field being stored in the database.
+
+- One consequence is that `bin-package-db` *must not* depend on Cabal (else you could not upgrade Cabal without upgrading GHC).  So `bin-package-db` cannot know what new sexy meta-data the upgraded Cabal (and `ghc-pkg`) are storing.  Yet it alone writes the binary file. So the read/write interface that `bin-package-db` offers has an argument for "and store this too in the binary file".
+
+
+Implementation notes:
+
+
+- `InstalledPackageInfo`:
+
+  - The `Cabal` package defines a `InstalledPackageInfo` type, defined in the Cabal package, which defines a representation for installed packages as per the Cabal specification.
+  - `bin-package-db` defines a new variant of the type (with the same name) which contains *only* the fields that GHC relies on. (Call this GHC's `InstalledPackageInfo` type.) 
+  - `ghc-pkg` depends on both `Cabal` and `bin-package-db`, and is responsible for converting Cabal's types to GHC's types, as well as writing these contents to a binary database. Cabal invokes `ghc-pkg` in order to register packages in the installed package database, and as before doesn't directly know about this format.
+
+- **Binary format**.  Now that there are two types for installed packages, what is the format of the database that bin-package-db writes? The `ghc-pkg` tool (as required by the Cabal spec) must consume, and regurgitate package descriptions in an external representation defined by the Cabal spec. Thus, the binary package database must contain all the information as per *Cabal's* type; better yet, it would be best if we directly used Cabal's library for this (so that we don't have to keep two representations in sync). However, doing this directly is a bit troublesome for GHC, which doesn't want to know anything about Cabal's types, and only wants its subset of the installed package info (GHC's type).
+
+>
+>
+> We employ a trick in the binary database to support both cases: it contains all the packages in two different representations, once using Cabal types and once using GHC's types. These are contained in two sections of the package.cache binary file inside each package database directory. One section contains the Cabal representation. This section is read back by ghc-pkg when reading the package database. The other section contains the GHC representation. This section is read by GHC. The length of Cabal's section is explicitly recorded in the file, so GHC does not need to know anything about the internal contents of the other section to be able to read its own section. The ghc-pkg tool knows about the representation of both sections and writes both.
+>
+>
+
+- Note that in principle `ghc-pkg` could keep just GHC's types in the binary cache file, and read the information for Cabal from the text files in the package database directory. The reason we keep Cabal's types in binary format as well is simply for performance. Reading all the text files is somewhat slow (both in terms of I/O and the parsing). The main case where this matters is `ghc-pkg dump` which is used by tools like `cabal` and `Setup.hs` to get all the installed packages. It's also worth noting that the section of the package.cache binary file that GHC reads comes first, and so it is not slowed down by the presence of the second section.
+
+## Technical details
+
+
+
+The ghc-pkg file format is defined by a library shared between GHC and ghc-pkg. It defines GHC package type and provides functions to read each section, and to write both sections:
+
+
+```wiki
+data InstalledPackageInfo   -- same name as used by Cabal, but simpler type
+
+readPackageDbForGhc :: FilePath -> IO [InstalledPackageInfo]
+
+readPackageDbForGhcPkg :: Binary pkgs => FilePath -> IO pkgs
+
+writePackageDb :: FilePath -> [InstalledPackageInfo] -> pkgs -> IO ()
+```
+
+
+Note here that the concrete type of ghc-pkg's representation of packages is not fixed, it simply has to be an instance of `Binary`. This trick means this library does not have to depend on Cabal (which is vital because GHC depends on it), but allows ghc-pkg to instantiate using Cabal's types.
+
+
+
+The above types are a slight simplification, the `InstalledPackageInfo` is actually has a number of type parameters, which are used in the fields, e.g.:
+
+
+```wiki
+data InstalledPackageInfo instpkgid srcpkgid srcpkgname pkgkey modulename
+   = InstalledPackageInfo {
+       ...
+       depends            :: [instpkgid],
+       ...
+       exposedModules     :: [modulename],
+       ...
+     }
+```
+
+
+The reason for this is purely technical: GHC would prefer `InstalledPackageInfo` to contain types like `ModuleName`, which are defined inside GHC proper; but we do not want to move their definition into `bin-package-db`. (Indeed, some of these types are based on exotic base types like `FastString` which cannot be so easily extricated.)
+
+
+
+So instead, we keep the type generic. Inside GHC we specialise this type like so
+
+
+```wiki
+type PackageConfig = InstalledPackageInfo
+                       InstalledPackageId
+                       SourcePackageId
+                       PackageName
+                       Module.PackageKey
+                       Module.ModuleName
+```
+
+
+However, in ghc-pkg, where we don't have access to any of these types, we just instantiate it with `String` for all parameters. How do we convert between the two types? We never do this directly: ghc-pkg (using bin-package-db) serializes `String` into a UTF-8 encoded stream of bytes stored on disk; then when GHC (also using bin-package-db) reads out the bytes on disk, it deserializes them into its desired data types. This is managed using a little type class:
+
+
+```wiki
+class BinaryStringRep a where
+  fromStringRep :: BS.ByteString -> a
+  toStringRep   :: a -> BS.ByteString
+```
+
+
+Where there are instances for `FastString`, `String`, etc. The `readPackageDbForGhc` above is then actually:
+
+
+```wiki
+readPackageDbForGhc :: (BinaryStringRep a, BinaryStringRep b, BinaryStringRep c,
+                        BinaryStringRep d, BinaryStringRep e) =>
+                       FilePath -> IO [InstalledPackageInfo a b c d e]
+```
+
+
+It uses the class to convert to/from the on disk UTF8 representation, and the internal representation (`String` for ghc-pkg, and things like newtype'd `FastString`s in GHC).
+
+
+---
+
+
+# History: Removal of the GHC library dependency on the Cabal library
+
+
+
+See ticket [\#8244](http://gitlabghc.nibbler/ghc/ghc/issues/8244)
+
+
+
+The GHC library used to depend on the Cabal library directly, for the representation of installed packages. This was convenient for implementation but had a number of drawbacks:
+
+
+- Any package making use of the GHC library would be forced to use the same version of Cabal as GHC used. This was annoying because while the parts of Cabal that GHC used were not very fast moving, other parts of the library are, and so other packages did want to use a different version of Cabal.
+- Given the existing limitations and inconveniences of installing multiple versions of the same package, the GHC dependency on Cabal made it hard to upgrade Cabal separately. Of course this is really more of a limitation of the packaging side of things.
+- The fact that GHC depended directly on Cabal placed limitations on the implementation of Cabal. GHC must be very careful about which packages it needs to be able to build (so called boot packages). Because Cabal was a boot package, it could itself only depend on other boot packages. In particular, Cabal needs a decent parser combinator library, but no such library is available as a boot package (and GHC developers were understandably reluctant to add dependencies on parsec, mtl, text etc as would be required).
