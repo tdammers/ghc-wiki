@@ -1,0 +1,126 @@
+
+[ Trac ticket](https://ghc.haskell.org/trac/ghc/ticket/9596)
+
+
+
+[ Phabricator differential](https://phabricator.haskell.org/D212)
+
+
+##
+Design of the monoidal category classes and the new Arrow/proc desugaring story
+
+
+### What are monoidal categories and why are they useful?
+
+
+
+Monoidal (and related) categories capture the basic notion of *process*. This is most easily noticed by recognising a tool for using monoidal categories called [
+string diagrams](http://ncatlab.org/nlab/show/string+diagram). Examples of string diagrams include circuit diagrams, flow charts, signal flow diagrams, Feynman diagrams, proof nets, etc. In that way, monoidal categories are like Arrows (indeed, every Arrow is a monoidal category with an additional structure which allows reification of functions, and application of one input to another) - except much more general. For example, Megacz's work on Generalized Arrows can be entirely subsumed by monoidal categories (indeed, I even based the initial design off of parts of his thesis)
+
+
+### Overview
+
+
+
+The new class hierarchy is based on monoidal categories, and monoidal categories with additional structure. What is a monoidal category? [
+From ncatlab:](http://ncatlab.org/nlab/show/monoidal+category)
+
+
+<table><tr><th>Definition</th>
+<th>Explaination
+</th></tr>
+<tr><th>⊗:M×M→M</th>
+<th>Bifunctor called the tensor product
+</th></tr>
+<tr><th>1::M</th>
+<th>An object called the unit
+</th></tr>
+<tr><th>a<sub>x,y,z</sub>:(x⊗y)⊗z→x⊗(y⊗z)</th>
+<th>The tensor product is associative both ways (isomorphism)
+</th></tr>
+<tr><th>λ<sub>x</sub>:1⊗x→x</th>
+<th>An elimination and introduction rule for removing the left unit from a tensor (isomorphism)
+</th></tr>
+<tr><th>ρ<sub>x</sub>:x⊗1→x</th>
+<th>An elimination and introduction rule for removing the right unit from a tensor (isomorphism)
+</th></tr></table>
+
+
+
+It also obeys two laws known as the Pentagon equation and the Triangle equation.
+
+
+## Plan
+
+
+1. Write monoidal category class heirarchy in GHC.Arrows.Experimental and provide instances for Arrow and several other basic types, and visa versa; make SMC instances for Arrows
+1. Convert or write a small FRP library to be based on the new classes to test the design
+1. Provide optimisation RULES pragmas as much as possible; for example, the work on Causal Commutative Arrows can be converted relatively straightforwardly to plain monoidal categories
+1. Convert the proc/arrow desugarer in GHC to emit instances of the new classes; since all Arrows are monoidal categories, this change will be backwards compatible with user code - use [
+  https://www.haskell.org/ghc/docs/papers/arrow-rules.pdf](https://www.haskell.org/ghc/docs/papers/arrow-rules.pdf)
+1. Change GHC.Arrows.Experimental to GHC.MonoidalCats before the milestone it is merged for
+
+
+I will be updating this page to document/brainstorm the design as I go along.
+
+
+## Current challenges
+
+
+
+How to implement the unit/counit morphisms from compact closed categories? That is, how to implement a morphism unit :: I -\> A\*⊗A and A⊗A\* -\> I? I can see several options:
+
+
+1. In terms of closures + choice
+
+
+-- Have an intermediate closure object, with two inputs and two outputs - send a "switch" signal (so this would require a choice class as well as a closure class) to tell which input is active, and then pass it through for one of the outputs and compute the appropriate dual for the other output.
+
+
+1. In terms of bidirectional signal flow
+
+
+-- Similar to the above but instead of a switch, a bidirectional wire - if you put in the object A, you get A\* (or \*A depending on weather left or right autonomous), and if you put in A\* (\*A) you get A. 
+
+
+1. One of the above in combination with a source/sink object
+
+## Desugaring plans
+
+
+
+Current (arrows):
+
+
+```wiki
+    proc p -> f -< e = arr (\ p -> e) >>> f           if Vars(f) and Vars(p) disjoint
+                     = arr (\ p -> (f, e)) >>> app    otherwise
+
+    proc p -> \ p1 ... pn -> c = proc (...(p, p1), ... pn) -> c
+
+    proc p -> form e c1 ... cn =
+        e (proc p -> c1) ... (proc p -> cn)
+
+    proc p -> let decls in c =
+        arr (\ p -> let decls in (p,p')) >>>          Vars(p') = Defvars(decls)
+	(proc (p,p') -> c)
+
+    proc p -> if e then c1 else c2 =
+        arr (\ p -> if e then Left p else Right p) >>>
+        (proc p -> c1) ||| (proc p -> c2)
+
+    proc p -> case e of { p1 -> c1 ; ... ; pn -> cn } =
+        arr (\ p ->
+             case e of
+             p1 -> Left (p, Flatten(p1))
+             ...
+             pn-1 -> Rightn-2 (Left (p, Flatten(pn-1)))
+             pn -> Rightn-1 (p, Flatten(pn))) >>>
+        (proc (p, Flatten(p1)) -> c1) ||| ... ||| (proc (p, Flatten(pn)) -> cn)
+```
+
+
+New (SMC) (wip, these need to be as generalised as possible; look at GA thesis and [
+https://www.haskell.org/ghc/docs/papers/arrow-rules.pdf](https://www.haskell.org/ghc/docs/papers/arrow-rules.pdf)):
+
+
