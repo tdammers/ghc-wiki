@@ -1,0 +1,29 @@
+# The Strict Language Pragma
+
+
+
+The `Strict` language pragma switches Haskell from being a lazy-by-default to a strict-by-default language *within a single module*. It's an experimental extension with a few goals:
+
+
+- Allow code that doesn't benefit from laziness to be written in a separate module that's not cluttered with bang patterns.
+- Allow experiments on pure, strict-by-default languages in the style of Haskell, without needing to write a new programming languages.
+- Test whether strictness can be made modular.
+- Investigate how much implementations of lazy and strict languages need to differ.
+
+
+Examples of the first is numeric and/or array heavy code in the style of [
+Repa](http://hackage.haskell.org/package/repa). Trac ticket: [\#8347](http://gitlabghc.nibbler/ghc/ghc/issues/8347).
+
+
+
+Non-goals:
+
+
+- Change Haskell to a strict-by-default language.
+
+## Semantics
+
+
+## Implementation
+
+
