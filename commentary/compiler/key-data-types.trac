@@ -1,0 +1,19 @@
+
+
+= Key data types =
+
+The key to understanding GHC is to understand its key data types.  There are pages describing many of them here (please add new pages!).  The diagram below shows their inter-dependencies.
+
+ * [wiki:Commentary/Compiler/HsSynType The source language: HsSyn] 
+ * [wiki:Commentary/Compiler/RdrNameType RdrNames, Modules, and OccNames]
+ * [wiki:Commentary/Compiler/ModuleTypes ModIface, ModDetails, ModGuts]
+ * [wiki:Commentary/Compiler/Unique Uniques]: Not drawn in the diagram, because nearly everything depends on Uniques.
+ * [wiki:Commentary/Compiler/NameType Names]
+ * [wiki:Commentary/Compiler/EntityTypes Entities]: variables, type constructors, data constructors, and classes.
+ * Types: [wiki:Commentary/Compiler/TypeType Type and Kind], [wiki:Commentary/Compiler/FC equality types and coercions]
+ * [wiki:Commentary/Compiler/CoreSynType The core language]
+ * [wiki:Commentary/Compiler/StgSynType The STG language]
+ * [wiki:Commentary/Compiler/CmmType The Cmm language]
+ * [wiki:Commentary/Compiler/BackEndTypes Back end types]
+
+[[Image(types.png)]]
