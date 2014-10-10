@@ -1,0 +1,85 @@
+[[PageOutline]]
+
+= The GHC Build System Architecture =
+
+This section contains information you need to know in order to
+understand and modify the GHC build system.  The build system is
+non-standard in various ways (to be explained shortly), and is
+decidedly non-trivial: do not attempt to modify it without having a
+grasp of the concepts that follow!
+
+It's difficult to document a system that is full of details and subject to constant change.  The approach we've adopted here is to split the documentation in two:
+
+ * The high-level architectural design, the stuff that is less likely to change, is documented here.  Occasionally we'll include direct links to source files to illustrate the details.
+
+ * The low-level technical details, such as the order of arguments to a macro, and the names of
+   specific variables, are documented as comments in the build-system code.  Hopefully this way the
+   documentation is more likely to stay up to date.
+
+'''Historical note''': this is the third major revision of the GHC build
+system.  The first incarnation was based on `jmake`, a derivative of
+X11's own `imake`, which is based on using the C preprocessor to add macro
+capabilities and `#include` to plain '''make'''.  The second incarnation
+used GNU '''make''''s extensions for including makefiles (but lost the
+ability to use macros, since at the time GNU '''make''' didn't have support
+for general macros).  In this third revision, we use even more of GNU
+'''make''''s extensions, and we make a fundamental change to the design, as
+described in the next section. Another (fourth) revision based on `Shake` is
+currently being attempted; see [wiki:Building/Shake] for more details.
+
+== Overall structure and important files ==
+
+The following are a few of the most important files in the build system.  For a more complete overview of the source-tree layout, see [wiki:Commentary/SourceTree].
+
+ [source:ghc/ghc.mk ghc.mk]::
+  This is where you should start reading: `ghc.mk` is the main file in
+  the build system which ties together all the other build-system
+  files.  It uses '''make''''s `include` directive to include all the
+  files in `mk/*.mk`, `rules/*.mk`, and all the other `ghc.mk` files
+  elsewhere in the tree.
+
+ [source:ghc/Makefile Makefile]::
+  The top-level `Makefile`, recursively invokes `make` on `ghc.mk`
+  according to the [wiki:Building/Architecture/Idiom/PhaseOrdering phase ordering idiom].
+
+ `rules/*.mk`::
+  Each `.mk` file in the `rules` directory corresponds to a single
+  macro that can be called using '''make''''s `$(call ...)`
+  expression.  For example, the `build-package` macro is in
+  `rules/build-package.mk`.
+
+ [source:mk/config.mk.in mk/config.mk.in]::
+  The configuration information for the build system, processed by
+  `configure` to produce `mk/config.mk`.  Settings can be overriden by
+  creating a local file `mk/build.mk` (see
+  [wiki:Building/Using#Buildconfiguration Build configuration]).
+
+ [source:compiler/ghc.mk compiler/ghc.mk], [source:rts/ghc.mk rts/ghc.mk], etc.::
+  Most subdirectories of the source tree have a `ghc.mk` file which
+  contains the instructions for building the components in that
+  directory.  Note: these `ghc.mk` files cannot be invoked
+  individually, they should only be included by the top-level
+  `ghc.mk`.
+
+== Idioms ==
+
+Each of the following subsections describes one of the ``idioms`` that
+we use in the build system.  There are a handful of such idioms, and
+when you've understood them all you'll be able to understand most of
+the code you'll find in the build system.  We'll describe the idioms
+first, and then get on to the specifics of how we build GHC.
+
+ * [wiki:Building/Architecture/Idiom/NonRecursiveMake Non-recursive make]
+ * [wiki:Building/Architecture/Idiom/StubMakefiles Stub makefiles]
+ * [wiki:Building/Architecture/Idiom/StandardTargets Standard targets (all, clean etc.)]
+ * [wiki:Building/Architecture/Idiom/Stages Stages]
+ * [wiki:Building/Architecture/Idiom/Distdir Distdir]
+ * [wiki:Building/Architecture/Idiom/Cabal Interaction with Cabal]
+ * [wiki:Building/Architecture/Idiom/VariableNames Variable names]
+ * [wiki:Building/Architecture/Idiom/Macros Macros]
+ * [wiki:Building/Architecture/Idiom/PhaseOrdering Phase ordering]
+ * [wiki:Building/Architecture/Idiom/DoubleColon No double-colon rules]
+ * [wiki:Building/Architecture/Idiom/VanillaWay The vanilla way]
+ * [wiki:Building/Architecture/Idiom/Whitespace Whitespace]
+ * [wiki:Building/Architecture/Idiom/PlatformNames Platform names (build, host, target)]
+ * [wiki:Building/Architecture/Idiom/Directories Directories]
