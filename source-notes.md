@@ -1,0 +1,174 @@
+
+The grand goal of source notes is to track how the source code causes program behaviour. This is useful in a lot of situations - for debugging we want to know what caused a misbehaviour, whereas for profiling we want to find reasons for program execution inefficiency.
+
+
+
+However, this is a hard question to answer precisely. After all, both the program's optimisation as well as its execution is complicated. For example, a code transformation might take code from two different sources and merge them together, making both sources equally responsible for the resulting program behaviour. And, say, calling a closure means that the program flow depends critically on both the caller as well as how the closure got constructed.
+
+
+
+In this situation, cost-centre profiling/stack-tracing takes the approach to \*simplify\* both optimisation and execution in order to make it feasible to follow it "perfectly". For source notes, we take the opposite approach - make a best effort to retain as much information as possible \*without\* any such restrictions. And as it turns out, we can extract a decent amount of information even then:
+
+
+- For optimisations, we can ensure that we never underestimate causality: When optimising code, we can simply "merge" annotations. We can use operational semantics to show exactly how this merge should look like, but in most cases it's obvious (add all found annotations on the new expression).
+
+- At execution time, we can reconstruct a lot of source code information just by paying close attention to the environment: A single code pointer can often give us a wealth of information about the compilation context. This is especially true in heavily in-lined code, where the code pointer will not only identify the running code, but a number of call contexts as well. If we walk the Haskell stack, we can gain even more information.
+
+
+Each step is lossy in its own way, but the idea is to make the most of the incidental data we have.
+
+
+# Implementation
+
+
+
+We implement this as follows:
+
+
+- We generate source notes in the desugaring phase, just like other ticks.
+
+- When optimising, we know that we can discard source notes where we remove effects, and merge them when we combine expressions in a way that we can't tell their effects apart any more. Merging mostly takes the form of moving all ticks on matched expression to the top level.
+
+- For Cmm, the program gets "flattened". As ticks should be able to scope over multiple blocks, and we especially want to be able to reconstruct the full calling context (see above) we assign nested tick scopes to blocks. This allows us to work with source notes essentially as we are on the Core level, and even allow some transformations.
+
+- Once all optimisations have run, we extract the source notes from the Cmm blocks, (re)constructing the tick scope tree in the process. This will give us a map of back-end blocks to source notes, which makes it straight-forward to generate, for example, DWARF information.
+
+
+Detailed design notes in the following sections.
+
+
+## Desugaring
+
+
+- [SourceNotes](source-notes) get introduced just like other tickishs in the desugaring
+  phase. Note we generate lots of them (maximum granularity), which
+  will however naturally reduce later on as a side-effect of optimisations.
+
+- We also generalise the whole pass so it can generate more than one
+  tick type at the same time. This allows e.g. cost-centre profiling
+  side-by-side with source notes.
+
+## CoreToCore
+
+
+- We rework the tick framework a bit, breaking everything down into three tick properties:
+
+  1. Scoping: Does the tick encode a property of the whole expression
+    subtree? Then we need to take care when changing code, such as
+    re-annotating code when moved out.
+  1. Counting: Do we care about entry counts? This means that we should
+    take care when duplicating the ticked expression, as well as
+    preventing a number of optimisations from happening.
+  1. Placement: Are there certain expression types that we can look
+    through? For example, cost-centres do not have any effect when
+    placed on variables, so they can often be moved or removed. This
+    decides where in the expression mkTick is going to "place" the
+    tick.
+
+- Source notes are relatively lax in this context - we care about scoping, but allow ticks to move upwards when optimisations require it (see above, this is the same as "merging" annotations). Furthermore, we do not care about entry counts.
+
+- We can especially allow `let` floating. Now this is a remarkably tricky issue, but in the end we can show that "keep ticks on covered code" makes sense. Details:
+
+  - With some heavy lifting we can show that causally speaking, we do not need to re-annotate the body while floating, and just need to update the annotation on the allocation cost.
+  - This means that if we are willing to ignore the allocation cost, we could float completely without restrictions.
+  - However, given that we are unlikely to be able to reconstruct the full call stack behind thunks, we end up annotating the floated-through ticks on the `let` binding anyway. As the semantics assume full control flow tracking, this was simply redundant there.
+
+- For placement, we choose to float ticks through lambdas. This has mostly practical reasons: It frees us from having to change `collectBinders`. The only expense we have is that we are moving an allocation - but as argued above, we are already moving these all the time.
+
+- If at some point we decide that we seriously want to track allocation cost, we would probably have to introduce a special tick field in `Let` and lambdas. Some details in the thesis.
+
+- We strip out source notes from iface code when not enabled.
+
+## CoreToStg
+
+
+- Note that due to source notes having non-lambda placement, 
+  they will not violate the CorePrep invariant of lambdas only
+  appearing as bindings.
+
+- We replace the StgTick / StgSCC constructors with a unified StgTick
+  that can carry any sort of tickish. Note this changes how ticks
+  are pretty-printed (GHCJS beware).
+
+- Detecting selector thunks becomes a bit more involved, as we can run
+  into ticks at multiple points.
+
+- Note that we introduce the extra CorePrep invariant that we never want to have ticks appear inside non-type applications. This makes sense, but makes eta reduction a bit tricky (it might have to pull ticks out of type applications). See the code comment.
+
+## Cmm
+
+
+- We want our annotations to survive through this stage, which we achieve using a 
+  new CmmTick pseudo-instruction
+
+- We also generate such nodes for external Cmm code - it's cheap and in principle allows Cmm debugging/profiling.
+
+- However, Cmm's flatness means that if we just put CmmTicks into
+  blocks we have no idea what exactly they are meant to cover. We
+  introduce nested scopes, represented as lists of uniques. The
+  "nesting" relation is given by the subset relation. For example a
+  tick declared in a block with, say, scope `[b,a]` now scopes over all
+  blocks that have at least a tick scope of `[b,a]`, so for example also
+  `[c,b,a]`.
+
+- This makes it easy to express most optimisations: It is both easy to
+  generate new blocks that share all ticks with existing blocks. It is
+  especially possible to merge blocks to have combined contexts, simply
+  by merging the scope lists.
+
+  - So for example, if we want to merge two "common" blocks with scopes `[b,a]` and `[c,a]`, we would get scope `[c,b,a]`, which is still covered by all ticks from `[b,a]` and `[c,a]` respectively.
+  - Note that this means that the scopes will not form a tree, but a (directed) graph. We will reduce that to a tree again later.
+  - Also there's actually a problem here: If the "commoned" block with scope `[c,b,a]` contains source notes, they would stop scoping over /other/ blocks in `[b,a]` and `[c,a]`. I haven't been able to come up with an example where this happens (for CBE such blocks generally get jumped to, and therefore need to get merged first). To solve this, we would probably need to give `CmmTick` its own scope field that's independent of the block's scope.
+
+- Given that the code often passes Cmm around without a `CmmEntry`, we have to
+  make sure that its intended tick scope does not get lost. To keep the amount
+  of boilerplate to a minimum we define a `CmmAGraphScoped` type synonym
+  here that just bundles the scope with a portion of Cmm to be assembled
+  later.
+
+- We want to open a new scope every time we start a new block that we might have fresh ticks for. As it happens, this matches up well with where code generation uses `getCode`, so we have it automatically create a new scope. After all, having too many tick scopes won't hurt, and if we find that tick scopes end up being too coarse-grained, we can always add extra ones later.
+
+## Unwinding
+
+
+
+This is a side topic - unwinding isn't required for source note tracking, but allows DWARF-aware debuggers to unroll the Haskell stack in order to discover more code pointers. We cover it here anyway because we will pack all this information together under the "debug" umbrella term in a minute.
+
+
+- We declare yet another new Cmm pseudo-instruction, `CmmUnwind`.
+
+- Even though we only use it for `Sp` so far, we allow CmmUnwind to specify
+  unwind information for any register. This is pretty cheap and could
+  come in useful in future.
+
+- We allow full `CmmExpr` expressions for specifying unwind values. The
+  advantage here is that we don't have to make up new syntax, and can e.g.
+  use the WDS macro directly. On the other hand, the back-end will now
+  have to simplify the expression until it can sensibly be converted
+  into DWARF byte code - a process which might fail, yielding NCG panics.
+  On the other hand, when you're writing Cmm by hand you really ought to
+  know what you're doing.
+
+## Extraction
+
+
+
+In the back-end we want to separate debug information from the
+Cmm. We therefore collect all information gathered so far into a
+tree of debug blocks (tree because of tick scopes).
+
+
+- As tick scopes can form a directed graph, this means that we are removing some edges at this point. We replicate source notes suitably to ensure they still cover the appropriate blocks.
+
+- This is also where we decide what source location we regard as
+  representing a code block the "best". The heuristic is basically that
+  we want the most specific source reference that comes from the same file
+  we are currently compiling. This seems to be the most useful choice in
+  my experience.
+
+- We are careful to not be too lazy so we don't end up breaking streaming.
+  Debug data will be kept alive until the end of codegen, after all.
+
+- We change native assembler dumps to happen right away for every Cmm group.
+  This simplifies the code somewhat and is consistent with how pretty much
+  all of GHC handles dumps with  respect to streamed code.
