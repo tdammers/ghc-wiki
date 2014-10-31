@@ -1,0 +1,57 @@
+# Relevant GHC parts for Demand Analysis results
+
+
+- `compiler/basicTypes/Demand.lhs` -- contains all information about demands and operations on them, as well as about serialization/deserialization of demand signatures. This module is supposed to be changed whenever the demand nature should be enhanced;
+
+- `compiler/stranal/DmdAnal.lhs` -- the demand analysis itself. Check multiple comments to figure out main principles of the algorithm.
+
+- `compiler/stranal/WorkWrap.lhs` -- a worker-wrapper transform, main client of the demand analysis. The function split is performed in `worthSplittingFun` basing on demand annotations of a function's parameters. 
+
+-  `compiler/stranal/WwLib.lhs` -- a helper module for the worker-wrapper machinery. The "deep" splitting of a product type argument makes use of the strictness info and is implemented by the function `mkWWstr_one`. The function `mkWWcpr` makes use of the CPR info.
+
+- `compiler/basicTypes/Id.lhs` -- implementation of identifiers contains a number of utility functions to check/set demand annotations of binders. All of them are just delegating to appropriate functions/fields of the `IdInfo` record;
+
+- `compiler/basicTypes/IdInfo.lhs` -- `IdInfo` record contains all information about demand and strictness annotations of an identifier. `strictnessInfo` contains a representation of an abstract two-point demand transformer of a binder, considered as a reference to a value. `demandInfo` indicates, which demand is put to the identifier, which is a function parameter, if the function is called in a strict/used context. `seq*`-functions are invoked to avoid memory leaks caused by transforming new ASTs by each of the compiler passes (i.e., no thunks pointing to the parts of the processed trees are left). 
+
+- `compiler/basicTypes/MkId.lhs` -- A machinery, responsible for generation of worker-wrappers makes use of demands. For instance, when a signature for a worker is generated, the following strictness signature is created:
+
+```wiki
+  wkr_sig = mkStrictSig (mkTopDmdType (replicate wkr_arity top) cpr_info)
+```
+
+>
+>
+> In words, a non-bottoming demand type with `N` lazy/used arguments (`top`) is created for a worker, where `N` is just a worker's pre-computed arity. Also, particular demands are used when creating signatures for dictionary selectors (see `mkDictSelId`). 
+>
+>
+
+- `compiler/prelude/primops.txt.pp` -- this file defines demand signatures for primitive operations, which are inserted by `cpp` pass on the module `compiler/basicTypes/MkId.lhs`;
+
+- `compiler/coreSyn/CoreArity.lhs` -- demand signatures are used in order to compute the unfolding info of a function: bottoming functions should no be unfolded. See `exprBotStrictness_maybe` and `arityType`.
+
+- `compiler/coreSyn/CoreLint.lhs` -- the checks are performed (in `lintSingleBinding`): 
+
+  - whether arity and demand type are consistent (only if demand analysis already happened);
+  - if the binder is top-level or recursive, it's not demanded (i.e., its demand is not strict).
+
+- `compiler/coreSyn/CorePrep.lhs` -- strictness signatures are examining before converting expression to A-normal form.
+
+- `compiler/coreSyn/MkCore.lhs` -- a bottoming strictness signature created for `error`-like functions (see `pc_bottoming_Id`).
+
+- `compiler/coreSyn/PprCore.lhs` -- standard pretty-printing machinery, should be modified to change PP of demands.
+
+- `compiler/iface/IfaceSyn.lhs`  -- serialization, grep for `HsStrictness` constructors.
+
+- `compiler/iface/MkIface.lhs`  -- a client of `IfaceSyn`, see usages of `HsStrictness`.
+
+- `compiler/iface/TcIface.lhs` -- the function `tcUnfolding` checks if an identifier binds a bottoming function in order to decide if it should be unfolded or not
+
+- `compiler/main/TidyPgm.lhs` -- Multiple checks of an identifier to bind a bottoming expression, running a cheap-an-cheerful bottom analyser. See `addExternal` and occurrences of `exprBotStrictness_maybe`.
+
+- `compiler/simplCore/SetLevels.lhs` -- It is important to zap demand information, when an identifier is moved to a top-level (due to let-floating), hence look for occurrences of `zapDemandIdInfo`.
+
+- `compiler/simplCore/SimplCore.lhs` -- this module is responsible for running the demand analyser and the subsequent worker-wrapper split passes. 
+
+- `compiler/simplCore/SimplUtils.lhs`  -- is a new arity is less than the arity of the demand type, a warning is emitted; check `tryEtaExpand`.
+
+- `compiler/specialise/SpecConstr.lhs` -- strictness info is used when creating a specialized copy of a function, see `spec_one` and `calcSpecStrictness`.
