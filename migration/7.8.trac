@@ -1,0 +1,41 @@
+= GHC 7.8.x Migration Guide =
+
+GHC 7.8 came with a lot of breaking changes for users that might not initially be well understood. This page is an effort to help spell out what some of the differences really are.
+
+== The nature of GHCi ==
+
+The biggest change by far is that **GHC is now dynamically linked on major platforms**. What does this mean?
+
+  * GHC *the compiler* is a compiled as a dynamic executable - with dynamic dependencies on Haskell shared objects (`.so`, `.dylib`, or `.dll`)
+  * Everything for you works the same - programs compiled by GHC are still static by default.
+
+However, this introduces a slight complication: when you use a library in GHCi, GHCi must load *dynamic objects*, not *static ones*. Also, when compiling an executable, GHC may load code anyway - if a module uses `TemplateHaskell`, for example.
+
+Luckily, GHC will mostly Do The Right Thing, and it will compile your modules dynamically too - but you also have to be wary of...
+
+== Cabal ==
+
+Because of the above, there are some knock-on changes for Cabal:
+
+  * You **absolutely, positively, indisputably must be using `cabal-install` 1.18 or later**. Only Cabal 1.18 and later knows how to properly deal with a GHC which is dynamically linked, and knows how to invoke the compiler properly.
+
+  * You absolutely **cannot** have `shared: False` set in your `~/.cabal/config`. Otherwise Cabal will respect this and *not* generated shared libraries, '''but this is never what you want with GHC 7.8'''.
+ If you are in doubt, just remove your cabal configuration file, and use `cabal update` to create a new, fresh one.
+
+  * On that note, **please be careful with your cabal configuration**. Do not just go enabling every random thing under the sun. The primary example is actually `split-objs`, which we don't exactly recommend outside of GHC itself. There are probably bugs with it, but tracking down all the weirdness here isn't a real huge priority (I've also seen things like `library-vanilla: False`, for example, which is *not* recommended either!)
+
+  * If your package uses `TemplateHaskell`, **you should list `TemplateHaskell` as an extension in your .cabal file**.  This is due to an annoying interaction with GHC, dynamic compilation, and profiling - if you do not set this, you **will** experience strange build failures because Cabal does not have an information. Just **put `TemplateHaskell` in your cabal file if you use it**. This will particularly affect building dynamic/profiled executables due to the way GHC must load things for `TemplateHaskell`
+
+=== The quasi-existing-terminfo package & co ===
+
+There's a knock-on effect to the above as well: because GHC is dynamically linked, the binary distribution must ship the shared objects which GHC links to. This includes shared Haskell libraries, like `libHSbase-4.7.0.0.so`, or `libHSterminfo...so`, etc.
+
+However, previously, we ''did not'' install these libraries in the global GHC package database. Because we didn't need them - GHC was linked statically, so 'throwing away' the archives was sensible, we didn't need them later.
+
+The reason this is significant now is because GHC depends on some packages (and thus, some shared objects) which are Haskell libraries, but '''not''' exported by GHC's package database. And we can't throw them away - they're required dynamic dependencies. This means if you globally install a package like terminfo with the same version GHC used, ''it will silently overwrite the existing version, and probably break GHC itself''.
+
+Terminfo is a big culprit here, but so is `xhtml` - NixOS maintainers have reported this for example - see #8919
+
+For many people this might not be a problem, but it is a huge problem for package managers, who *do* want to use the global package database. In this instance, it is *impossible* for them to have packages which depend on libraries-need-but-not-exposed-by-GHC.
+
+The solution is that '''we want to fix this in 7.8.3 by exporting those previously unexported packages'''. This means Cabal will properly link against them rather than overwrite them.
