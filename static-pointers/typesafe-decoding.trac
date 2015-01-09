@@ -1,0 +1,383 @@
+= Type-safe encoding and decoding of static pointers =
+
+This page attempts to spell out in detail a design of the GHC
+`StaticPointers` language extension, in particular with regard to the
+assumptions for type-safe and robust encoding and decoding of static pointers.
+
+This proposal should be read in connection with
+[wiki:StaticPointers the design and implementation of static pointers],
+which explains what static pointers are and explores the broader design space
+but deliberately omits encoding details. Also relevant is the static pointers
+[wiki:StaticPointers/ImplementationPlan implementation plan for GHC 7.10].
+
+'''Not discussed in this proposal:'''
+* Type-safe encoding and decoding of polymorphic static pointers.
+  The [wiki:StaticPointers static pointers design] page sets out ideas
+  how to deal with rank-1 types.
+* Decoding static pointers with existentials.
+  This requires the [wiki:Typeable typed Typeable proposal].
+
+----
+
+=== Proposed `StaticPointers` API ===
+
+{{{
+module Data.StaticPtr
+  ( StaticKey
+  , StaticPtr
+  , DynStaticPtr(..)
+  , StaticInfo(..)
+  , staticKey
+  , deRefStaticPtr
+  , lookupStaticPtr
+  , lookupDynStaticPtr
+  , lookupStaticInfo
+  , sptKeys
+  , sptFingerprint
+  ) where
+
+-- A cryptographic hash as a key for static expressions; serialisable and instance of `Eq` and `Ord`.
+type StaticKey = Fingerprint
+
+-- A static pointer refering to a static expression of type `t`.
+data StaticPtr t
+
+-- A `StaticPtr t` wrapped with a TypeRep of `t`.
+data DynStaticPtr where
+  DSP :: (Typeable a) => StaticPtr a -> DynStaticPtr
+
+-- Human-comprehensible debug info identifying a static expression.
+data StaticInfo = StaticInfo
+       { staticModule :: String     -- context: mondule containing static expr
+       , staticLoc    :: (Int,Int)  -- src location (line/column) of static expr
+       } deriving (Eq, Ord, Show)
+
+-- All `StaticKey`s known to the SPT, in ascending order.
+sptKeys :: [StaticKey]
+
+-- Computes a fingerprint of the whole SPT.
+sptFingerprint :: Fingerprint
+
+-- Operations on `StaticPtr`s; constant time, very fast.
+staticKey      :: StaticPtr t -> StaticKey
+deRefStaticPtr :: StaticPtr t -> t
+
+-- SPT lookups; constant time, reasonably fast.
+lookupDynStaticPtr :: StaticKey -> Maybe DynStaticPtr
+lookupStaticInfo   :: StaticKey -> Maybe StaticInfo
+
+-- SPT lookup and dynamic type check.
+lookupStaticPtr :: (Typeable t) => StaticKey -> Either (Maybe StaticInfo) (StaticPtr t)
+lookupStaticPtr sk = case do { DSP sp <- lookupDynStaticPtr sk; cast sp } of
+  Nothing -> Left $! lookupStaticInfo sk  -- key unknown or dynamic typecheck failed
+  Just sp -> Right sp
+}}}
+
+Some remarks about the API:
+
+* The API isn't quite complete. Not listed is the expression former
+  `static <expr>`, which constructs a '''static pointer''' of type `StaticPtr t`
+  provided `<expr>` is a '''static expression''' (i.e. its free term
+  variables are top-level) of type `t` and `t` is `Typeable`.
+
+* The API is tied to the compiler and runtime system.
+  The compiler constructs all values of type `StaticKey`, `StaticInfo`,
+  `DynStaticPtr` and `StaticPtr`.
+  The runtime system maintains an immutable hash table mapping `StaticKey`s
+  to SPT entries, which `sptKeys` and the `lookup*` operations access.
+  Only the convenience function `lookupStaticPtr` (and possibly the watermark
+  `sptFingerprint`) could be moved to an independent library.
+
+* The CAF `sptFingerprint` is a fingerprint (cryptographic hash value) of
+  the whole SPT and can be used to check whether the SPTs on different nodes
+  are identical. If `StaticKey`s are sufficiently robust (see next section)
+  the fingerprint can be computed by hashing the list `sptKeys`.
+
+* The `StaticPtr` type is abstract but the other types are deliberately not.
+  * `StaticKey` is concrete so serialisation can be left to client code.
+  * `StaticInfo` is concrete so client code can produce human-readable error
+    messages and debug output.
+  * `DynStaticPtr` is concrete so client code can pattern match and implement
+    their own type casts (including unsafe casts bypassing the dynamic
+    type checks).
+
+* The API suggests
+  * that a `StaticPtr` has at least two fields: one for the `StaticKey`
+    and one holding the underlying static expression; and
+  * that an SPT entry has at least two fields: one holding a `DynStaticPtr`
+    and one storing the `StaticInfo`.
+
+* Naming: There is no `Ptr` in the type name `StaticInfo` because the info
+  relates to a particular ''static expression'' rather than a particular
+  ''static pointer''. The same is true for `StaticKey` (see next section).
+
+
+=== Computing `StaticKey` ===
+
+For every static expression `<expr>` there is an associated key.
+We postulate the following requirements for this `StaticKey`.
+* Primary requirement: The `StaticKey` must uniquely identify `<expr>`.
+* Secondary requirement: The `StaticKey` should not change unless `<expr>`
+  itself changes.
+
+The primary requirement is essential; thanks to it `StaticKey`s faithfully
+encode their static expressions.
+The secondary requirement is not essential but provides robustness
+in the face of simple source code changes like re-ordering of declarations.
+
+For the purpose of demonstration, here is a concrete proposal for how to
+compute a `StaticKey`.
+{{{
+static_key = cryptographic_hash(unique_module_identifier(<expr>), canonical_source(<expr>))
+}}}
+That is, a `StaticKey` is a hash computed from two parts: the actual
+source code of the static `<expr>` and its unique module identifier
+(UMI).  The UMI provides the context for `<expr>`, namely the unique
+module defining the free (hence top-level) names occuring in `<expr>`.
+Like in Cabal, a UMI can be represented as a triple consisting of
+package name, package version and fully qualified module name.  For
+added robustness, the source code of `<expr>` should be converted into
+a canonical form before computing the hash, to abstract from inessentials
+like layout and choice of bound local names. (But note that used-provided
+type annotations are essential and must not be abstracted away.)
+
+Computing `StaticKey` as above meets the primary requirement thanks to
+cryptographic hash functions being virtually collision free. But what
+would happen in the unlikely event of a collision? That is, what happens
+if there are two inequivalent static expressions `expr1` and `expr2` that
+both happen to hash to the same key `sk`? 
+
+* Type-safety is not undermined. However collisions can lead to
+  hard-to-debug behaviour.
+  [[br]][[br]]
+  Suppose the SPT contains an entry for `expr1` but the intended result
+  when calling `lookupStaticPtr sk` is a static pointer to `expr2`.
+  * If the types of `expr1` and `expr2` coincide, the result will be
+   `Right sp1`  where `sp1` is a static pointer to `expr1`. This may
+    lead to surprising runtime behaviour (but it won't crash so the
+    collision might go unnoticed).
+  * If the types of `expr1` and `expr2` differ (which is the more likely
+    scenario), the dynamic typecheck will fail and the result will be
+    `Left (Just info)`. However, the `info` refers to `expr1` rather than
+    the expected `expr2`, possibly confusing the user.
+
+* To limit the potential of collisions, the compiler should check that
+  there are no collisions when building the local SPT. That could be done
+  at link time or even at RTS startup. (The check is expected never to fail
+  so doing it at RTS startup is defensible.)
+  [[br]][[br]]
+  Such a check can't guard against cross-site collisions when
+  different sites run different code and hence have differing
+  SPTs. Thus, `expr1` with key `sk` may be registered in the SPT on
+  node1, and `expr2` with the same key `sk` may be registered in the SPT
+  on node2. In this case, the collision can only occur if node2 sends
+  a message containing `sk` to node1 (or vice versa). However, since
+  `expr1` and `expr2` are inequivalent and not shared between node1 and
+  node2, such a message should not be sent in the first place.
+
+'''Remark:'''
+A `StaticKey` of `<expr>` could be represented by its unique source
+location, consisting of UMI and line/column number of `<expr>`. This
+representation meets the primary requirement. However, it falls short
+on the secondary requirement: Even minor changes, like adding comments
+might change the line/column number of `<expr>`, thus changing its
+`StaticKey` on re-compilation. Which would require re-compilation
+of all client modules referring to `<expr>` by its `StaticKey`.
+
+
+=== Decoding `StaticPtr` ===
+
+The ultimate goal of static pointers is type-safe transmission over the network.
+Here is such a scenario spelt out in detail.
+
+* Node A wants to communicate `sp_A :: StaticPtr t_A`,
+  where `sp_A` refers to a static expression `expr_A :: t_A`.
+
+* Node A encodes `sp_A` by its key `staticKey sp_A`, and sends this
+  (suitably serialised) to node B.
+
+* Node B receives the message and deserialises `sk :: StaticKey`.
+
+* Node B looks up `sk` in its SPT, by calling `lookupDynStaticPtr sk`.
+  This may return `Nothing` in case B's SPT knows no key `sk`, which means
+  that B knows no static expression corresponding to `expr_A` on A.
+  However, if the lookup returns `Just dsp_B` then A and B do agree on the
+  key `sk`.
+
+* `dsp_B` wraps a static pointer `sp_B :: StaticPtr t_B`, which refers to
+  a static expression `expr_B :: t_B` on node B.
+  Since `expr_A` and `expr_B` share the static key `sk`, we infer (by
+  the primary requirement on `StaticKey`s) that they are equivalent.
+  (But note that the nature of the equivalence depends on how exactly
+  `StaticKey`s are constructed. It is possible that `expr_A` and `expr_B`
+  conincide statically but differ dynamically as the definitions of
+  their contexts may differ.)
+
+* To actually use the static pointer, node B must unwrap `dsp_B` and cast
+  to `sp_B`. This cast will succeed only if the existentially quantified
+  type in `dsp_B` matches the ambient type of `sp_B`. If so, dereferencing
+  `sp_B` is type-safe on node B.
+
+----
+
+= Closed World Encoding =
+
+The `StaticPointers` API described so far guarantees type safety in an
+'''open world'''. That is, there is no assumption that all nodes must
+agree on the set of shared static expressions. Instead, nodes are
+expected to safely decode any `StaticKey`, failing gracefully if the key
+is not registered in the local SPT.
+
+A consequence of the open world assumption is that `StaticKey`s must
+be fairly large, for instance the size of a `FingerPrint` (currently
+128 bits). This may be wasteful when storing data structures with lots
+of static pointers, for example the nested Closures of HdpH.
+Fortunately, there is a more compact encoding of static pointers
+when restricting to a '''closed world''', where all nodes agree on the
+exact set of shared static expressions.
+
+
+=== `StaticPointers` API with Closed World Encoding ===
+
+The following ''closed world API'' is an alternative to the above
+''open world API''. Actually, the closed world API is almost identical
+to open world one. There are only two differences.
+First, the type `StaticKey`, which is a 0-based index into the SPT rather
+than a cryptographic hash, hence often serialisable into one or two bytes.
+Second, there is an additional function for `lift`ing `static` expressions
+from the open world to the closed world.
+
+{{{
+module Data.StaticPtr.ClosedWorldEncoding
+  ( StaticKey
+  , ...
+  , sptFingerprint
+  , lift
+  ) where
+
+-- A 0-based index as a key for static expressions; serialisable and instance of `Eq`, `Ord`, `Ix` and `Bounded`.
+type StaticKey = Int
+
+-- Lifting open world static pointers to closed world ones.
+lift :: Data.StaticPtr.StaticPtr t -> StaticPtr t
+}}}
+
+The closed world API can can be implemented as a library on top of the
+open world API without further compiler or RTS modification.  The
+implementation essentially duplicates the SPT, creating an indexed
+table.  Note that the `sptFingerprint`s of open world and closed world
+API coincide - changing the indexing does not change the content of
+the SPT.
+
+The performance of the operations on static pointers and the SPT is
+the same as in the open world case; in fact, SPT lookups may be
+marginally faster since they involve a simple array access rather than
+a hash table lookup.  The only additional overhead is introduced by
+`lift`, which requires an extra lookup.  However, thanks to lazy
+evaluation, this overhead is bourne at most once per static
+expression.
+
+
+=== Decoding `StaticPtr` in a Closed World ===
+
+The ultimate goal of closed world static pointers is type-safe
+transmission over the network, when all parties agree on the set of
+shared static expressions. This ''closed world assumption'' can
+be tested by comparing `sptFingerprint`s, aborting program execution
+if nodes with differing `sptFingerprint`s are discovered. Since
+`sptFingerprint`s don't change over time, it suffices to check once,
+e.g. on opening a connection between nodes.
+
+Here is a typical messaging scenario (after passing the closed world test).
+
+* Node A wants to communicate `sp_A :: StaticPtr t_A`,
+  where `sp_A` refers to a static expression `expr_A :: t_A`.
+
+* Node A encodes `sp_A` by its key `staticKey sp_A`, and sends this
+  (suitably serialised) to node B.
+
+* Node B receives the message and deserialises the index `i :: StaticKey`.
+
+* Node B looks up `i` in its SPT, by calling `lookupDynStaticPtr i`.
+  By closed world assumption this must return `Just dsp_B`
+  because A and B agree on the set of static expressions.
+
+* `dsp_B` wraps a static pointer `sp_B :: StaticPtr t_B`, which refers to
+  a static expression `expr_B :: t_B` on node B.
+  Since `expr_A` and `expr_B` share the static key `i`, we infer (by
+  the primary requirement on `StaticKey`s) that they are equivalent.
+
+* To actually use the static pointer, node B must unwrap `dsp_B` and cast
+  to `sp_B`. This cast will succeed only if the existentially quantified
+  type in `dsp_B` matches the ambient type of `sp_B`. If so, dereferencing
+  `sp_B` is type-safe on node B.
+
+It is worth noting that the closed world encoding does not compromise
+type safety, even if the closed world assumption fails. In this case,
+`lookupDynStaticPtr` may return `Nothing`, or casting the wrapped
+static pointer may fail. Yet, if casting succeeds, the resulting static
+pointer is safe to use on node B (even if it isn't pointing to the same
+static expression as on node A).
+
+----
+
+= Robustness =
+
+This section discusses the robustness of the SPT and serialised
+`Statickey`s against a number of perturbations.
+It assumes that `StaticKey`s are constructed as proposed in Section
+"Computing Statickeys" above.
+
+
+=== Compilation ===
+
+Static pointers are not automatically exported. Hence statics do not
+impact the module dependency graph.
+
+Changing the static expressions in a module only requires re-compiling
+that particular module since the global SPT is constructed by the RTS
+on the fly from per-module SPTs.
+
+Changing anything other than the static expressions of a module does
+not affect the SPT. Even certain changes of static expressions themselves,
+e.g. reformatting layout, should not affect the SPT.
+
+
+=== Non-uniform binaries and non-uniform sets of static expressions ===
+
+The original CloudHaskell paper posited that all nodes execute the
+same binary, which implies that all nodes agree on a uniform set of
+statics.  There have since emerged use cases where neither assumption
+is true.  That is, nodes may run different binaries, and they may
+define ''overlapping'' sets of statics rather than agree on a uniform
+set.
+
+The proposed ''open world'' design can cope with this situation
+(assuming a high-quality cryptographic hash function for computing
+`StaticKey`s, making key collisions extremely unlikely).
+
+The ''closed world'' library assumes a uniform set of static expressions
+but not necessarily uniform binaries. Moreover, the closed world library
+may behave weirdly if the closed world assumption is violated but
+it will not sacrifice type safety, i.e. it can't segfault.
+
+
+=== Non-uniform compilers ===
+
+In a multi-site distributed system binaries may have been produced by
+different versions of the GHC. Nodes can still exchange static pointers
+safely, provided they agree
+
+* on the static pointer's `StaticKey` (in the open world case), or
+
+* on the `sptFingerprint` (in the closed world case).
+
+Such agreement implies that all nodes, and hence all compiler versions, agree
+
+* on the static pointer's `StaticKey`, which implies they agree on the
+  static pointer's UMI, including the package version, and
+
+* on the implementation of the cryptographic hash used for fingerprinting.
+
+Decoding of static pointers will fail safely if compiler versions
+disagree on either of the above two items.
