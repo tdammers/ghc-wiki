@@ -54,4 +54,4 @@ The derivings, as they are, clearly wouldn't work too well for changed classes. 
 
 
 - [\#1580](http://gitlabghc.nibbler/ghc/ghc/issues/1580) (our bug)
-- [PackageReorg: the base package](commentary/packages/package-reorg#he-base-package).
+- [PackageReorg: the base package](commentary/packages/package-reorg#the-base-package).
