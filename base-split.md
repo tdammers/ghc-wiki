@@ -1,0 +1,57 @@
+
+This is not about the more recent effort of splitting up `base`, see [SplitBase](split-base) for that
+
+
+
+This page is about what needs to be dealt with in GHC (and the `base` package) in order for it to support altarnate `base` packages (for example, a prototype of Haskell 2's library).
+
+
+## Wired-in types and classes
+
+
+
+GHC has a *lot* of types and classes wired in. Some of them are things we would want to change in an alternate base package; others are okay as they are, except that they probably shouldn't be in the base package.
+
+
+
+Things that we wouldn't really want to change, though we'd want to change the classes the types are instances of:
+
+
+- lists (\[\] and :)
+- tuples
+- the `IO` and `ST` internals
+- `Int`, `Word`, etc.
+- `Float`, `Double`
+
+
+(However, we might want to change the classes these are instances of...)
+
+
+
+Things we'd likely want to change, though it wouldn't greatly matter if the old ones could still be found in GHC.\*:
+
+
+- the numeric classes
+- the `Monad` classes (i.e. putting fail back in `MonadZero`, where it belongs)
+- `Read`, `Show` (especially `Read`)
+- the `Prelude` module (we'd wannt it to use e.g. `base2:Prelude`, not `base:Prelude`, obviously)
+
+## Typechecking
+
+
+
+See [\#1537](http://gitlabghc.nibbler/ghc/ghc/issues/1537) (do notation translation); make the obvious extensions to alternate base packages.
+
+
+## Derivings
+
+
+
+The derivings, as they are, clearly wouldn't work too well for changed classes. Not sure what to do about this at all.
+
+
+## See Also
+
+
+- [\#1580](http://gitlabghc.nibbler/ghc/ghc/issues/1580) (our bug)
+- [PackageReorg: the base package](commentary/packages/package-reorg#he-base-package).
