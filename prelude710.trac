@@ -1,0 +1,63 @@
+= The GHC 7.10 Prelude =
+
+The [https://wiki.haskell.org/Core_Libraries_Committee Core Libraries Committee] (CLC) is responsible for developing the core libraries that ship with GHC.  This is an important but painstaking task, and we owe the CLC a big vote of thanks for taking it on.
+
+For over a year the CLC has been working on integrating the `Foldable` and `Traversable` classes (shipped in `base` in GHC 7.8) into the core libraries, and into the Prelude in particular.  Detailed planning for GHC 7.10 started in the autumn of 2014, and the CLC went ahead with this integration.  Then we had a failure of communication.  
+
+As these changes affect the Prelude, which is in scope for all users of Haskell, these changes should be held to a higher bar than the regular `libraries@` review process.
+
+However, in fact the changes were not particularly well signposted.  Many people have only recently woken up to them, and some have objected (both in principle and detail).
+
+This is an extremely unfortunate situation.  On the one hand we are at RC2 for GHC 7.10, so library authors have invested effort in updating their libraries to the new Prelude.  On the other, altering the Prelude is in effect altering the language, something we take pretty seriously.  We should have had this debate back in 2014, but here we are, and it is unproductive to argue about whose fault it is.  We all share responsibility.
+
+We need to decide what to do now.  A small group of us met by Skype and we've decided to do this:
+ * Push back GHC 7.10's release by at least a month (in part due to this, but also to address an unrelated showstopping bug)
+ * Invite input from the Haskell community on which of two approaches to adopt via a [https://goo.gl/forms/XP1W2JdfpX survey] through February 21st.
+ * Ask Simon Marlow and Simon Peyton Jones to decide which approach to follow for GHC 7.10.
+
+== The two alternative approaches ==
+
+We discussed many alternatives, but ended up with two simple ones:
+
+* '''Plan Foldable''' - replace many of the functions in `Prelude`, `Data.List` and `Control.Monad` with the versions from `Data.Foldable` and `Data.Traversable` as appropriate.  Specifically, 
+  * From `Prelude`: all, and, any, concat, concatMap, elem, foldl, foldl1, foldr, foldr1, length, mapM, mapM_, maximum, minimum, notElem, null, or, product, sequence, sequence_, sum
+  * From `Control.Monad`: foldM, foldM_, forM, forM_, mapM, mapM_, msum, sequence, sequence_
+  * From `Data.List`: all, and, any, concat, concatMap, elem, find, foldl, foldl', foldl1, foldr, foldr1, length, mapAccumL, mapAccumR, maximum, maximumBy, minimum, minimumBy, notElem, null, or, product, sum
+
+  In the process of doing so, extend `Foldable` in such a way that we can do this without changing the semantics of existing programs or suffering performance regressions.
+
+  While this is a divergence from Haskell 2010, for the most part code that compiles with Haskell 2010 continues to compile under this scheme. The [https://wiki.haskell.org/Functor-Applicative-Monad_Proposal Applicative-Monad proposal] is also a divergence from Haskell 2010, but by way of contrast it is one that requires active changes in user code for it to continue to compile.
+
+  The generalised types are almost entirely backward compatible.  However the `Foldable` class (in particular) may evolve further.
+
+* '''Plan List''' - leave these functions working on lists, as they do in GHC 7.8 (and Haskell 2010).  The generalised versions would still be available, but you would have to import them, and use qualification, hiding or specific imports to avoid name clashes.  e.g. `foldr` is defined on lists in the current `Prelude`, but is generalised in `Data.Foldable`.
+
+Regardless of which plan is chosen the GHC 7.10 base libraries will
+ * Incorporate the [https://wiki.haskell.org/Functor-Applicative-Monad_Proposal Applicative-Monad proposal]
+ * Include `Data.Traversable` and `Data.Foldable` as in 7.8, but evolved somewhat. 
+
+== The plan for GHC 7.12 ==
+
+This discussion only covers what will ship with GHC 7.10. The expectation is that if we pick Plan List, then work will be put in place to achieve the goals of the Foldable/Traversable proposal in a future release. Alternatively, if we pick Plan Foldable, it is expected that the Foldable class may evolve in future releases and that some methods in Data.List may be removed or become specialized to list once again. 
+
+== Reasons for Plan Foldable: Generalize in GHC 7.10 ==
+
+[[Prelude710/FTP]] describes and motivates the plan in more detail.
+
+* GHC 7.10 RC2 already contains an implementation of the Foldable/Traversable generalizations. If we went with Plan List, then authors who have modified their code to work with GHC 7.10 would have to undo some of those changes (but not the Applicative-Monad related changes).
+* With the Applicative/Monad Proposal in place, `mapM` is now too restrictive in the class of effects it allows, as well as the type of containers it allows you to traverse. This motivates bringing `traverse` into scope.
+* With Foldable/Traversable there are no longer any name clashes between Prelude and the rest of base.
+* The functions in Prelude become consistently applicable to other data structures, for example `Vector`, `Map`, `Maybe`, `Either a`, `(,) a`, `Set`, etc.
+
+== Reasons for Plan List: Stay with list in GHC 7.10 ==
+
+* There is not yet a consensus on many of the Plan Foldable changes. Another release cycle would give us time to build such a consensus, possibly leading to alterations in the proposal.
+* The Prelude is special; many people regard it as part of the language specification, and it provides the default functions everyone gets. After Foldable and Traversable are incorporated into the Prelude, they are harder to change.
+* There are concerns about which methods are generalized in Plan Foldable, whether methods in Data.List should be restricted to list even if the Prelude is generalized etc. Another release will give us the time to address some of these issues.
+* [[Prelude710/List]] outlines further concerns and possible approaches to take to achieve the Foldable/Traversable goals in GHC 7.12.
+
+== What next? ==
+
+We're actively seeking feedback via a survey at https://goo.gl/forms/XP1W2JdfpX through February 21st.
+
+Once the feedback is collected, Simon Peyton Jones and Simon Marlow will make a final decision.
