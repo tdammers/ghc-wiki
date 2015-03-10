@@ -197,7 +197,7 @@ and add the anchor to a wiki link right after a hash:
 
 
 
-[standard targets](building/using#tandard-targets)
+[standard targets](building/using#standard-targets)
 
 
 ---
