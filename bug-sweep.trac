@@ -1,0 +1,53 @@
+= GHC bug sweep =
+
+The last bugsweep was performed by [wiki:TeamGHC thomie] in the fall of 2014.
+
+In the tradition of the [https://wiki.ubuntu.com/5-A-Day Ubuntu 5-a-day], 
+the GHC Bug Sweep is a scheme in a similar vein.  The
+main aim is simple: we want to make sure that no ticket is
+forgotten.  So, what we plan to do is to look at every ticket in the
+database in sequence, starting from the oldest, and try to make some
+progress on the ticket.  In this way we'll ensure that we keep the
+amount of cruft in the ticket database down to a minimum, keep the database healthy, and keep everything moving.
+
+The bug sweep is a way that virtually anyone can contribute to GHC, in
+as small or large a way as you like.  Whenever you have a spare minute
+or two, claim a ticket and look at it (see below for how to claim a
+ticket).  You don't necessarily have to fix the bug or implement the
+feature: all you have to do is make ''some'' progress on the ticket.
+Here are some things to check:
+
+ * '''All tickets''': 
+   * Check for duplicates (Google search with "site:hackage.haskell.org" is usually better than using Trac's search).
+   * Tidy up the description: add markup if necessary, link to related information and/or other tickets
+   * Check that the ticket is categorised correctly, including
+     * the title is a good summary of the bug
+     * platform/OS are correct
+     * component is correct
+     * it is on the correct milestone (developers only)
+     * the "difficulty" is a reasonable estimate (developers only)
+   * If the ticket has a patch 
+     * (developers only) review the patch
+     * if it looks ready to go, add a comment to the ticket to say so.
+
+ * '''Bugs''':
+   * Check that the bug hasn't already been fixed.
+   * Set the new "Type of Failure" field
+   * If the bug has some reproduction instructions, try them out with a recent GHC and see if the bug still happens.  If the results are different, update the ticket to include that information.
+   * Add the program to the [wiki:Building/RunningTests#Addinganewtest testsuite]. 
+   * If the bug does not have repro instructions, ask the submitter for more details.
+   * Check that there is still value in having the ticket open.  If we cannot make progress without feedback from the submitter, and a long time has elapsed (e.g. 6 months), then we should close the bug.
+
+ * '''Feature requests''' and '''tasks''': 
+   * check that it hasn't already been done.
+   * link to related feature requests
+
+Here are some [wiki:WorkingConventions/BugTracker more details on how we use the bug tracker].
+
+Note: you don't have to do ''all'' of the things on the list.  Doing ''any'' of them is good.  The main thing is that every ticket gets at least looked at.
+
+For many tickets there may be nothing to do: if so, just proceed to the next ticket.  You might not be
+able to reproduce the bug (because you don't have access to the right
+platform, for instance).  In that case just add a comment to the
+ticket to note that the bug needs to be reproduced with an up to date
+GHC, and hopefully someone else will pick it up.
