@@ -1,0 +1,278 @@
+= More issues with `Coercible` solver =
+
+This page is to discuss further issues with the `Coercible` solver, and how to fix them. This is all spurred on by comment:9:ticket:10079, and affected by the implementation of the plan in comment:14:ticket:7788. The work-in-progress can be viewed at Phab:D653, or at [https://github.com/goldfirere/ghc my repo], branch `wip/rae`.
+
+See examples at bottom of page.
+
+== The Problem ==
+
+Suppose we have `newtype N a = MkN rhs` and `[W] N t1 ~R N t2`, where `N` is a newtype whose constructor is in scope. We have '''two''' ways of proceeding: (1) either decompose to `[W] t1 ~r t2`, where the `r` is determined by the role on `N`'s parameter; '''or''' (2) unwrap `N` to expose its representation, simplifying to `[W] rhs[a |-> t1] ~R rhs[a |-> t2]`.
+
+Approach (1) is always good '''except in the presence of a role annotation'''. By the correctness of role inference, `t1 ~r t2 <=> rhs[a |-> t1] ~R rhs[a |-> t2]`, assuming the role `r` is simply inferred from the structure of `rhs`. If `N` sports a role annotation, that assumption is bogus, and the arrow only points left. Thus, it's possible that decomposing gets us stuck, whereas unwrapping can yield an answer.
+
+Approach (2) is always good '''unless the newtype is recursive'''. For a recursive newtype, approach (2) can trap us in an infinite loop.
+
+Currently, we don't track whether or not a type has a role annotation, but we could. (We'd want to be careful not to treat a documentation-only role annotation as different from no role annotation, though.) Thus, if a type '''either''' has no role annotation '''or''' is non-recursive, we have a nice, complete algorithm. But, what on earth to do with recursive, role-annotated types?
+
+=== Why this is important ===
+
+I (Richard E.) don't really know why recursive newtypes are all that important. But, role-annotated types are. It's easily conceivable that a library author wants a newtype whose constructor is held abstract. That author puts a role annotation on, preventing users from violating some key principle. But, the author also wants to coerce among different types freely in her own code. Thus, the solver needs, sometimes, to unwrap and not decompose. Indeed, this ability to coerce within a library but prevent coercions outside the library is a requested feature of the whole `Coercible` mechanism, and is advertised.
+
+== Solutions ==
+
+Simon and I agree that recursive newtypes aren't all that important, except in one case: when we have `newtype N a = ty`, we '''must''' be able to prove `N x ~R ty[a |-> x]`, even in the recursive case. Happily, this is captured by an eager reflexivity check, done after unwrapping. So, that's the plan going forward.
+
+One very dissatisfying solution is to track role annotations and recursivity and then decide between decomposition and unwrapping based on these flags. For a role-annotated, recursive newtype, we just do our best, for some definition of best.
+
+=== How 7.10 works ===
+
+There is a stop-gap solution in 7.10: see Note [Eager reflexivity check] in !TcCanonical.
+Basically, the implementation prefers unwrapping, but checks for reflexivity before looping. This catches most, but not all cases. And it's a bit unprincipled. It will miss the following
+
+{{{
+newtype B a = MkB [B a]
+
+foo :: B Int -> B Bool
+foo = coerce
+}}}
+
+== Examples ==
+
+This is a collection of examples to think about when solving for `Coercible`. Some, but not all, of these are in the regression suite. They probably all should be.
+
+--------------------
+
+`typecheck/should_compile/T9117`:
+
+{{{
+newtype Phant a = MkPhant Char
+type role Phant representational
+
+ex1 :: Phant Bool
+ex1 = coerce (MkPhant 'x' :: Phant Int)
+}}}
+
+Make sure that we unwrap when the constructor is in scope. Not recursive.
+
+-----------------------
+
+`typecheck/should_compile/T9117_2`:
+
+{{{
+newtype Foo a = Foo (Foo a)
+newtype Age = MkAge Int
+
+ex1 :: (Foo Age) -> (Foo Int)
+ex1 = coerce
+}}}
+
+Make sure that we '''don't''' unwrap when doing so would lead to an infinite loop. This example is rather perverse, so it might be reasonable to fail here.
+
+----------------------
+
+`typecheck/should_compile/T9117_3`:
+
+{{{
+eta :: Coercible f g => Coercion (f a) (g a)
+eta = Coercion
+}}}
+
+Eta-expansion.
+
+------------------------
+
+`typecheck/should_compile/T9117_4`:
+
+{{{
+newtype Bar a = Bar (Either a (Bar a))
+newtype Age = MkAge Int
+
+x :: Bar Age
+x = coerce (Bar (Left (5 :: Int)))
+}}}
+
+Like `T9117_2`, but not quite as perverse. This recursive newtype is at least inhabited.
+
+------------------------
+
+`typecheck/should_fail/TcCoercibleFail`:
+
+These should all '''fail''':
+
+{{{
+import Data.Ord (Down)
+
+newtype Age = Age Int deriving Show
+
+one :: Int
+one = 1
+
+type role Map nominal _
+data Map a b = Map a b deriving Show
+
+foo1 = coerce $ one :: ()   -- utterly bogus
+
+foo2 :: forall m. Monad m => m Age
+foo2 = coerce $ (return one :: m Int)   -- don't know the role of m
+
+foo3 = coerce $ Map one () :: Map Age ()   -- make sure we respect the role annotation
+
+foo4 = coerce $ one :: Down Int    -- make sure we respect not-imported constructor
+
+newtype Void = Void Void
+foo5 = coerce :: Void -> ()   -- utterly bogus, but shouldn't loop
+
+newtype VoidBad a = VoidBad (VoidBad (a,a))
+foo5' = coerce :: (VoidBad ()) -> ()   -- ditto
+
+-- This shoul fail with a context stack overflow
+newtype Fix f = Fix (f (Fix f))
+foo6 = coerce :: Fix (Either Int) -> Fix (Either Age)   -- stack overflow
+foo7 = coerce :: Fix (Either Int) -> ()                 -- stack overflow / bogus
+}}}
+
+--------------------
+
+`typecheck/should_fail/TcCoercibleFail3`:
+
+{{{
+data T f = T (f Int)
+
+newtype NT1 a = NT1 (a -> Int)
+newtype NT2 a = NT2 (a -> Int)
+
+foo :: T NT1 -> T NT2
+foo = coerce    -- should fail with stack overflow
+}}}
+
+This is a proper stack overflow. `NT1 Int` and `NT2 Int` are representationally equal in the limit. GHC is correct to keep unwrapping looking for this limit!
+
+---------------------
+
+{{{
+foo :: f a -> f a
+foo = coerce
+}}}
+
+Even though `AppTy`s can't be decomposed, we still must make sure that `Coercible` is reflexive!
+
+---------------------
+
+{{{
+newtype X = MkX (Int -> X)
+
+foo :: X -> X
+foo = coerce
+}}}
+
+This could easily fall into an infinite loop, but we want this to succeed. Contrast with the `NT1`/`NT2` case a few examples up.
+
+----------------------
+
+{{{
+newtype X a = MkX Char
+type role X nominal
+
+foo :: X Int -> X Bool
+foo = coerce
+}}}
+
+This can succeed only by unwrapping, not by decomposition.
+
+----------------------
+
+{{{
+newtype Age = MkAge Int
+newtype Y a = MkY a
+type role Y nominal
+
+foo :: Y Age -> T Int
+foo = coerce
+}}}
+
+Again, can succeed only by unwrapping, but has nothing to do with phantoms.
+
+----------------------
+
+{{{
+newtype Z a = MkZ ()
+type role Z representational
+
+foo :: Z Int -> Z Bool
+foo = coerce
+}}}
+
+Again only by unwrapping, but no nominal arguments.
+
+------------------------
+
+{{{
+newtype N a = MkN [N a]
+newtype Age = MkAge Int
+
+foo :: N Age -> N Int
+foo = coerce
+}}}
+
+Can succeed only by decomposition, because otherwise we loop.
+
+-----------------------
+
+{{{
+newtype App f a = MkApp (f a)
+
+foo :: f a -> App f a
+foo = coerce
+}}}
+
+Need to flatten/zonk before failing when we see an `AppTy`.
+
+------------------------------
+
+{{{
+newtype Q a = MkQ [Q a]
+
+foo :: Q Bool -> Q Int
+foo = coerce
+}}}
+
+Solvable by decomposition only. (`a` is phantom!)
+
+--------------------------------
+
+{{{
+foo :: Coercible a b => b -> a
+foo = coerce
+}}}
+
+Symmetry.
+
+--------------------------------
+
+{{{
+foo :: (Coercible a b, Coercible b c) => a -> c
+foo = coerce
+}}}
+
+Transitivity.
+
+----------------------------------
+
+{{{
+foo :: (Coercible (a b) (c d), Coercible (c d) (e f)) => a b -> e f
+foo = coerce
+}}}
+
+This should work, but this would require a lot more engineering. The problem is that `AppTy`s can't be decomposed, so it's hard to make the constraints canonical and then usable in substitution.
+
+-----------------------------------
+
+{{{
+newtype N1 a = MkN1 a
+newtype N2 a = MkN2 (N1 a)
+
+foo :: N1 a -> N2 a
+foo = coerce
+}}}
+
+Here, we '''won't''' decompose, because the heads differ. Even though this is similar to a case where we do decompose. Simon says that this means we should prefer unwrapping. I agree.
