@@ -1,0 +1,502 @@
+= OverloadedRecordFields design =
+
+'''This page describes the design of the `OverloadedRecordFields` extension, as implemented in 2013. It has been superseded by the [wiki:Records/OverloadedRecordFields/Redesign 2015 redesign], but may be useful for background context.'''
+
+Separate [wiki:Records/OverloadedRecordFields/Implementation notes on the implementation] are available, but not necessarily comprehensible. See the [wiki:Records/OverloadedRecordFields OverloadedRecordFields overview page] for information about the history and current status of the extension.
+
+=== Motivation ===
+
+A serious limitation of the Haskell record system is the inability to overload field names in record types: for example, if the data types
+
+{{{
+data Person  = Person  { personId :: Int, name :: String }
+data Address = Address { personId :: Int, address :: String }
+}}}
+
+are declared in the same module, there is no way to determine which type an occurrence of the `personId` record selector refers to. A common workaround is to use a unique prefix for each record type, but this leads to less clear code and obfuscates relationships between fields of different records. Qualified names can be used to distinguish record selectors from different modules, but using one module per record is often impractical.
+
+Instead, we want to be able to write polymorphic record projections, so that the ambiguous identifier `personId` is resolved using the type of `e`. In general, this requires a new form of constraint `r { x :: t }` stating that type `r` has a field `x` of type `t`. For example, the following declaration should be accepted:
+
+{{{
+getPersonId :: r { personId :: Int } => r -> Int
+getPersonId e = personId e
+}}}
+
+A constraint `R { x :: t }` is solved if `R` is a datatype that has a field `x` of type `t` in scope. An error is generated if `R` has no field called `x`, it has the wrong type, or the field is not in scope. 
+
+
+== Design ==
+
+In the sequel, we will describe the `-XOverloadedRecordFields` extension, which permits multiple field declarations with the same label and introduces new record field constraints.
+
+Previous versions of this proposal suggested changing the lexical syntax so that record projections could be written postfix, immediately following a dot. For example, `e.personId` would be roughly equivalent to `personId e`. This would be a breaking change (when the extension was enabled) as composition would need spaces around the dot operator. However, it would mean that the field name would not have to be in scope, allowing better library separation. For example, `e.personId` would be valid even if no `personId` fields were in scope.
+
+In the light of feedback, we propose '''no changes to dot syntax''' for the time being. In the future, we could add a separate extension to treat [wiki:Records/DeclaredOverloadedRecordFields/DotPostfix dot as postfix function application]. Note that the [http://hackage.haskell.org/package/lens lens] library encourages the use of dot with no spaces, as composition is used to chain lenses.
+
+
+=== Record field constraints === 
+
+A record field constraint is introduced when a field is used in an expression. If every `x` in scope is a record field, then an occurrence of `x` has type `a { x :: b } => a -> b` (roughly) instead of generating an ambiguity error. The overloaded `x` is translated using a typeclass, described below. If there are any normal identifiers `x` in scope (as well as fields) then a use of `x` leads to an ambiguity error. 
+
+A record field constraint `r { x :: t }` is syntactic sugar for the constraint `Has r "x" t`, where
+
+{{{
+type family FldTy (r :: *) (n :: Symbol) :: *
+
+class t ~ FldTy r n => Has r (n :: Symbol) t where
+  getField :: Proxy# n -> r -> t
+}}}
+
+Recall that `Symbol` is the kind of type-level strings. Roughly speaking, an occurrence of a field name `x` is translated into `getField (proxy# :: Proxy# "x")`. (Actually a slightly more general translation is used, as [#Lensintegration discussed below].) The type `Proxy#` is zero-width, so it will be erased at runtime, and is used to pass in the type-level string argument, since we don't have explicit type application (yet).
+
+The syntactic sugar extends to conjunctions:  `r {x :: tx, y :: ty}` means `(Has r "x" tx, Has r "y" ty)`. Note also that `r` and `t` might be arbitrary types, not just type variables or type constructors.  For example, `T (Maybe v) { x :: [Maybe v] }` means `Has (T (Maybe b)) "x" [Maybe v]`.  To make these desugarings accepted, `-XOverloadedRecordFields` implies `-XFlexibleContexts` and `-XConstraintKinds`.
+
+Instances for the `Has` typeclass and `FldTy` type family are automatically generated (for modules with `-XOverloadedRecordFields` enabled) using the record fields that are in scope. For example, the data type
+
+{{{
+data T a = MkT { x :: [a] }
+}}}
+
+has the corresponding instances
+
+{{{
+type instance FldTy (T a) "x" = [a]
+
+instance b ~ [a] => Has (T a) "x" b where 
+  getField _ (MkT x) = x
+}}}
+
+The bare type variable `b` in the instance head is important, so that we get an instance match from the first two parameters only, then the equality constraint `(b ~ [a])` improves `b`. For example, if the constraint `Has (T c) "x" d` is encountered during type inference, the instance will match and generate the constraints `(a ~ c, b ~ d, b ~ [a])`. Moreover, the `FldTy` type family ensures that the third parameter is functionally dependent on the first two, which is needed to [#Troubleinparadise avoid ambiguity errors when composing overloaded fields]. 
+
+The reasons for using a three-parameter class, rather than just two parameters and a type family, are (a) to support the syntactic sugar and (b) improve type inference error messages. With a two-parameter class we could easily end up inferring types like the following, and it would be hard to reapply the sugar: 
+
+{{{ 
+f :: (Has r "x", Has r "y", FldTy r "x" ~ Int, FldTy r "y" ~ Int) => r -> Int 
+f r = x r + y r :: Int 
+}}}
+
+Moreover, error messages would tend to be reported in terms of unification failures for `FldTy` rather than unsolved `Has` class constraints.
+
+
+=== Representation hiding ===
+
+At present, a datatype in one module can declare a field, but if the selector function is not exported, then the field is hidden from clients of the module. It is important to support this. Typeclasses in general have no controls over their scope, but we treat the implicitly-generated `Has` instances differently.  
+ 
+ * Instances are not exported from the module that defines the datatype, but instead are created implicitly when needed by the typechecker. 
+
+ * An implicitly-generated `Has` instance for a field `x` of data type `T` is available in a module `M` if
+   * `-XOverloadedRecordFields` is enabled for module `M` and 
+   * The record field selector function `x` is in scope. 
+
+ * This approach (in which the availability of magical instances depends on what is in scope) is similar to the special treatment of `Coercible` instances (see [http://research.microsoft.com/en-us/um/people/simonpj/papers/ext-f/ Safe Coercions]).
+
+Notice that
+ * The data type `T` might be defined locally in `M`, or imported.
+ * If `T` is imported it does not matter whether `-XOverloadedRecordFields` is enabled in the module where `T` was defined.
+
+This design supports representation hiding: just like at present, exporting the field selector permits access to the field. For example, consider the following module:
+
+{{{
+module M ( R(x), S ) where
+
+data R = R { x :: Int }
+data S = S { x :: Bool }
+}}}
+
+Any module that imports `M` will have access to the `x` field from `R` but not from `S`, because the instance `Has R "x" Int` will be available but the instance `Has S "x" Bool` will not be. Thus `R { x :: Int }` will be solved but `S { x :: Bool }` will not.
+
+Suppose module `M` imports module `N`, `N` imports module `O`, and only `N` has the extension enabled. Now `N` can project any field in scope (including those defined in `O`), but `M` cannot access any `Has` instances. 
+
+This means that
+ * the extension `-XOverloadedRecordFields` is required whenever a `Has` constraint must be solved;
+ * records defined in existing modules (or other packages) without the extension can still be overloaded.
+ * no new mechanism for hiding instances is required; and
+
+=== Higher-rank fields ===
+
+Higher-rank fields, such as in the declaration
+
+{{{
+data U = MkU { x :: forall a . a -> a }
+}}}
+
+cannot be overloaded. If such a field is in scope for a module with `-XOverloadedRecordFields` enabled, no Has or Upd instances will be produced. The user can always declare the selector function manually. This is similar to the current situation for existentially quantified variables in fields, which do not give rise to selector functions at all.
+
+Bidirectional type inference for higher-rank types relies on inferring the type of functions, so that types can be pushed in to the arguments. However, the type of an overloaded field cannot immediately be inferred (as some constraint solving is required). This is why higher-rank and overloaded fields are incompatible.
+
+Some previous variants of the design supported rank-1 universally quantified fields (but not rank-2 and above). However, these prevent the third parameter of the `Has` class from being a function of the first two, and hence obstruct type inference for compositions of selectors.
+
+
+=== Qualified names ===
+
+A qualified name must refer to a unique field; it cannot be overloaded. Consider the following example:
+
+{{{
+module M where
+  data S = MkS { foo :: Int }
+
+module N where
+  data T = MkT { foo :: Int }
+  data U = MkU { foo :: Int }
+
+module O where
+  import M
+  import N
+
+  f x = M.foo x
+  g x = N.foo x
+  h x = foo x
+}}}
+
+Here `f` is okay, because `M.foo` is unambiguous, but `g` is forbidden. This is because we have no way to support polymorphism over fields only from one module. The user must write `h` instead, making it explicit that the field is not qualified.
+
+
+== Record update ==
+
+Supporting polymorphic record update is rather more complex than polymorphic lookup. In particular:
+ * the type of the record may change as a result of the update;
+ * multiple fields must be updated simultaneously for an update to be type correct (so iterated single update is not enough); and
+ * records may include higher-rank components.
+
+These problems have already been [wiki:Records/OverloadedRecordFields/SORF/#Recordupdates described in some detail]. In the interests of doing something, even if imperfect, the overloaded-record-field design works as follows:
+ 
+ * The traditional record update syntax `r { f1=e2, ..., fn=en }` supports only non-overloaded update; that is, update of a unique known record type. 
+
+ * If there is only one data type that has all the fields  `f1` .. `fn` mentioned in the update, then that is the data type to be updated.
+
+ * If more than one data type has all those fields, a type signature may be used to disambiguate, in one of two places: either `r :: <type> { fi=ei }` or `r { fi=ei } :: <type>`. 
+
+For example,
+{{{
+e { x = t }
+}}}
+currently relies on the name `x` to determine the datatype of the record. If this is ambiguous, a type signature can be given either to `e` or to the whole expression (but nowhere else). Thus either
+{{{
+  e :: T Int { x = t }
+}}}
+or
+{{{
+  e { x = t } :: T Int
+}}}
+will be accepted. (Really only the type constructor is needed, whereas this approach requires the whole type to be specified, but it seems simpler than inventing a whole new syntax.)
+
+
+=== Limited type-changing update ===
+
+As noted above, supporting a polymorphic version of the existing record update syntax (in its full generality) is difficult. However, we do generate instances of the class `Upd` and type family `UpdTy`, which permit type-changing update of single fields:
+
+{{{
+type family UpdTy (r :: *) (n:: Symbol) (a :: *) :: *
+
+class (Has r n (FldTy r n), r ~ UpdTy r n (FldTy r n))
+   => Upd (r :: *) (n :: Symbol) (t :: *) where
+  setField :: Proxy# n -> r -> t -> UpdTy r n t
+}}}
+
+For example, the datatype `T` would give rise to these instances:
+
+{{{
+data T a = MkT { x :: [a] }
+
+type instance UpdTy (T a) "x" [c] = T c
+
+instance (b ~ [c]) => Upd (T a) "x" b where
+  setField _ (MkT _) e = MkT e
+}}}
+
+The third parameter of the `Upd` class represents the new type being assigned to the field. Thus it is not functionally dependent on the first two. Consequently, we must use a bare type variable `b` in the instance declaration, with an equality constraint `b ~ [c]` postponed until after the instance matches.
+
+=== Type-changing update: phantom arguments ===
+
+Consider the datatype
+
+{{{
+data T a = MkT { foo :: Int }
+}}}
+
+where `a` is a phantom type argument (it does not occur in the type of `foo`). The traditional update syntax can change the phantom argument, for example if `r :: T Int` then `r { foo = 3 } :: T Bool` typechecks. However, `setField` cannot do so, because this is illegal:
+
+{{{
+type instance UpdTy (T a) "foo" Int = T b
+}}}
+
+Note that the result of the type family involves an unbound variable `b`. 
+
+In general, a use of `setField` can change only type variables that occur in the field type being updated, and do not occur in any of the other fields' types.
+
+=== Type-changing update: multiple fields ===
+
+Because `setField` changes a single field, you cannot use to change the type
+of a type variable that appears in more than one field. For example:
+{{{
+data V a b = MkV { foo :: (a, b), bar :: a }
+}}}
+We can change the type of `b` but not `a`, because the latter occurs in
+two different fields.  So we generate these instances:
+{{{
+instance t ~ (a, b') => Upd (V a b) "foo" t where
+  setField _ (MkV _ bar) e = MkV e bar
+
+instance t ~ a => Upd (V a b) "bar" t where
+  setField _ (MkV foo _) e = MkV foo e
+}}}
+In the first we can change `b`'s type to `b'`, but in the second `a`'s type remains unchanged.
+
+=== Type-changing update: type families ===
+
+Consider the following definitions:
+
+{{{
+type family Goo a
+data T a = MkT { foo :: Goo a }
+}}}
+
+In order to change the type of the field `foo`, we would need to define something like this:
+
+{{{
+type instance UpdTy (T a) "foo" (Goo b) = T b
+}}}
+
+But pattern-matching on a type family (like `Goo`) doesn't work, because type families are not injective. Thus we cannot change type variables that appear only underneath type family applications. We generate an instance like this instead:
+
+{{{
+type instance UpdTy (T a) "foo" x = T a
+}}}
+
+On the other hand, in the datatype
+
+{{{
+data U a = MkU { bar :: a -> Goo a }
+}}}
+
+it is fine to change `a` when updating `bar`, because it occurs rigidly as well as under a type family, so we can generate this:
+
+{{{
+type instance UpdTy (U a) "bar" (b -> x) = U b
+}}}
+
+This is all a bit subtle. We could make updates entirely non-type-changing if the field type contains a type family, which would be simpler but somewhat unnecessarily restrictive.
+
+---------------------------
+=== Lens integration ===
+
+It was implied above that a field like `foo` translates into `getField (proxy# :: Proxy# "foo") :: Has r "foo" t => r -> t`, but this is not quite the whole story. We would like fields to be usable as lenses (e.g. using packages such as [http://hackage.haskell.org/package/lens lens], [http://hackage.haskell.org/package/data-accessor data-accessor] or [http://hackage.haskell.org/package/data-lens data-lens]). This requires a slightly more general translation, using
+
+{{{
+field :: Accessor p r n t => Proxy# n -> p r t
+field z = accessField z (getField z) (setField z)
+}}}
+
+to translate `foo` to `field (proxy# :: Proxy# "foo") :: Accessor p r "foo" t => p r t`. The `Accessor` class is defined thus:
+
+{{{
+class Accessor (p :: * -> * -> *) (r :: *) (n :: Symbol) (t :: *) where
+  accessField :: Proxy# n ->
+                 (Has r n t => r -> t) ->
+                 (forall a . Upd r n a => r -> a -> UpdTy r n a) ->
+                 p r t
+}}}
+
+An instance of `Accessor p r n t` means that `p` may contain a getter and setter for the field `n` of type `t` in record type `r`. In particular, we can give the following instance for function arrow, that ignores the setter completely:
+
+{{{
+instance Has r n t => Accessor (->) r n t where
+  accessor _ getter setter = getter
+}}}
+So, if the source program contains `foo r` (meaning "select field `foo` from record `r`), it will be interpreted like this, if `r :: T`:
+{{{
+                foo r
+
+desugaring      ==> field (proxy# :: Proxy# "foo") r
+
+inline 'field'  ==> accessField (proxy# :: Proxy# "foo")
+                                (getField (proxy# :: Proxy# "foo"))
+                                (setField (proxy# :: Proxy# "foo"))
+                                r
+
+(->) instance   ==> getField (proxy# :: Proxy# "foo") r
+of Accessor
+
+"foo" instance  => sel_T_foo r     -- Select the foo field in the T type
+of Has
+}}}
+Of course the field doesn't have to by syntactically applied; the above will happen whenever it is used as a function.
+
+However, with this additional generality, the field does not have to be used as a function!  (Or, to put it another way, `p` does not have to be the function arrow.) Suppose the `lens` library defined the following newtype wrapper:
+
+{{{
+newtype WrapLens n r a
+  = MkWrapLens (forall b . Upd r n b => Lens r (UpdTy r n b) a b)
+
+instance m ~ n => Accessor (WrapLens m) r n where
+  accessor _ getter setter = MkWrapLens (\ w s -> setter s <$> w (getter s))
+
+fieldLens :: Upd r n b => WrapLens n r a -> Lens r (UpdTy r n b) a b
+fieldLens (MkWrapLens l) = l
+}}}
+
+Now `fieldLens foo` is a lens whenever `foo` is an overloaded record field.
+
+Other lens libraries can define their own instances of `Accessor`, even if they do not support type-changing update, and the same machinery enables fields to be used with them. For example, here is another possible encoding of lenses:
+
+{{{
+data DataLens r a = DataLens
+   { getDL :: r -> a
+   , setDL :: r -> a -> r }
+
+instance Upd r n t => Accessor DataLens r n t where
+  accessField _ g s = DataLens g s
+}}}
+
+Now an overloaded record field `foo` can be used as if it had type `DataLens r a`, and it will just work: we do not even need to use a combinator.
+
+
+
+
+== Design choices ==
+
+=== Scope issues, or, why we miss dot notation ===
+
+In some ways it would be very desirable to support dot notation.  Consider the following example:
+
+{{{
+f :: r { g :: Int } => r -> Int
+f x = g x + 1
+}}}
+
+Q1. What happens if `g` is not in scope?
+
+A. The code gives an error (`g` is not in scope).  We can't write record-manipulating functions unless there is at least one records in scope with that field name (`g` in this case).  
+
+This is where dot-notation (or another syntactic form marking a field name) is better: `f x = x.g + 1` can work even if `g` is not in scope. Observe that something similar happens with implicit parameters: `f y = y + ?x` works even if `x` is not in scope, and introduces a new constraint `(?x :: Int)`. 
+
+Q2. What if we add `data T = MkT { g :: Char }`?
+
+A. The code compiles correctly, even though the datatype is "obviously" irrelevant because the field `g` it declares has the wrong type, so it cannot be selected. This would not be the case if we treated `g` as an unambiguous reference to the only field of that name in scope.
+
+Q3. What if we subsequently add another datatype with a field `g`?
+
+A. The code still compiles correctly.
+
+
+=== Alternatives to dot-notation ===
+
+An advantage of distinguishing record projections syntactically (as in `x.g`) is that `g` is always treated as a record field, regardless of what is in scope. This allows better separation of concerns, as functions that manipulate records can be defined abstractly rather than referring to particular datatypes. We could consider using an operator less controversial than dot (for example, `#` has been suggested):
+
+{{{
+f x = x#g + 1
+bar xs = map (#baz) xs
+}}}
+
+This should not conflict with `-XMagicHash`, since that allows `#` only as a postfix name modifier. Note that it works perfectly with partial application.
+
+Another alternative, once we have `-XExplicitTypeApplication`, is to use the `field` function defined in `GHC.Records`:
+
+{{{
+field @"foo"
+}}}
+
+That is a bit long, however, and worse is the version needed at present:
+
+{{{
+field (proxy# :: Proxy# "foo")
+}}}
+
+
+=== Unambiguous fields ===
+
+What if `foo` occurs in an expression, and there is only one datatype `T` with a field `foo` in scope? There are three obvious choices:
+
+1. Generate a polymorphic use of `field` as normal.
+2. Generate a use of `field`, specialised to the type `T`, but still polymorphic in the choice of `Accessor`.
+3. Use the record selector for `foo`, without any polymorphism.
+
+The first and second options are likely to be preferred by users who wish to write polymorphic code, while the third is better if the desire is only to overload field names but not write code that is polymorphic in the choice of datatype. The third option severely hampers the integration with lenses, because a field will only be a lens if it is ambiguous. However, the third would allow higher-rank fields to be used when unambiguous. This suggests a fourth option:
+
+4. Use the record selector for `foo` if it is applied to one or more arguments, and generate a use of `field` specialised to the type `T` otherwise. 
+
+This makes higher-rank fields usable (though possibly requiring eta-expansion), and it allows lens integration. On the other hand, it is still an impediment to users wishing to write polymorphic code.
+
+Oh, and there's a fifth option:
+
+5. Generate a polymorphic use of `field` as normal, but when defaulting a constraint `Has r "foo" t`, choose the instance for `T`.
+
+This gives the maximum amount of polymorphism and the right behaviour in the presence of the monomorphism restriction, but defaulting is evil and confusing...
+
+At the moment we take the first option.
+
+
+=== Record update: avoiding redundant annotations ===
+
+In an update `e { x = t }`, if `e` is a variable whose type is given explicitly in the context, we could look it up rather than requiring it to be given again. Thus
+{{{
+f :: T Int -> T Int
+f v = v { x = 5 }
+}}}
+would not require an extra annotation. On the other hand, we would need an annotation on the update in  
+{{{
+  \v -> (v { x = 4 }, [v, w :: T Int])
+}}}
+because the type of `v` is only determined later, by constraint solving.
+
+Annoyingly, nested updates will require some annotations. In the following example, the outer update need not be annotated (since `v` is a variable that is explicitly given a type by the context) but the inner update must be (since `x v` is not a variable):
+{{{
+  f :: T Int -> T Int
+  f v = v { x = (x v){ y = 6 } }
+}}}
+
+
+=== Hiding record selectors === 
+
+Optionally, we could [wiki:Records/DeclaredOverloadedRecordFields/NoMonoRecordFields add a flag `-XNoRecordSelectorFunctions`] to suppress the record selectors. Just as `-XOverloadedRecordFields` applies to a client module, and generates `Has` instances for that module, so `-XNoRecordSelectorFunctions` in a client module would hide all the record selectors that should otherwise be in scope. The idea is that another record system could use Template Haskell to generate functions in place of selectors, and these would not clash.
+
+Since the selectors are hidden by clients (on import) rather than on export, fields can still be used for record update and mentioned in import and export lists, to control access to them (as discussed in the [wiki:Records/OverloadedRecordFields/Plan#Representationhiding representation hiding] section).
+
+
+=== Syntactic sugar for `Upd` constraints ===
+
+Should we have a special syntax for `Upd` constraints, just as `r { x :: t }` sugars `Has r "x" t`? What should it look like? Perhaps something like `r { x ::= t }`?
+
+
+== Remarks ==
+
+
+=== Trouble in paradise ===
+
+[http://www.haskell.org/pipermail/glasgow-haskell-users/2013-July/022584.html Edward Kmett points out] that a previous version of this proposal, where the third parameter of the `Has` class was not functionally dependent on the first two, fell short in an important respect: composition of polymorphic record fields would lead to ambiguity errors, as the intermediate type cannot be determined. For example, suppose
+
+{{{
+foo :: Has b "foo" c => b -> c
+bar :: Has a "bar" b => a -> b
+}}}
+
+then
+
+{{{
+foo . bar :: (Has a "bar" b, Has b "foo" c) => a -> c
+}}}
+
+and `b` is an ambiguous type variable. This shows the need for the `FldTy` type family.
+
+
+=== Virtual record fields ===
+
+We could imagine supporting virtual record fields by allowing the user to declare their own instances of `Has` and `FldTy` (and possibly `Upd` and `UpdTy`). For example, the user could write the following:
+
+{{{
+data Person = MkPerson { firstName :: String, lastName :: String }
+
+type instance FldTy Person "fullName" = String
+instance t ~ String => Has Person "fullName" t where
+  getField _ p = firstName p ++ " " ++ lastName p
+}}}
+
+This means that the `Person` type can be used where a type with a field `fullName` is expected. Since no `Upd` and `UpdTy` instances are provided, the field cannot be updated.
+
+However, this does not bring `fullName` into scope as a field, [#Scopeissuesorwhywemissdot as previously observed]. Moreover, it is difficult to check the type family instances for consistency. For example, given the following declaration
+
+{{{
+type instance FldTy a "foo" = Int
+}}}
+
+we would need to check that any datatype with a field `foo` in scope gave it the type `Int`. For these reasons, user-defined instances of the classes are not currently permitted, so virtual fields are not available.
