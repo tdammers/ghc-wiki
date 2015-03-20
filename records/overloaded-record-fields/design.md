@@ -73,7 +73,7 @@ class t ~ FldTy r n => Has r (n :: Symbol) t where
 ```
 
 
-Recall that `Symbol` is the kind of type-level strings. Roughly speaking, an occurrence of a field name `x` is translated into `getField (proxy# :: Proxy# "x")`. (Actually a slightly more general translation is used, as [discussed below](records/overloaded-record-fields/design#ens-integration).) The type `Proxy#` is zero-width, so it will be erased at runtime, and is used to pass in the type-level string argument, since we don't have explicit type application (yet).
+Recall that `Symbol` is the kind of type-level strings. Roughly speaking, an occurrence of a field name `x` is translated into `getField (proxy# :: Proxy# "x")`. (Actually a slightly more general translation is used, as [discussed below](records/overloaded-record-fields/design#lens-integration).) The type `Proxy#` is zero-width, so it will be erased at runtime, and is used to pass in the type-level string argument, since we don't have explicit type application (yet).
 
 
 
@@ -100,7 +100,7 @@ instance b ~ [a] => Has (T a) "x" b where
 ```
 
 
-The bare type variable `b` in the instance head is important, so that we get an instance match from the first two parameters only, then the equality constraint `(b ~ [a])` improves `b`. For example, if the constraint `Has (T c) "x" d` is encountered during type inference, the instance will match and generate the constraints `(a ~ c, b ~ d, b ~ [a])`. Moreover, the `FldTy` type family ensures that the third parameter is functionally dependent on the first two, which is needed to [avoid ambiguity errors when composing overloaded fields](records/overloaded-record-fields/design#rouble-in-paradise). 
+The bare type variable `b` in the instance head is important, so that we get an instance match from the first two parameters only, then the equality constraint `(b ~ [a])` improves `b`. For example, if the constraint `Has (T c) "x" d` is encountered during type inference, the instance will match and generate the constraints `(a ~ c, b ~ d, b ~ [a])`. Moreover, the `FldTy` type family ensures that the third parameter is functionally dependent on the first two, which is needed to [avoid ambiguity errors when composing overloaded fields](records/overloaded-record-fields/design#trouble-in-paradise). 
 
 
 
@@ -231,7 +231,7 @@ Supporting polymorphic record update is rather more complex than polymorphic loo
 - records may include higher-rank components.
 
 
-These problems have already been [described in some detail](records/overloaded-record-fields/sorf#ecord-updates). In the interests of doing something, even if imperfect, the overloaded-record-field design works as follows:
+These problems have already been [described in some detail](records/overloaded-record-fields/sorf#record-updates). In the interests of doing something, even if imperfect, the overloaded-record-field design works as follows:
  
 
 
@@ -650,7 +650,7 @@ Optionally, we could [add a flag \`-XNoRecordSelectorFunctions\`](records/declar
 
 
 
-Since the selectors are hidden by clients (on import) rather than on export, fields can still be used for record update and mentioned in import and export lists, to control access to them (as discussed in the [representation hiding](records/overloaded-record-fields/plan#epresentation-hiding) section).
+Since the selectors are hidden by clients (on import) rather than on export, fields can still be used for record update and mentioned in import and export lists, to control access to them (as discussed in the [representation hiding](records/overloaded-record-fields/plan#representation-hiding) section).
 
 
 ### Syntactic sugar for `Upd` constraints
