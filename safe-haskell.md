@@ -89,7 +89,7 @@ The SafeHaskell project will introduce three new GHC LANGUAGE options. Intuitive
 
 - `-XSafe`: enables the Safe Language dialect of Haskell in which GHC rejects any module that might produce unsafe effects or otherwise subvert the type system.
 - `-XTrustworthy`: means that, though a module may invoke unsafe functions internally, the module's author claims that the exported API cannot be used in an unsafe way.
-- `-XUnsafe`: means that GHC should always regard this module as untrusted. This is needed as without any flags GHC will try to [infer safety](safe-haskell#afety-inference).
+- `-XUnsafe`: means that GHC should always regard this module as untrusted. This is needed as without any flags GHC will try to [infer safety](safe-haskell#safety-inference).
 
 
 A **client** (C) is someone compiling a source module with GHC.
@@ -392,7 +392,7 @@ The `-XSafe`, `-XTrustworthy`, `-XUnsafe`, and `-fpackage-trust` GHC LANGUAGE op
 
 - **`-XSafe`**:
 
-  - Enables the Safe Language dialect which disallows the use of some LANGUAGE and OPTIONS, as well as restricting how certain Haskell language features operate. See [\#SafeLanguage](safe-haskell#afe-language) below for details.
+  - Enables the Safe Language dialect which disallows the use of some LANGUAGE and OPTIONS, as well as restricting how certain Haskell language features operate. See [\#SafeLanguage](safe-haskell#safe-language) below for details.
 
     - Can't be used when `-XTrustworthy` or `-XUnsafe` is used.
 
@@ -419,7 +419,7 @@ Below is precisely what flags and extensions fall into each category:
 - **Disallowed completely**: `GeneralizedNewtypeDeriving`, `TemplateHaskell`
 - **Restricted functionality**: `OverlappingInstances`, `ForeignFunctionInterface`, `RULES`, `Data.Typeable`
 
-  - See [Restricted Features below](safe-haskell#estricted-and-disabled-ghc-haskell-features)
+  - See [Restricted Features below](safe-haskell#restricted-and-disabled-ghc-haskell-features)
 - **Doesn't Matter**: all remaining flags.
 
 ### Restricted and Disabled GHC Haskell Features
@@ -481,7 +481,7 @@ Currently, in any given run of the compiler, GHC classifies each package as eith
 
     - At compile time we check that M resides in a trusted package and that all of M's safe imports are trusted
 
-- Need to modify GHC to implement the restrictions of the Safe Language as described [above](safe-haskell#estricted-and-disabled-ghc-haskell-features)
+- Need to modify GHC to implement the restrictions of the Safe Language as described [above](safe-haskell#restricted-and-disabled-ghc-haskell-features)
 
 - Libraries will progressively need to be updated to export trustable interfaces, which may require moving unsafe functions into separate modules, or adding new `{-# LANGUAGE Trustworthy #-}` modules that re-export a safe subset of symbols.  Ideally, most modules in widely-used libraries will eventually contain either `{-# LANGUAGE Safe -#}` or `{-# LANGUAGE Trustworthy -#}` pragmas, except for internal modules or a few modules exporting unsafe symbols.  Maybe haddock can add some indicator to make it obvious which modules are trustable and show the trust dependencies.
 
