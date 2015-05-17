@@ -1,0 +1,21 @@
+= Developer’s Infrastructure =
+
+There are a number of services and tools that GHC developers should be aware of.
+
+== Official tools ==
+
+ * Our [[Repositories|git repositories]], which are best used following the [[https://ghc.haskell.org/trac/ghc/wiki/|Working Conventions]]
+ * The trac instance you are just using, which hosts the [[/wiki|wiki]] and the [[/report|bug tracker]]
+ * Our [[MailingListsAndIRC|mailing lists]]
+ * For code review, we use a [[Phabricator]] instance at https://phabricator.haskell.org/
+ * We use [[Travis]] to validate each new commit: see https://travis-ci.org/ghc/ghc/builds for the current status
+ * We also validate new commits using [[Phabricator/Harbormaster|Harbormaster]]: see https://phabricator.haskell.org/diffusion/GHC/history/ for the current status
+ * The evolution of the performance of our master branch is tracked on http://perf.haskell.org/ghc
+ * We also use dedicated [wiki:Builder builders] to do nightly [[http://haskell.inf.elte.hu/builders/|builds]] of GHC and the [[http://haskell.inf.elte.hu/docs/|user documentation]]. See the [[wiki:BuilderSummary| builder summary page]] for more information. 
+
+== External tools ==
+
+There are a bunch of external services that might be of interest to GHC developers:
+
+ * Source code statistics on Ohloh: https://www.ohloh.net/p/ghc
+ * Similar statistics, on GitHub: https://github.com/ghc/ghc/graphs
