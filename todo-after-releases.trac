@@ -1,0 +1,10 @@
+== Things to do after releases are made ==
+
+* Update default GHC version for new Trac tickets. 
+
+* Update [wiki:Commentary/Libraries/VersionHistory].
+
+* Delete `__GLASGOW_HASKELL__` ifdefs for versions of ghc older than the [Building/Preparation/Tools previous 2 major releases]. Something like (add versions which you want to keep the ifdefs for, remove versions you want to delete them for):
+{{{#!sh
+git grep -l GLASGOW_ | grep -v 'users_guide' | xargs grep GLASGOW_ | grep -v '712\|711\|710\|709\|708'
+}}}
