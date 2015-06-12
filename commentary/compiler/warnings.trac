@@ -1,0 +1,5 @@
+= Warnings and Deprecations
+
+For now, see the relevant [http://downloads.haskell.org/~ghc/latest/docs/html/users_guide/pragmas.html#warning-deprecated-pragma GHC User's Guide Section] describing the `DEPRECATE` and `WARNING` pragmas.
+
+TODO
