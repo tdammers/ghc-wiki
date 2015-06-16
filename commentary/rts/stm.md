@@ -32,7 +32,7 @@ This document assumes the reader is familiar with some general details of GHC's 
 
 >
 >
-> Corresponds to a CPU. The number of capabilities should match the number of CPUs. See [Capabilities](commentary/rts/scheduler#apabilities).
+> Corresponds to a CPU. The number of capabilities should match the number of CPUs. See [Capabilities](commentary/rts/scheduler#capabilities).
 >
 >
 
