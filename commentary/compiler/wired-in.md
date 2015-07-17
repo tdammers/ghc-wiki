@@ -8,9 +8,9 @@
 There are three categories of entities that GHC "knows about"; that is, information about them is baked into GHC's source code.
 
 
-- [Wired-in things](commentary/compiler/wired-in#ired-in-things) --- GHC knows everything about these
-- [Known-key things](commentary/compiler/wired-in#nown-key-things) --- GHC knows the *name*, including the `Unique`, but not the definition
-- [Orig RdrName  things](commentary/compiler/wired-in#rig-rdrname-things) --- GHC knows which module it's defined in
+- [Wired-in things](commentary/compiler/wired-in#wired-in-things) --- GHC knows everything about these
+- [Known-key things](commentary/compiler/wired-in#known-key-things) --- GHC knows the *name*, including the `Unique`, but not the definition
+- [Orig RdrName  things](commentary/compiler/wired-in#orig-rdrname-things) --- GHC knows which module it's defined in
 
 ## Wired-in things
 
