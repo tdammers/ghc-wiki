@@ -1,0 +1,161 @@
+{{{#!box warning
+This page is obsolete. See Building/GettingTheSources instead.
+}}}
+
+[http://www.youtube.com/watch?v=zkMJ6GQpGyc&list=PLBkRCigjPwyeCSD_DFxpd246YIF7_RDDI  Video: Getting and Building], layout of the source tree, how to set up build.mk (23'43")
+
+= Getting the GHC Sources =
+
+There are two ways to get sources to GHC: get the sources directly from our repository using [http://darcs.net/ darcs] and [http://git-scm.com/ git] (reccomended) or download a source distribution.
+
+== Source distributions ==
+
+A source distribution is a file like {{{ghc-6.6-src.tar.bz2}}}, which contains a complete snapshot of the source tree for a particular version of GHC.  Source distributions for all versions of GHC are available from the [http://www.haskell.org/ghc/download.html download page].
+
+Starting with GHC 6.6, we have split the source distribution in two:
+
+ * {{{ghc-<version>-src.tar.bz2}}} contains GHC itself and the minimum libraries needed to bootstrap GHC.
+ * {{{ghc-<version>-src-extralibs.tar.bz2}}} contains a selection of supplemental libraries that can be built
+   and installed at the same time as GHC.  Just unpack this on top of {{{ghc-<version>-src.tar.bz2}}}, and
+   the extra libraries will be built automatically.
+
+In addition to fixed releases of GHC, source distributions are also made each night from the current source repository, for both the HEAD and STABLE branches.  To download these snapshots, head over to the [http://www.haskell.org/ghc/download.html download page].
+
+Source distributions are easier to build, because we also include the output from running certain external tools like [http://haskell.org/happy Happy], so you don't need to install these tools.  See [wiki:Building/Preparation] for details.
+
+== Getting a GHC source tree using darcs and git ==
+
+GHC source code is split between a Git repository (for the main compiler) and a number of Darcs repositories (for the libraries etc).
+
+The first thing to do is install [http://darcs.net/ darcs] and [http://git.or.cz/ git].
+
+A source tree consists of the GHC repository, 
+with a set of library packages in the `libraries` directory.  Each of these
+libraries has its own repository: see DarcsRepositories.
+
+If you only want to download the latest sources and aren't interested in working on GHC, then you can get ''partial'' repositories:
+
+{{{
+  $ git clone http://darcs.haskell.org/ghc.git ghc
+  $ cd ghc
+  $ ./sync-all get
+}}}
+The command `sync-all` adds the `--partial` flag when getting Darcs repos by default.
+
+If you plan to modify GHC, then you '''must''' get repositories with full history rather than just partial repositories.  (Why?  Because darcs has some bugs that sometimes cause problems when using partial repositories for anything more than just pulling the latest patches.)
+However, '''you cannot use `darcs get` to get full Darcs repository''', for two reasons:
+  * Since we have many patches, it's usually quite slow
+  * Darcs has a bug concerning case-sensitivity on Windows, and ([http://www.haskell.org/pipermail/glasgow-haskell-users/2007-November/013373.html MacOS X]), which makes Darcs crash if you do `darcs get` on some of our repositories (notably the testsuite).  You get this message:
+{{{
+Unapplicable patch:                                                
+Tue Feb  1 10:26:56 GMT 2005  simonmar
+  * [project @ 2005-02-01 10:24:12 by simonmar]
+  Fix up after hs-boot changes
+
+darcs failed:  File './tests/ghc-regress/rename/should_compile/Rn017.hs' already exists!
+}}}
+
+Instead, follow the following steps:
+ 0. Download a complete bundle of the required repositories first, using your browser rather than darcs. These bundles are on [http://darcs.haskell.org/] usually in three files of the form 
+   * `ghc-HEAD-2007-08-29-ghc-corelibs-testsuite.tar.bz2` (100Mbytes)
+   * `ghc-HEAD-2007-08-29-ghc-corelibs.tar.bz2` (90 Mbytes)
+   * `ghc-HEAD-2007-08-29-ghc.tar.bz2` (60 Mbytes)
+ Each of these is a subset of the previous one; pick the smallest one that has what you need.  Of course, the dates may vary.
+ 2. Unpack the bundle, which will create a directory called `ghc`.  You can rename this directory freely.[[BR]][[BR]]
+ 0. Change into the new directory, and pull patches from the main GHC repository:
+{{{
+   $ cd ghc
+   $ git remote add origin http://darcs.haskell.org/ghc.git
+   $ git config branch.master.remote origin
+   $ git config branch.master.merge refs/heads/master
+   $ git pull
+}}}
+ 0. Now use the `sync-all` script to pull patches from all the library repositories, and the testsuite repository:
+{{{
+   $ ./sync-all pull-all
+}}}
+   The command `sync-all` automates the fetching of the repositories for the libraries.
+
+If you omit `git pull` (3), then `sync-all` will pull patches into the GHC repository too. If one of those patches modifies the `sync-all` script itself, then bizarre things can happen (or at least: in the past, they could happen.) The safe thing to do is to get your main `ghc` repo up to date (step 3) and then run the script.
+
+== Getting more packages ==
+
+The above will grab the "core" set of packages and the testsuite.  This is the minimal set of packages required to bootstrap GHC.  If you want to get a more comprehensive set of packages and include them in your GHC build, then you can say:
+
+{{{
+  $ ./sync-all get --extralibs
+}}}
+
+This isn't usually necessary: extra packages can be compiled and installed separately using Cabal, after you have built and installed GHC itself with its core packages.  The "core" and "extra" packages are listed in DarcsRepositories.
+
+Optionally, you might want to grab the testsuite (if you have not already got it) and `nofib` benchmark suite too, which also become sub-directories of ghc:
+
+{{{
+  $ ./sync-all get --testsuite
+  $ ./sync-all get --nofib
+}}}
+The full list of darcs repositories relating to GHC is at DarcsRepositories.
+
+
+
+=== Getting a branch ===
+
+The above instructions will get the HEAD - the main trunk of GHC development.  There are also branches, from which stable releases are made.  The active branches are listed on DarcsRepositories.
+
+To get a branch, add the branch name after http://darcs.haskell.org/.  For example, to get the `ghc-6.6` branch, you would first say 
+
+{{{
+  $ git clone http://darcs.haskell.org/ghc-6.6/ghc.git
+}}}
+
+and then use `sync-all` as above to get the rest of the respositories.
+
+=== Pulling new patches ===
+
+To update your tree from the master repositories, the quickest way is to use the {{{sync-all}}} script:
+
+{{{
+  $ ./sync-all pull-all
+}}}
+
+See [wiki:Building/Rebuilding] for how to update your build after pulling patches.
+
+== Troubleshooting ==
+=== Mac OS X ===
+==== getCurrentDirectory: resource exhausted (Too many open files) ====
+By default, Mac OS X limits the number of open files to 256.  This may cause problems when applying patches in step 3 of ''Getting a GHC source tree using darcs'' with darcs 1.0.9.
+
+{{{
+$ darcs pull -a
+Pulling from "http://darcs.haskell.org/ghc"...
+This is the GHC darcs repository (HEAD branch)
+
+For more information, visit the GHC developer wiki at
+  http://hackage.haskell.org/trac/ghc
+**********************
+darcs: getCurrentDirectory: resource exhausted (Too many open files)
+}}}
+
+If this happens, try increasing the number of open files allowed by typing in {{{$ ulimit -n unlimited}}} and try pulling again.  If this fails, close all terminal windows, restart Terminal.app, and try again.
+
+If this still doesn't work, try pulling 100 patches at a time using the {{{darcs pull}}} command (notice the lack of the {{{-a}}} flag).  Hold down 'y' until 100 or so patches are accepted, then hit 'd' to skip the rest; repeat until all patches are applied.  If this fails, try with less than 100 patches at a time (e.g., 50).
+
+This issue has been reported as [http://bugs.darcs.net/issue560 issue 560] in the darcs bug tracking system.
+
+==== Case insensitivity ====
+The default Mac OS X files systems (HFS+) is case-insensitive and darcs is case sensitive.  While this ususally doesn't cause any problems, occassionally a {{{Unapplicable patch}}} error can occur.  It's possible to work around this by using {{{Disk Utility}}} to create a case sensitive file system and apply the patches inside of it.  To do this:
+
+ 1. Open {{{/Applications/Utilities/Disk Utility}}}.
+ 2. Make sure that none of the images/disks on the left are highlighted/selected.  If any are, <Cmd>+Click them to unselect them.
+ 3. Click the "New Image" button.
+ 4. Set the "Volume Format" to "Mac OS X Extended (Case Sensitive)".
+ 5. Set "Encryption" to "None".
+
+ 6. Set "Partitions" to "Single Partition - Apple Partition Map"
+ 7. Set "Image Format" to "sparse disk image".
+ 8. Set "Volume Size" to "Custom..." and select an appropriately large size.  Sparse images only take up as much space is as needed, plus a little overhead, so it's better to overestimate than underestimate.  A 30 GB sparse image with no data in it takes up ~50 MB.
+ 9. Set "Volume Name" to something appropriate (e.g., "GHC").
+ 10. Set "Save As" to something appropriate (e.g., "GHC Disk").
+ 11. Click the "Create" button.
+
+This creates a file with a {{{.sparseimage}}} extension (e.g., {{{GHC Disk.sparseimage}}}) at the location that was set in step 10 and automatically mounts it.  The partition can be accessed through the {{{/Volumes}}} folder (e.g., {{{/Volumes/GHC}}}).  This partition behaves exactly like any other Apple partition except that it's case sensitive and darcs can apply the patches it couldn't on the case insensitive file system.  After the patches have been applied, the repository can be copied to the normal file system, the partition can be unmounted, and the sparse image can be deleted.
