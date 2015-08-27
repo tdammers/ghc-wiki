@@ -1,0 +1,302 @@
+
+
+
+
+GHC currently has some support for dynamic linking.
+
+
+
+GHC can generate position independent code (when given the `-fPIC` flag) on Mac OS X (Darwin/PPC) and PowerPC (32-bit) Linux. Some *minor* work is required to make it generate position independent code for x86 ELF platforms (Linux and others). Position independent code is not needed for Windows and PowerPC64 Linux.
+
+
+
+The `-dynamic` flag does two things:
+
+
+- It causes GHC to assume that everything that is in a different package is in a different shared/dynamic library or binary.
+- It causes GHC to link to dynamic libraries instead of static ones.
+
+# Build System
+
+
+
+There is now some support in the build system for building dynamic libraries.
+
+
+
+You need to add a flag when you configure
+
+
+```wiki
+./configure --enable-shared
+```
+
+
+There has been some churn in how dynamic libraries are built since the introduction of the new build system in ghc HEAD (6.11). The only platforms that have been tested with the new system are currently Linux/x86 and Linux/x86-64. The current target is to have GHC itself built statically but to build dynamic libraries such that GHC is capable of linking libraries and programs that use dynamic libraries.
+
+
+
+If anyone would like to help, report to the ghc-devs mailing list or directly to wolfgang.thaller@… or duncan@….
+
+
+# Platform-Specific TODO
+
+
+
+Profiled code isn't yet really position-independent even when `-fPIC` is specified. Building profiled dynamic libraries therefore fails on Mac OS X (Linux silently accepts relocations - it's just slightly bad for performance).
+
+
+## All ELF systems
+
+
+- Get the "soname" set, probably based on -o file name. (see [
+  this message](http://www.haskell.org/pipermail/cvs-ghc/2009-May/048567.html))
+- Make sure all shared libs properly record their dependencies, including on the rts (to enable soname chasing)
+- Work out a scheme to enable switching the variant of the rts at link time.
+- Switch default dynamic linking mode to "system dependent"
+- Use an external Main.o rather than having main in the rts (see [
+  this message](http://www.haskell.org/pipermail/cvs-ghc/2009-May/048573.html)).
+- In a final link, use the minimum set of libraries, only direct dependencies (assume soname chasing). Avoid -u flags (which are only required for linking base and rts as static libs).
+
+- Get GHCi working by loading shared libs
+- Check ld.so loading performance, check quality of hashing.
+- Test that for every rts way, the combination of rts.so + base.so has no unresolved symbols. They should stand alone. Eg check bfd and liberty in debug rts way and check pthread in threaded way.
+
+## x86 and powerpc32 ELF/Linux TODO
+
+
+
+Summary: -fPIC -fasm works, -fPIC -fvia-C does not work and is unlikely to ever work.
+
+
+
+Support for `-fPIC` in the mangler is buggy on PowerPC and nonexistent on x86. Due to the strange way that dynamic linking is implemented, it will be very hard to generate position-dependent code that correctly links to (Haskell code in) dynamic libraries without the NCG.
+
+
+## Windows TODO
+
+
+
+There used to be a Windows-specific hack involving static closures because Windows doesn't support references to dynamically imported symbols in static data. This hack has bitrotted and needs to be resurrected. The Windows-specific code for supporting `-dynamic` in the NCG has never been tested, to my knowledge.
+
+
+
+When building a DLL, you have to specify which libraries it depends on; the build system will need to support this. There is a lot of code for building DLLs in the Makefiles, but it probably no longer works and needs to be merged with the new shared library building support.
+
+
+
+Also, since the last time that DLLs worked with GHC on Windows, the GNU linker has gained a new feature. It can now "auto-import" data from shared libraries, making all the windows-specific hacks unnecessary. However, auto-imported data will prevent all sharing of code between processes, every page of code with a reference to data will get written to at load time.
+
+
+## Darwin TODO
+
+
+
+Done.
+
+
+## PowerPC 64-bit Linux TODO
+
+
+
+This platform has a great ABI which didn't require anything to be done for dynamic linking to work. Both `-fPIC` and `-dynamic` will just be ignored.
+
+
+# AIX TODO
+
+
+
+We don't need any special dynamic linking support here, either, so all that needs to be done is the build system.
+
+
+# Platform-Specific NOTES
+
+
+
+The following tables show which combinations of the `-dynamic` and `-fPIC` flags work in which situations on which platforms. The row indicates how a Haskell module is built, and the column indicates what it is being used for. A YES means it should work, a NO means it will fail to link or even crash.
+
+
+## Darwin
+
+
+<table><tr><th>              </th>
+<th>dynamic libraries</th>
+<th>static code</th>
+<th>dynamically linked executables</th>
+<th>statically linked plugins</th>
+<th>dynamically linked plugins
+</th></tr>
+<tr><th>(no flags)    </th>
+<th>NO               </th>
+<th>YES        </th>
+<th>NO                            </th>
+<th>NO            </th>
+<th>NO
+</th></tr>
+<tr><th>-dynamic      </th>
+<th>NO               </th>
+<th>YES        </th>
+<th>YES                           </th>
+<th>NO            </th>
+<th>NO
+</th></tr>
+<tr><th>-fPIC         </th>
+<th>NO               </th>
+<th>YES        </th>
+<th>NO                            </th>
+<th>YES           </th>
+<th>NO
+</th></tr>
+<tr><th>-dynamic -fPIC</th>
+<th>YES              </th>
+<th>YES        </th>
+<th>YES                           </th>
+<th>YES           </th>
+<th>YES
+</th></tr></table>
+
+
+## PowerPC 32-Bit and x86 Linux
+
+
+<table><tr><th>              </th>
+<th>dynamic libraries</th>
+<th>static code</th>
+<th>dynamically linked executables</th>
+<th>statically linked plugins</th>
+<th>dynamically linked plugins
+</th></tr>
+<tr><th>(no flags)    </th>
+<th>NO               </th>
+<th>YES        </th>
+<th>NO                            </th>
+<th>YES`**`   </th>
+<th>NO
+</th></tr>
+<tr><th>-dynamic      </th>
+<th>NO               </th>
+<th>YES        </th>
+<th>YES\*                          </th>
+<th>YES`**`   </th>
+<th>NO
+</th></tr>
+<tr><th>-fPIC         </th>
+<th>NO               </th>
+<th>YES        </th>
+<th>NO                            </th>
+<th>YES           </th>
+<th>NO
+</th></tr>
+<tr><th>-dynamic -fPIC</th>
+<th>YES              </th>
+<th>YES        </th>
+<th>NO                            </th>
+<th>YES           </th>
+<th>YES
+</th></tr></table>
+
+
+
+(\*) Dynamically linked executables have to be built via the native code genetator (when using `-O`, specify `-fasm`).
+
+
+
+(`**`) Position-dependent code theoretically leads to increased load times and prevents sharing between multiple instances of the code.
+
+
+
+Via-C compilation with `-fPIC` or `-dynamic` currently doesn't work (not implemented on x86, buggy on PPC).
+
+
+## PowerPC 64-Bit Linux
+
+
+<table><tr><th>              </th>
+<th>dynamic libraries</th>
+<th>static code</th>
+<th>dynamically linked executables</th>
+<th>statically linked plugins</th>
+<th>dynamically linked plugins
+</th></tr>
+<tr><th>(no flags)    </th>
+<th>YES              </th>
+<th>YES        </th>
+<th>YES                           </th>
+<th>YES           </th>
+<th>YES
+</th></tr>
+<tr><th>-dynamic      </th>
+<th>YES              </th>
+<th>YES        </th>
+<th>YES                           </th>
+<th>YES           </th>
+<th>YES
+</th></tr>
+<tr><th>-fPIC         </th>
+<th>YES              </th>
+<th>YES        </th>
+<th>YES                           </th>
+<th>YES           </th>
+<th>YES
+</th></tr>
+<tr><th>-dynamic -fPIC</th>
+<th>YES              </th>
+<th>YES        </th>
+<th>YES                           </th>
+<th>YES           </th>
+<th>YES
+</th></tr></table>
+
+
+
+Now that's a boring table... `-fPIC` is ignored, and `-dynamic` doesn't affect code generation. Everything just works.
+
+
+# x86 Windows
+
+
+
+Windows support isn't there yet. In theory, though, this is how it will look like:
+
+
+<table><tr><th>              </th>
+<th>dynamic libraries</th>
+<th>static code</th>
+<th>dynamically linked executables</th>
+<th>statically linked plugins</th>
+<th>dynamically linked plugins
+</th></tr>
+<tr><th>(no flags)    </th>
+<th>NO               </th>
+<th>YES        </th>
+<th>NO                            </th>
+<th>YES           </th>
+<th>NO
+</th></tr>
+<tr><th>-dynamic      </th>
+<th>YES              </th>
+<th>NO         </th>
+<th>YES                           </th>
+<th>NO            </th>
+<th>YES
+</th></tr>
+<tr><th>-fPIC         </th>
+<th>NO               </th>
+<th>YES        </th>
+<th>NO                            </th>
+<th>YES           </th>
+<th>NO
+</th></tr>
+<tr><th>-dynamic -fPIC</th>
+<th>YES              </th>
+<th>NO         </th>
+<th>YES                           </th>
+<th>NO            </th>
+<th>YES
+</th></tr></table>
+
+
+
+`-fPIC` is ignored.
+
+
