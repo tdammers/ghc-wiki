@@ -1,0 +1,13 @@
+# Mac OS X Installer Packages
+
+
+
+Please use the `haskell-platform`. See [
+https://www.haskell.org/platform/mac.html](https://www.haskell.org/platform/mac.html) for further details. 
+
+
+
+Alternatively, a self-contained relocatable binary release for Mac OS X, that avoids the need for putting files in `/usr/bin`, etc, can be found at [
+https://github.com/ghcformacosx/ghc-dot-app](https://github.com/ghcformacosx/ghc-dot-app).  This is probably the least intrusive way of getting a version of GHC onto a Mac at present (mid-2014) and will allow you to build GHC from source (other than the documentation).  
+
+
