@@ -66,7 +66,7 @@ This will make a compressed tar file and place it in the root of the source dire
 
 
 
-This section describes how the files of a GHC installation are laid out.  The root of the GHC installation is specified via the `--prefix` flag to `configure` (see [Running the configure script](building/using#)), and we refer to that location as `$(prefix)`.  If you are wondering what `$(prefix)` is, and hence where the make system is going to install GHC, just say (see [debugging the build system](building/modifying#ebugging))
+This section describes how the files of a GHC installation are laid out.  The root of the GHC installation is specified via the `--prefix` flag to `configure` (see [Running the configure script](building/using#)), and we refer to that location as `$(prefix)`.  If you are wondering what `$(prefix)` is, and hence where the make system is going to install GHC, just say (see [debugging the build system](building/modifying#debugging))
 
 
 ```wiki
@@ -106,7 +106,7 @@ Where the documentation is installed.
 
 
 
-On Unix systems you can change `libdir` and `bindir` using the `--libdir` and `--bindir` options respectively, and the location of the documentation can be changed using `--datadir`.  On Windows all you can do is change `$(prefix)`, because GHC finds the rest of its files by knowing their location relative to the `ghc.exe` binary, so the layout of the install tree is fixed (see [How GHC finds its files](building/installing#ow-ghc-finds-its-files), below).
+On Unix systems you can change `libdir` and `bindir` using the `--libdir` and `--bindir` options respectively, and the location of the documentation can be changed using `--datadir`.  On Windows all you can do is change `$(prefix)`, because GHC finds the rest of its files by knowing their location relative to the `ghc.exe` binary, so the layout of the install tree is fixed (see [How GHC finds its files](building/installing#how-ghc-finds-its-files), below).
 
 
 
