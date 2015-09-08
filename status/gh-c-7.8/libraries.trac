@@ -1,0 +1,270 @@
+[[PageOutline]]
+
+= Status of GHC 7.8 Boot Libraries =
+
+TODO: Update [Commentary/Libraries/VersionHistory Version History] when GHC 7.8 release reaches RC phase.
+
+== GHC-owned Libraries ==
+
+Common tasks:
+
+ - TODO: clean-up `.cabal` files
+ - TODO: add changelogs
+ - TODO: add `/Since: x.y.z/` annotations
+
+=== [hackage:array] ===
+
+[[Image(https://travis-ci.org/ghc/packages-array.png?branch=master,link=https://travis-ci.org/ghc/packages-array)]]
+
+ - performed deprecation-removals & major version bump
+ - released as [hackage:array-0.5.0.0]!
+
+=== [hackage:base] ===
+
+[[TicketQuery(status!=closed,component=libraries/base,format=table,col=type|summary|priority|owner|reporter,max=10)]]
+
+ - TODO: make sure all recent additions are `/Since:/`-annotated
+ - TODO: Deprecated functions since at least GHC 7.4:
+{{{#!hs
+
+module Control.Concurrent.Chan
+{-# DEPRECATED unGetChan "if you need this operation, use Control.Concurrent.STM.TChan instead.  See http://hackage.haskell.org/trac/ghc/ticket/4154 for details" #-} -- deprecated in 7.0
+{-# DEPRECATED isEmptyChan "if you need this operation, use Control.Concurrent.STM.TChan instead. See http://hackage.haskell.org/trac/ghc/ticket/4154 for details" #-} -- deprecated in 7.0
+
+module Data.Typeable.Internal
+{-# DEPRECATED tyConString "renamed to tyConName; tyConModule and tyConPackage are also available." #-} -- deprecated in 7.4
+
+module Debug.Trace
+{-# DEPRECATED putTraceMsg "Use Debug.Trace.traceIO" #-} -- deprecated in 7.4
+
+module GHC.Exts
+{-# DEPRECATED traceEvent "Use Debug.Trace.traceEvent or Debug.Trace.traceEventIO" #-} -- deprecated in 7.4
+
+}}}
+
+ - TODO: upload a non-candidate to hackage at latest when GHC 7.8.1 is released
+
+=== [hackage:deepseq] ===
+
+[[Image(https://travis-ci.org/ghc/packages-deepseq.png?branch=master,link=https://travis-ci.org/ghc/packages-deepseq)]]
+
+ - cleaned up
+ - released as [hackage:deepseq-1.3.0.2]!
+
+=== [hackage:directory] ===
+
+[[Image(https://travis-ci.org/ghc/packages-directory.png?branch=master,link=https://travis-ci.org/ghc/packages-directory)]]
+
+[[TicketQuery(status!=closed,component=libraries/directory,format=table,col=type|summary|priority|owner|reporter)]]
+
+ - cleaned up; almost ready for release
+ - TODO: get [cdc415a1fb/directory] code-reviewed
+
+=== [hackage:filepath] ===
+
+[[Image(https://travis-ci.org/ghc/packages-filepath.png?branch=master,link=https://travis-ci.org/ghc/packages-filepath)]]
+
+ - released as [hackage:filepath-1.3.0.2]
+
+=== [hackage:ghc-prim] ===
+
+ - TODO: upload a non-candidate to hackage at latest when GHC 7.8.1 is released
+
+=== [hackage:haskell2010] ===
+
+[[TicketQuery(status!=closed,component=libraries/haskell2010,format=table,col=type|summary|priority|owner|reporter)]]
+
+ - ready for release
+ - released as [hackage:haskell2010-1.1.2.0]
+
+=== [hackage:haskell98] ===
+
+[[TicketQuery(status!=closed,component=libraries/haskell98,format=table,col=type|summary|priority|owner|reporter)]]
+
+ - ready for release
+ - released as [hackage:haskell98-2.0.0.3]
+
+=== [hackage:hoopl] ===
+
+[[Image(https://travis-ci.org/ghc/packages-hoopl.png?branch=master,link=https://travis-ci.org/ghc/packages-hoopl)]]
+
+ - released as [hackage:hoopl-3.10.0.0]
+
+=== [hackage:hpc] ===
+
+[[TicketQuery(status!=closed,component=Code Coverage,format=table,col=type|summary|priority|owner|reporter)]]
+
+[[Image(https://travis-ci.org/ghc/packages-hpc.png?branch=master,link=https://travis-ci.org/ghc/packages-hpc)]]
+
+ - released as [hackage:hpc-0.6.0.1]
+
+=== [hackage:integer-gmp] ===
+
+ - Candidate is on Hackage
+
+ - TODO: upload a non-candidate to hackage at latest when GHC 7.8.1 is released
+
+=== [hackage:old-locale] ===
+
+[[Image(https://travis-ci.org/ghc/packages-old-locale.png?branch=master,link=https://travis-ci.org/ghc/packages-old-locale)]]
+
+ - released as [hackage:old-locale-1.0.0.6]
+
+=== [hackage:old-time] ===
+
+[[TicketQuery(status!=closed,component=libraries/old-time,format=table,col=type|summary|priority|owner|reporter)]]
+
+ - released as [hackage:old-time-1.1.0.2]
+
+=== [hackage:parallel] ===
+
+[[Image(https://travis-ci.org/ghc/packages-parallel.png?branch=master,link=https://travis-ci.org/ghc/packages-parallel)]]
+
+ - Note: '''extra''' library (i.e. not part of normal distribution)
+
+ - uploaded [hackage:parallel-3.2.0.4] to Hackage!
+
+ - For next major version: contains many `DEPRECATED` functions in `Control.Parallel.Strategies` since at least 2010:
+    {{{#!hs
+{-# DEPRECATED Done "The Strategy type is now a -> Eval a, not a -> Done" #-}
+{-# DEPRECATED demanding "Use pseq or $| instead" #-}
+{-# DEPRECATED sparking "Use par or $|| instead" #-}
+{-# DEPRECATED (>|) "Use pseq or $| instead" #-}
+{-# DEPRECATED (>||) "Use par or $|| instead" #-}
+{-# DEPRECATED rwhnf "renamed to rseq" #-}
+{-# DEPRECATED seqTraverse "renamed to evalTraversable" #-}
+{-# DEPRECATED parTraverse "renamed to parTraversable" #-}
+{-# DEPRECATED parListWHNF "use (parList rseq) instead" #-}
+{-# DEPRECATED seqList "renamed to evalList" #-}
+{-# DEPRECATED seqPair "renamed to evalTuple2" #-}
+{-# DEPRECATED parPair "renamed to parTuple2" #-}
+{-# DEPRECATED seqTriple "renamed to evalTuple3" #-}
+{-# DEPRECATED parTriple "renamed to parTuple3" #-}
+{-# DEPRECATED unEval "renamed to runEval" #-}
+    }}}
+
+=== [hackage:process] ===
+
+[[Image(https://travis-ci.org/ghc/packages-process.png?branch=master,link=https://travis-ci.org/ghc/packages-process)]]
+
+[[TicketQuery(status!=closed,component=libraries/process,format=table,col=type|summary|priority|owner|reporter)]]
+
+ - released as [hackage:process-1.2.0.0]!
+
+=== [hackage:stm] ===
+
+[[Image(https://travis-ci.org/ghc/packages-stm.png?branch=master,link=https://travis-ci.org/ghc/packages-stm)]]
+
+ - Note: this is an '''extra''' library (i.e. not part of binary distribution); not critical for release; [hackage:stm-2.4.2] still builds fine with GHC HEAD.
+ - cleaned up; repo contains unreleased 2.4.2.1 state
+ - TODO: find out when/whether to release an updated 2.4.2.1 version
+
+=== [hackage:template-haskell] ===
+
+ - cleaned up and ready for release
+ - wait till RC at least for Hackage upload
+
+=== [hackage:unix] ===
+
+[[Image(https://travis-ci.org/ghc/packages-unix.png?branch=master,link=https://travis-ci.org/ghc/packages-unix)]]
+
+[[TicketQuery(status!=closed,component=libraries/unix,format=table,col=type|summary|priority|owner|reporter)]]
+
+ - released as [hackage:unix-2.7.0.0]!
+
+ - TODO: for next major version bump, in `System.Posix.Process.Common` module:
+    {{{#!hs
+    {-# DEPRECATED createProcessGroup "This function is scheduled to be replaced by something different in the future, we therefore recommend that you do not use this version and use createProcessGroupFor instead." #-} -- deprecated in 7.2
+
+    {-# DEPRECATED setProcessGroupID "This function is scheduled to be replaced by something different in the future, we therefore recommend that you do not use this version and use setProcessGroupIdOf instead." #-} -- deprecated in 7.2
+    }}}
+
+=== DPH ===
+
+TODO
+
+== 3rd Party Libraries ==
+
+Note: Libraries with a "^1^" marker are used internally (e.g. by `ghci` or `haddock`) and not exposed in the (boot-)package database. Libraries marked "^2^" are used by DPH.
+
+=== Cabal ===
+
+ - upstream: http://github.com/haskell/cabal.git
+ - using [hackage:Cabal-1.18.1.3]
+
+=== Win32 ===
+
+ - upstream: http://github.com/haskell/win32.git
+ - ghc-7.8 branch is at [hackage:Win32-2.3.0.1]
+ - TODO: update ghc-7.8 branch to [hackage:Win32-2.3.0.2] (GHC HEAD already has it)
+
+=== binary ===
+
+ - upstream: http://github.com/kolmodin/binary.git
+ - synced up cleanly to [hackage:binary-0.7.1.0] release [25f1bda7/ghc]
+
+=== bytestring ===
+
+ - upstream: http://github.com/haskell/bytestring.git
+ - synced up cleanly to [hackage:bytestring-0.10.4.0] release [82456db5/ghc]
+
+=== containers ===
+
+ - upstream: http://github.com/haskell/containers.git
+ - synced up cleanly to [hackage:containers-0.5.5.1] release
+
+=== haskeline^1^ ===
+
+ - upstream: http://git.haskell.org/darcs-mirrors/haskeline.git
+ - unclean state
+ - contacted maintainer on 31.8. wrt to unmerged patches; will merge as soon as his dev machine has been repaired
+ - patches have been merged upstream
+ - New Haskeline GitHub repo at https://github.com/judah/haskeline.git
+ - synced up to [hackage:haskeline-0.7.1.2]
+
+=== pretty ===
+
+[[TicketQuery(status!=closed,component=libraries/pretty,format=table,col=type|summary|priority|owner|reporter)]]
+
+ - upstream: http://github.com/haskell/pretty.git
+ - synced up to [hackage:pretty-1.1.1.1] [f275522e/ghc]
+
+=== primitive^2^ ===
+
+ - upstream: http://git.haskell.org/darcs-mirrors/primitive.git
+ - Jan is working on patches to integrate the new bool primops
+ - upstream repo moved to https://github.com/haskell/primitive
+ - synced up to [hackage:primitive-0.5.2.1]
+
+=== random^2^ ===
+
+ - TODO: GHC's repo has diverged from upstream
+
+=== terminfo^1^ ===
+
+ - upstream: http://git.haskell.org/darcs-mirrors/terminfo.git
+ - synced up to [hackage:terminfo-0.4.0.0] [9642716f30/ghc]
+
+=== time ===
+
+ - upstream: http://git.haskell.org/darcs-mirrors/time.git
+ - synced up cleanly to [hackage:time-1.4.2] release
+
+=== transformers ===
+
+ - upstream: http://git.haskell.org/darcs-mirrors/transformers.git
+ - Newly added in GHC 7.8
+ - still at [hackage:transformers-0.3.0.0] since GHC 7.6.3
+ - asked upstream; shall remain at [hackage:transformers-0.3.0.0] for GHC 7.8.1
+
+=== vector^2^ ===
+
+ - upstream: http://git.haskell.org/darcs-mirrors/vector.git
+ - coupled with `primitive` library; see notes there
+ - upstream repo moved to https://github.com/haskell/vector
+ - synced up to [hackage:vector-0.10.9.1] [5e2f145a37/ghc]
+
+=== xhtml^1^ ===
+
+ - upstream: http://github.com/haskell/xhtml
+ - unmodified/clean-sync at [hackage:xhtml-3000.2.1] release since GHC 7.6.3 release
