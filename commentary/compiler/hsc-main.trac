@@ -1,0 +1,58 @@
+= Compiling one module: !HscMain =
+
+Here we are going to look at the compilation of a single module.
+There is a picture that goes with this description, which appears at the bottom of this page, but you'll probably find it easier to open [wiki:Commentary/Compiler/HscPipe this link] in another window, so you can see it at the same time as reading the text.
+
+You can also watch a '''video''' of Simon Peyton-Jones explaining the compilation pipeline here: [http://www.youtube.com/watch?v=Upm_kYMgI_c&list=PLBkRCigjPwyeCSD_DFxpd246YIF7_RDDI Compiler Pipeline II] (10'16")
+
+Look at the picture first.  The yellow boxes are compiler passes, while the blue stuff on the left gives the data type that moves from one phase to the next.  The entire pipeline for a single module is run by a module called !HscMain ([[GhcFile(compiler/main/HscMain.hs)]]).  Each data type's representation can be dumped for further inspection using a `-ddump-*` flag. (Consider also using `-ddump-to-file`: some of the dump outputs can be large!)  Here are the steps it goes through:
+
+ * The '''Front End''' processes the program in the [wiki:Commentary/Compiler/HsSynType big HsSyn type]. {{{HsSyn}}} is parameterised over the types of the term variables it contains.  The first three passes (the front end) of the compiler work like this:[[BR]][[BR]]
+   * The '''[wiki:Commentary/Compiler/Parser Parser]''' produces {{{HsSyn}}} parameterised by '''[wiki:Commentary/Compiler/RdrNameType RdrName]'''.  To a first approximation, a {{{RdrName}}} is just a string. (`-ddump-parsed`) [[BR]][[BR]]
+   * The '''[wiki:Commentary/Compiler/Renamer Renamer]''' transforms this to {{{HsSyn}}} parameterised by '''[wiki:Commentary/Compiler/NameType Name]'''.  To a first appoximation, a {{{Name}}} is a string plus a {{{Unique}}} (number) that uniquely identifies it.  In particular, the renamer associates each identifier with its binding instance and ensures that all occurrences which associate to the same binding instance share a single {{{Unique}}}. (`-ddump-rn`)  [[BR]][[BR]]
+   * The '''[wiki:Commentary/Compiler/TypeChecker Typechecker]''' transforms this further, to {{{HsSyn}}} parameterised by '''[wiki:Commentary/Compiler/EntityTypes Id]'''.  To a first approximation, an {{{Id}}} is a {{{Name}}} plus a type. In addition, the type-checker converts class declarations to {{{Class}}}es, and type declarations to {{{TyCon}}}s and {{{DataCon}}}s.  And of course, the type-checker deals in {{{Type}}}s and {{{TyVar}}}s. The [wiki:Commentary/Compiler/EntityTypes data types for these entities] ({{{Type}}}, {{{TyCon}}}, {{{Class}}}, {{{Id}}}, {{{TyVar}}}) are pervasive throughout the rest of the compiler. (`-ddump-tc`)
+
+ These three passes can all discover programmer errors, which are sorted and reported to the user.
+ 
+ * The '''Desugarer''' ([[GhcFile(compiler/deSugar/Desugar.hs)]]) converts from the massive {{{HsSyn}}} type to [wiki:Commentary/Compiler/CoreSynType GHC's intermediate language, CoreSyn].  This Core-language data type is unusually tiny: just eight constructors.) (`-ddump-ds`)[[BR]][[BR]]
+   Generally speaking, the desugarer produces few user errors or warnings. But it does produce ''some''.  In particular, (a) pattern-match overlap warnings are produced here; and (b) when desugaring Template Haskell code quotations, the desugarer may find that `THSyntax` is not expressive enough.  In that case, we must produce an error ([[GhcFile(compiler/deSugar/DsMeta.hs)]]).[[BR]][[BR]]
+   This late desugaring is somewhat unusual.  It is much more common to desugar the program before typechecking, or renaming, because that presents the renamer and typechecker with a much smaller language to deal with.  However, GHC's organisation means that
+    * error messages can display precisely the syntax that the user wrote; and 
+    * desugaring is not required to preserve type-inference properties.[[BR]][[BR]]
+
+
+ * The '''!SimplCore''' pass ([[GhcFile(compiler/simplCore/SimplCore.hs)]]) is a bunch of Core-to-Core passes that optimise the program; see [http://research.microsoft.com/%7Esimonpj/Papers/comp-by-trans-scp.ps.gz A transformation-based optimiser for Haskell (SCP'98)] for a more-or-less accurate overview.  See [wiki:Commentary/Compiler/Core2CorePipeline] for an overview of the Core-to-Core optimisation pipeline. The main passes are:[[BR]][[BR]]
+    * The '''Simplifier''', which applies lots of small, local optimisations to the program.  The simplifier is big and complicated, because it implements a ''lot'' of transformations; and tries to make them cascade nicely.  The transformation-based optimiser paper gives lots of details, but two other papers are particularly relevant: [http://research.microsoft.com/%7Esimonpj/Papers/inlining/index.htm Secrets of the Glasgow Haskell Compiler inliner (JFP'02)] and [http://research.microsoft.com/%7Esimonpj/Papers/rules.htm Playing by the rules: rewriting as a practical optimisation technique in GHC (Haskell workshop 2001)].  (`-ddump-simpl`)[[BR]][[BR]]
+    * The '''float-out''' and '''float-in''' transformations, which move let-bindings outwards and inwards respectively.  See [http://research.microsoft.com/%7Esimonpj/papers/float.ps.gz Let-floating: moving bindings to give faster programs (ICFP '96)].[[BR]][[BR]]
+    * The '''strictness analyser'''.  This actually comprises two passes: the '''analyser''' itself and the '''worker/wrapper''' transformation that uses the results of the analysis to transform the program. (Further described in [wiki:Commentary/Compiler/Demand Demand analysis].) The same analyser also does [http://research.microsoft.com/%7Esimonpj/Papers/cpr/index.htm Constructed Product Result analysis] and [http://research.microsoft.com/en-us/um/people/simonpj/papers/usage-types/cardinality-extended.pdf Cardinality analysis]. (`-ddump-stranal`)[[BR]][[BR]]
+    * The '''liberate-case''' transformation.[[BR]][[BR]]
+    * The '''constructor-specialialisation''' transformation.[[BR]][[BR]]
+    * The '''common sub-expression eliminiation''' (CSE) transformation. (`-ddump-cse`)
+
+ * Then the '''!CoreTidy pass''' gets the code into a form in which it can be imported into subsequent modules (when using {{{--make}}}) and/or put into an interface file.  
+ 
+ It makes a difference whether or not you are using `-O` at this stage.  With `-O` (or rather, with `-fomit-interface-pragmas` which is a consequence of `-O`), the tidied program (produced by `tidyProgram`) has unfoldings for Ids, and RULES.  Without `-O` the unfoldings and RULES are omitted from the tidied program.  And that, in turn, affects the interface file generated subsequently.
+
+ There are good notes at the top of the file [[GhcFile(compiler/main/TidyPgm.hs)]]; the main function is {{{tidyProgram}}}, documented as "Plan B" ("Plan A" is a simplified tidy pass that is run when we have only typechecked, but haven't run the desugarer or simplifier).
+
+  * At this point, the data flow forks.  First, the tidied program is dumped into an interface file.  This part happens in two stages:
+    * It is '''converted to {{{IfaceSyn}}}''' (defined in [[GhcFile(compiler/iface/IfaceSyn.hs)]] and [[GhcFile(compiler/iface/IfaceType.hs)]]).
+    * The {{{IfaceSyn}}} is '''serialised into a binary output file''' ([[GhcFile(compiler/iface/BinIface.hs)]]).
+  The serialisation does (pretty much) nothing except serialise.  All the intelligence is in the `Core`-to-`IfaceSyn` conversion; or, rather, in the reverse of that step.
+
+  * The same, tidied Core program is now fed to the Back End.  First there is a two-stage conversion from {{{CoreSyn}}} to [wiki:Commentary/Compiler/StgSynType GHC's intermediate language, StgSyn].
+    * The first step is called '''!CorePrep''', a Core-to-Core pass that puts the program into A-normal form (ANF).  In ANF, the argument of every application is a variable or literal; more complicated arguments are let-bound.  Actually `CorePrep` does quite a bit more: there is a detailed list at the top of the file [[GhcFile(compiler/coreSyn/CorePrep.hs)]].
+    * The second step, '''!CoreToStg''', moves to the {{{StgSyn}}} data type ([[GhcFile(compiler/stgSyn/CoreToStg.hs)]]).  The output of !CorePrep is carefully arranged to exactly match what {{{StgSyn}}} allows (notably ANF), so there is very little work to do. However, {{{StgSyn}}} is decorated with lots of redundant information (free variables, let-no-escape indicators), which is generated on-the-fly by {{{CoreToStg}}}.
+
+  * Next, the '''[wiki:Commentary/Compiler/CodeGen Code Generator]''' converts the STG program to a {{{C--}}} program.  The code generator is a Big Mother, and lives in directory [[GhcFile(compiler/codeGen)]]  
+
+  * Now the path forks again:
+    * If we are generating GHC's stylised C code, we can just pretty-print the {{{C--}}} code as stylised C ([[GhcFile(compiler/cmm/PprC.hs)]])
+    * If we are generating native code, we invoke the native code generator.  This is another Big Mother ([[GhcFile(compiler/nativeGen)]]).
+    * If we are generating LLVM code, we invoke the LLVM code generator. This is a reasonably simple code generator ([[GhcFile(compiler/llvmGen)]]).
+
+= The Diagram =
+
+This diagram is also located [wiki:Commentary/Compiler/HscPipe here], so that you can open it in a separate window.
+
+[[Image(Commentary/Compiler/HscPipe:HscPipe2.png)]]
