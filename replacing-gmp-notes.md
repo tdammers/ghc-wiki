@@ -8,12 +8,12 @@
 On this page:
 
 
-1. [Current Status](replacing-gmp-notes#urrent-status)
-1. [Introduction](replacing-gmp-notes#ntroduction)
-1. [Reasons for Replacing GMP as the Bignum library](replacing-gmp-notes#easons-for-replacing-gmp-as-the-bignum-library)
-1. [Files related to GMP in the GHC Compiler Source Code](replacing-gmp-notes#iles-related-to-gmp-in-the-ghc-compiler-source-code)
-1. [Optimisation Opportunities](replacing-gmp-notes#ptimisation-opportunities)
-1. [Binary Drop in Replacement for GMP](replacing-gmp-notes#inary-drop-in-replacement-for-gmp)
+1. [Current Status](replacing-gmp-notes#current-status)
+1. [Introduction](replacing-gmp-notes#introduction)
+1. [Reasons for Replacing GMP as the Bignum library](replacing-gmp-notes#reasons-for-replacing-gmp-as-the-bignum-library)
+1. [Files related to GMP in the GHC Compiler Source Code](replacing-gmp-notes#files-related-to-gmp-in-the-ghc-compiler-source-code)
+1. [Optimisation Opportunities](replacing-gmp-notes#optimisation-opportunities)
+1. [Binary Drop in Replacement for GMP](replacing-gmp-notes#binary-drop-in-replacement-for-gmp)
 
 
 Other pages
