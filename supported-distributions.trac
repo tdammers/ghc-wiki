@@ -1,0 +1,12 @@
+`libgmp` is one of the few dependencies that GHC binary distributions require.
+
+||= libgmp version =||= so version =||
+|| 6.0.0            || 10           ||
+
+||= Distribution         =||= libgmp version =||
+|| Centos 7               || 6.0.0            ||
+|| Centos 6.7             || 4.3.1            ||
+|| Centos 6.6             || 4.3.1            ||
+|| Centos 6.5             || 4.3.1            ||
+|| Debian 7 (Wheezy)      || 5.0.0            ||
+|| Debian 8 (Jessie)      || 6.0.0            ||
