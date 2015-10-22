@@ -1,0 +1,7 @@
+= `OverloadedRecordFields` implementation notes =
+
+The implementation notes are now broken down by part:
+
+ 1. [wiki:Records/OverloadedRecordFields/DuplicateRecordFields#Implementation DuplicateRecordFields]
+ 2. [wiki:Records/OverloadedRecordFields/OverloadedLabels#Implementation OverloadedLabels]
+ 3. [wiki:Records/OverloadedRecordFields/MagicClasses#Implementation Magic classes]
