@@ -1,0 +1,30 @@
+= GHC plans for 7.10.3 =
+
+GHC 7.10.3 will be released in early November 2015. We will do so if (but only if!) we have documented cases of "show-stoppers" in 7.10.2.  Namely, cases from users where
+ 
+ * You are unable to use 7.10.2 because of some bug
+ * There is no reasonable workaround, so you are truly stuck
+ * We know how to fix it
+ * The fix is not too disruptive; i.e. does not risk introducing a raft of new bugs
+
+So please tell us if your problem falls in to this category, saying a bit about why it is important to you, and why you can't work around it.  It's worth attaching the details to the relevant ticket, add it to the manual list just below, and send a heads-up email to ghc-devs to draw attention to it.
+
+Here's a list of the tickets that appear to fall into this show-stopping category:
+ * #10528, #10829, #10745 (simplification on LHS and RHS of rules)
+ * #10726, #10795 ([https://mail.haskell.org/pipermail/glasgow-haskell-users/2015-September/026035.html Ruben Moor email], [https://mail.haskell.org/pipermail/glasgow-haskell-users/2015-September/026049.html Moritz Drexl email])
+ * #10568, #10672 ([https://mail.haskell.org/pipermail/ghc-devs/2015-September/009973.html Luke Iannini email])
+ * #10777 (Windows): some pressure to get these patches into 7.10.3, eg same Moritz Drexl email above
+
+Possible (not world ending, but probably not easy to workaround and breaks):
+
+ * #9238 (Levent Erkok): mentioned [https://www.reddit.com/r/haskell/comments/3kwsu4/ghcdev_anyone_need_ghc_7103 reddit] as a [https://github.com/LeventErkok/sbv/issues/138#issuecomment-139804285 bug for SBV]
+
+See milestone:7.10.3 and [https://ghc.haskell.org/trac/ghc/query?status=infoneeded&status=merge&status=new&status=patch&group=status&milestone=7.10.3 Active tickets] for more.
+
+== Tickets slated for 7.10.3
+
+[[TicketQuery(milestone=7.10.3,format=table,col=type|summary|priority|owner,group=status,order=priority)]]
+
+== Tickets marked merge with no milestone
+
+[[TicketQuery(status=merge,milestone=,format=table,col=type|summary|priority|owner,group=status)]]
