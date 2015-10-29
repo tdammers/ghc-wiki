@@ -1,0 +1,156 @@
+= Record Pattern Synonyms =
+
+Normal pattern synonyms provide a convenient way to abstract away from ADTs by explicitly defining the meaning of the pattern and the ability to define the constructor.
+
+Currently there is no way to similar way to project an existing datatype to a record.
+Adding this feature provides completeness as pattern synonyms would become equally expressive as ordinary data type declarations. 
+
+=== Specification ===
+
+The syntax for defining pattern synonyms is extended as follows
+
+{{{
+patsyndecl_w_records ::=  patsyndecl
+             |  'pattern' con '{' var1 ',' ... ',' varn '}' <- pat
+}}}
+
+A bidirectional record pattern synonym `P` with type `T` and arguments `f1, f2, ..., fn` which have types `t1, t2, ...., tn` should behave just as if `P` had been defined as a record constructor for `T` with the corresponding fields.
+
+For example,
+
+{{{
+data T ... = ... |  P { f1 :: t1, f2 :: t2, ..., fn :: tn }
+}}}
+
+---------------------------
+
+Say we define a record pattern synonym `P` with fields `f1,..,fn` as follows.
+
+{{{
+pattern P :: t1 -> ... -> tn -> T a1 ... am
+pattern P{f1,...,fn} = pat
+}}}
+
+We define field labels of `P` to be the set `{f1, ..., fn}`. No two record pattern synonyms can have duplicate field labels. 
+
+We can then use `P` in seven different situations. Precisely those locations when we could use a record data constructor.
+
+== Expression Contexts ==
+
+We can use `P` to construct a value of type `T a1 ... am` by using `P` in an application `P v1 ... vn` where `v1 .. vn` have types `t1 ... tn`. In order to construct this type, we substitute `v1` for `f1` in `pat`. 
+
+Further, we can also use record syntax to construct the same value. `P { fi = vi, ..., fj = vj }` where for all `i, j` `fi` is distinct from `fj` and all field labels `fk` are labels of `P`. We then perform the obvious substitution `pat[fi/vi]...[fj/vj]` in order to construct the value.
+
+=== Record Updates ===
+
+We extend record updates such that if we have the record update `e1 { fi = vi, ..., fj = vj }` then if `fi,...,fj` are all field labels from the same pattern synonym `P` then we behave as follows.
+
+First define `pick`:
+
+> If the ith component of a pattern synonym P has the field label f, and if f = v appears in the binding list bs, then pick_i P bs d is v. Otherwise, pick_i P bs d is the default value d.
+
+{{{
+e1 {bs} = case e1 of
+                 (P f1 ... fn) -> P (pick_1 P bs f1) ... (pick_n P bs fn)
+}}}
+
+
+== Pattern Contexts ==
+
+We can use `P` in a pattern context. For example if we write `P p1 ... pn` where `p1,..,pn` are arbritary patterns. In order to decide whether `e` matches with this pattern. We first match `e` with `P` and then `p1,..,pn` with `f1,...,fn`. 
+
+Again, we can also use `P` in a pattern context with record syntax. If we have the pattern `P { fi = pi,..., fj=pj }`, where `fi, ..., fj` are unique field selectors for a pattern synonym `P`. Then we first match `e` with `P` and then `pi` with `fi`.
+
+If `NamedFieldPuns` is enabled then it is also possible to write `P { fi,...,fj }`, which we treat as `P { fi = fi, ..., fj = fj }`.
+ 
+=== Record Selectors ===
+
+We also generate record selectors `f1,...,fn` such that `f1 :: T a1 ... am -> t1`. The selector is defined as follows, where `f1` is free in `pat` (from the definition of the pattern synonym).
+
+{{{
+f1 pat = f1
+}}}
+
+== Unidirectional Pattern Synonyms ==
+
+Unidirectional pattern synonyms can only be used in pattern contexts and as record selectors. 
+
+
+
+
+
+
+
+---------------------
+
+= Further Design (Old) =
+
+The proposed syntax is as follows
+
+{{{
+pattern Foo{bar, baz} = (bar, baz)
+}}}
+
+which overloads the syntax for named field puns. 
+
+If a unidirectional pattern is declared then the pattern along with record selectors are provided. The following five definitions are equivalent.
+
+{{{
+getFst1 Foo{bar} = bar
+
+getFst2 Foo{bar=qux} = qux
+
+getFst3 Foo{..} = bar
+
+getFst4 (Foo v _) = v
+
+getFst5 v = bar v
+}}}
+
+
+When a bidirectional synonym is declared then the constructor `Foo` is also declared which can be used in two ways.
+
+{{{
+myFoo = Foo "first" 2
+
+hisFoo = Foo { bar = "first", baz = 2 }
+}}}
+
+Finally we consider record updates.
+
+{{{
+updateBaz x = x {baz = 6}
+}}}
+
+
+An unresolved design point is how record updates should be handled. Given Foo is in scope then there is an unambiguous type for this expression (as baz is uniquely a selector for `Foo`). Thus the inferred type of `updateBaz` would be `updateBaz :: (a, b) -> (Int, b)`. 
+
+This whole construct seems quite strange as it would also seem possible to write (the currently illegal)  `(1,2) {baz = Just 6}` as well as `(Foo 1 2) { baz = Just 6}`. Currently pattern synonyms do not change the semantics of programs outside from the explicit use of the synonym. This example is slightly different as we do not use `Foo` but merely the field name `baz`. I am not sure whether this would be confusing to users.
+
+
+
+=== Tricky bits ===
+
+* There is now a potential ambiguity.
+
+{{{
+data D = MkD { foo :: Int }
+pattern Pat = MkD { foo = Int }
+
+baz = Pat { foo = 5 }
+}}}
+
+    Here, I'm intending `Pat { foo = 5 }` to be a record //update//, not a record //construction//. But it's confusing! Does this work?
+
+==== Answer ====
+
+Not currently - `baz` is parsed as a `RecordCon` which then fails as `Pat` is not a constructor with field `foo`.
+
+
+* Import/export syntax has to be extended to accommodate the field labels. So, if we have
+
+{{{
+pattern Pat { a } = Just a
+}}}
+
+    then we should be able to write any of the following in an export list: `pattern Pat`, `pattern Pat(..)`, `pattern Pat(a)`. (The last two mean the same thing.) It would only be logical to extend this syntax to also allow record data constructors to operate the same way. Question: should record data constructors be allowed to use this syntax when exported without the `pattern` keyword?
