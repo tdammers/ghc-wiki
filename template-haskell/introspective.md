@@ -1,0 +1,60 @@
+# Introspective Template Haskell
+
+
+
+This page is to record the design and reactions to a proposal Richard originally posted to the ghc-devs mailing list [
+here](https://mail.haskell.org/pipermail/ghc-devs/2015-November/010402.html) (although much of this is copied below). The bottom line is that this has received some, but not universal, support. However, due to time constraints, Richard will not be implementing this in the near future. Is someone else willing?
+
+
+
+Ticket: [\#11081](http://gitlabghc.nibbler/ghc/ghc/issues/11081)
+
+
+## Pre-proposal
+
+
+
+(This is a *pre*-proposal because not all the details are worked out.)
+
+
+
+Eliminate Template Haskell and provide direct access to GHC's internal structures (AST). The idea (still very sketchy; hence pre-proposal) is like this (numbered for easy reference, but no order is implied):
+
+
+1. TH quotes would remain. DsMeta would desugar quotes into Core code that produces `HsExpr`s. For example, `[| 1 |]` would have type `Q (LHsExpr Name)`. (Or perhaps `Q (LHsExpr RdrName)` if that works out better for clients.)
+
+>
+>
+> **Optional extension:** The type of the desugared code could be overloaded and controlled by a class, say `QuoteExpr`. This would allow quoting typechecked or Core code.
+>
+>
+
+1. TH splices would remain, working much as they do now. The expression inside, say, an expression splice would have type `Q exp` where we can satisfy the constraint `SpliceExpr exp`. There would be instances for `SpliceExpr (LHsExpr Name)` and `SpliceExpr (LHsExpr RdrName)` as well as the non-located variants. Generalizing the type of expressions here allows users not to worry about un-renaming when roundtripping between quotes and splices.
+
+1. Reification would remain, using an Info structure much like we have now. Would we expose the real GHC `TyCon`s as the result of reification? Or is it better to give the users `HsDecl`s? This would need to be fleshed out.
+
+1. Lifting would remain, doing the obvious thing.
+
+1. The template-haskell package would remain, as a compatibility shim. It would declare gobs of pattern synonyms and type synonyms to wrap the new underlying interface. This re-imagined template-haskell package would not need to be a boot library, and could be upgraded separately from GHC. We could even maintain multiple versions of the library so that TH clients wouldn't have to change their code when GHC upgrades. The existence of this library would mean that casual TH users would not need to work with the more-complicated GHC AST datatypes.
+
+
+So, the end result is a completely re-engineered TH, but I believe we could keep full backward compatibility. (I have not considered Typed TH in any depth yet. But my hope is that it's not too different from the above. It might even be completely handled by the class overloading idea of quotes & splices.) 
+
+
+
+And, tantalizingly, the flexibility in splices might allow us to splice in \*Core\* code someday. Perhaps we could also reify Core code. Then clients could write their own custom, domain-aware optimizations. Like `RULES` on steroids. But that's all for the next phase. (Giving due credit, this last bit is inspired by work David Christiansen is doing in Idris.)
+
+
+## Commentary
+
+
+- There was a repeated worry about the difficulty of working with the GHC AST. This would be addressed by retaining template-haskell as a compatibility shim, meaning that users need only work with that library. But, with this proposal, the template-haskell library could be updated and even maintained separately from GHC. We could perhaps encourage a culture of having the client that wants a new feature to exist in TH to submit the pull request. No internal GHC changes required.
+
+- If we do keep the template-haskell library around, this proposal does not reduce the long-term maintenance burden as much as I (Richard) had originally thought. But I still think it's a good idea.
+
+- TH currently exposes unsafe features. (For example, `NameG` allows clients to choose a fully-qualified name and access the definition, even if that name is not in scope.) It seems impossible to hide these features, because GHC -- a separate package from `template-haskell` -- needs them. This proposal would allow for better abstraction.
+
+- Currently, every release of GHC breaks all the TH code out there. This proposal eliminates that problem, or, more accurately, moves it to one place: the template-haskell package. Downstream users would be insulated. (Counterpoint: this insulation is directly achievable today by creating a compatibility shim around template-haskell. th-desugar could be called such a compatibility shim, although it does more than just achieve compatibility.)
+
+- It was suggested [
+  here](https://mail.haskell.org/pipermail/ghc-devs/2015-November/010411.html) that this change would obviate haskell-src-exts. I (Richard) am not familiar enough with haskell-src-exts workflows to comment.
