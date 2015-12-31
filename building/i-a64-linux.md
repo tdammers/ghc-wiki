@@ -1,0 +1,45 @@
+
+At least Gentoo linux distribution occasionally builds ia64 ghc binaries.
+
+
+
+Binary results are available at: [
+http://code.haskell.org/\~slyfox/ghc-ia64/](http://code.haskell.org/~slyfox/ghc-ia64/)
+
+
+
+Source patches applied are available at: [
+https://gitweb.gentoo.org/repo/gentoo.git/tree/dev-lang/ghc/files](https://gitweb.gentoo.org/repo/gentoo.git/tree/dev-lang/ghc/files)
+
+
+# 2015-12-31 update
+
+
+## 7.8.4
+
+
+
+To get **GHCi** working you will need to apply a [changeset:d82f592522eb8e063276a8a8c87ab93e18353c6b](/trac/ghc/changeset/d82f592522eb8e063276a8a8c87ab93e18353c6b/ghc) (requires CMM lexer regeneration)
+
+
+## 7.10.\* / -HEAD
+
+
+
+Requires small **gcc** patch to fix sdata overflow: [
+https://gcc.gnu.org/ml/gcc-patches/2015-12/msg02193.html](https://gcc.gnu.org/ml/gcc-patches/2015-12/msg02193.html)
+
+
+# 2010-2011 update
+
+
+
+As of this time (2010-2011) some linux distros provides just GHC 6.8.2 build as binary package(s) on IA64 Itanium platform. To upgrade to GHC 7.x you will need to perform manual bootstrap of either GHC 6.10.x or GHC 6.12.x. The problem is that both show several critical issues which make them unbuildable or unstable. See [\#3891](http://gitlabghc.nibbler/ghc/ghc/issues/3891) for example, although it's closed, it's not solved neither in 6.10.x nor in 6.12.x source tree.
+
+
+
+As a solution, nice Gentoo Linux folks provide their own set of patches for IA64 GHC build and you can use them to compile either GHC 6.10.4 or GHC 6.12.3 on IA64 platform. Download and apply all **ghc-\<version\>-ia64\*patch** patches  for your preferred GHC version from [
+here](http://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-x86/dev-lang/ghc/files/).
+Also please note that those patches are already merged upstream so you should not have any issue bootstraping 7.x then.
+
+
