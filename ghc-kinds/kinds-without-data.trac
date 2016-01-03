@@ -1,0 +1,192 @@
+= Defining kinds without an associated datatype =
+
+This page tracks feature requests for declaring closed data kinds without
+associated data types (#6024) and declaring open data kinds that can be freely
+extended after they are declared (#11080).  What comes below is a design
+proposal that is not yet implemented (as of Jan 2015).  Main person responsible
+for working on the implementation is Jan Stolarek (JS).
+
+== Motivation for closed data kinds (#6024) ==
+
+When using `-XDataKinds` GHC automatically promotes every datatype to a kind,
+and its constructors to types. This forces us to declare a datatype for every
+kind.  However, sometimes we are not interested in the datatype at all, only on
+the kind.  Consider the following data kind that defines a small universe for
+generic programming:
+
+{{{#!hs
+data Universe star = Sum  (Universe star) (Universe star)
+                   | Prod (Universe star) (Universe star)
+                   | K star
+}}}
+
+This universe comes with an associated interpretation:
+
+{{{#!hs
+data Interpretation :: Universe * -> * where
+  L    :: Interpretation a -> Interpretation (Sum a b)
+  R    :: Interpretation b -> Interpretation (Sum a b)
+  Prod :: Interpretation a -> Interpretation b -> Interpretation (Prod a b)
+  K    :: a -> Interpretation (K a)
+}}}
+
+In this case, having to declare a datatype for `Universe` has two disadvantages:
+
+  1. We cannot use kinds (such as `*`) while defining a datatype, so we are
+     forced to make `Universe` a parametrised datatype, and later always
+     instantiate this parameter to `*` (like in the kind of `Interpretation`).
+     '''Note''': this is no longer the case - see below.
+
+  2. We lose constructor name space, because the datatype constructor names will
+     be taken, even though we will never use them to construct terms.  So `Prod`
+     and `K` cannot be used as constructors of `Interpretation` as above,
+     because those are also constructors of `Universe`.
+
+== Motivation for open data kinds (#11080) ==
+
+Users might want to create type-level symbols for the purpose of indexing types.
+In the past one way of doing this was by using `-XEmptyDataDecls`.  But symbols
+created in this way were always placed in `*` and that does not allow to use
+kinds to limit what types are admitted as indices.  `-XDataKinds` allows to
+create symbols that are assigned a kind other than `*` but these kinds are
+closed and adding new symbols is not possible. Thus:
+
+  3. We want a way of defining open kinds that can be later extended with new
+     inhabitants.
+
+= Solution =
+
+I (JS) propose that the mechanism for declaring closed and open data kinds
+becomes part of `-XDataKinds`.  The proposal is backwards compatible.
+
+== Closed kinds ==
+
+Starting with GHC 8.0 users can use `-XTypeInType` extension to write:
+
+{{{#!hs
+data Universe = Sum  Universe Universe
+              | Prod Universe Universe
+              | K (*)
+}}}
+
+This addresses disadvantage (1) but still leaves us with disadvantage (2).  So
+the idea behind #6024 is to let users define things like:
+
+{{{#!hs
+-- closed kind using H98 syntax
+data kind Universe = Sum  Universe Universe
+                   | Prod Universe Universe
+                   | K (*)
+
+-- closed kind using GADTs syntax
+data kind Universe where
+  Sum  :: Universe -> Universe -> Universe
+  Prod :: Universe -> Universe -> Universe
+  K    :: *                    -> Universe
+}}}
+
+By using `data kind`, we tell GHC that we are only interested in the `Universe`
+kind, and not the datatype.  Consequently, `Sum`, `Prod`, and `K` will be valid
+only in types only, and not in terms.
+
+== Open kinds ==
+
+Open data kinds would be declared using following syntax:
+
+{{{#!hs
+-- open kind
+data kind open Universe
+data kind member Sum  :: Universe -> Universe -> Universe
+data kind member Prod :: Universe -> Universe -> Universe
+data kind member K    :: *                    -> Universe
+}}}
+
+Note that open kinds can be parametrized just like closed kinds:
+
+{{{#!hs
+data kind open Dimension :: *
+data kind member Length :: Dimension
+
+data kind open Unit :: Dimension -> *
+data kind member Meter :: Unit 'Length
+data kind member Foot  :: Unit 'Length
+}}}
+
+= Caveats =
+
+== Kind and Type Namespaces ==
+
+Currently GHC has separate namespaces for types and data constructors.  We have
+a simple rule: all data constructors go into data namespace.  With `-XDataKinds`
+promoted data constructors still live in data constructor namespace and there is
+a hack in the renamer: when renaming types it first looks for a symbol in type
+namespace and if that fails then it searches for the symbol in the data
+namespace.
+
+Assume we have:
+
+{{{#!hs
+data kind Foo = MkFoo
+}}}
+
+In order to resolve disadvantage (2), ie. not pollute data constructor namespace
+with `MkFoo`, we would have to put `MkFoo` in the type namespace.  This means
+that our simple rule "data constructors go into data namespace" would have to be
+broken.
+[https://mail.haskell.org/pipermail/ghc-devs/2015-December/010812.html Richard Eisenberg argues]
+that this is bad and in the case of above declaration
+`MkFoo` should go into data namespace.  But that does not solve disadvantage (2)
+and thus misses the point of #6024 (given that disadvantage (1) is already
+solved by `-XTypeInType`).  Richard also argues that members of an open data
+kind should also be placed in data namespace.  Putting `MkFoo` into data
+namespace will also allow us to have quite good error messages from the
+typechecker, rather than cryptic error messages from the renamer about things
+being out of scope.
+
+== Non-promotable data types? ==
+
+Let's assume for a moment that we decide to place kind-only constructors in the
+type namespace (ie. not follow Richard's proposal).  Consider again the example
+of `Universe` kind and `Interpretation` data type.  Enabling `-XTypeInType`
+makes GADTs promotable.  This means that data constructors `K` and `Prod` if
+`Interpretation` data type could be validly used in types.  But this would lead
+to name collission with `K` and `Prod` constructors of `Universe` kind.  There
+would be no way of disambiguating whether `K` refers to constructor of
+`Universe` or promoted constructor of `Interpretation`.  We don't want to end up
+in a situation where some of the data constructors can be promoted (`L`, `R`)
+and some can't (`K`, `Prod`).  So we would need to make `Interpretation` data
+type unpromotable.  But detecting that seems Real Hard.
+
+== Recursive Groups ==
+
+We need to be careful about recursive groups.  For example, this is valid:
+
+{{{#!hs
+data S = S T
+data T = T S
+}}}
+
+but this is not:
+
+{{{#!hs
+data kind S = S T
+data T = T S
+}}}
+
+== Future-proofing the design ==
+
+GHC is growing more and more type level symbols.  These symbols vary in their
+properties like generativity, injectivity, matchability or being open/closed -
+see [ticket:9840#comment:6] for an overview.
+Here we propose adding yet another way of defining symbols.  Can we introduce
+more order into world of type-level symbols?  Can we have some unifying syntax?
+Can we anticipate what kind of symbols we might want to have in the future?
+
+= Alternative Notations =
+
+ * Use `data only` instead of `data type`.
+ * Use `'data` instead of `data kind`
+ * Use `type data` instead of `data kind`
+ * Use `data constructor` instead of `data kind member`
+ * Use `data extension Unit where { Meter :: Unit;  Foot :: Unit }` instead of
+   `data kind member`
