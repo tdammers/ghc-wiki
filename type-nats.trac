@@ -1,0 +1,50 @@
+= Type Level Literals =
+
+This page collects information on how to work with type-level literals, as implemented in the Haskell compiler GHC (ticket #4385).
+
+== Status ==
+
+Use Keyword = `TypeLits` to ensure that a ticket ends up on these lists.
+
+Open Tickets:
+[[TicketQuery(status=infoneeded,status=new|patch,keywords=~TypeLits)]]
+
+Closed Tickets:
+[[TicketQuery(status=infoneeded,status=closed,keywords=~TypeLits)]]
+
+
+
+== User's Guide ==
+
+  * [wiki:TypeNats/Basics           Type-Level Literal Basics]
+  * [wiki:TypeNats/Operations       Type-Level Computation]
+  * [wiki:TypeNats/InductiveDefinitions Typed examinations of Sing values]
+  * [wiki:TypeNats/MatchingOnNats   Matching on Type-Level Naturals (i.e., working with classes and type-families)]
+
+
+== Notes on Design ==
+
+  * [wiki:TypeNats/SingletonsAndKinds Details about the implementation of singleton families.]
+  * [wiki:TypeNats/AlternativeSingletons Alternative Design For Singletons]
+  * [wiki:TypeNats/AvoidingPartialTypeFunctions Avoiding Partial Type Functions]
+  * [wiki:TypeNats/SingletonsAndExistentials Singletons and Existentials]
+
+    
+== Notes on the Implementation ==
+
+  * [wiki:TypeNats/Implementation   Implementation of GHC.TypeLits]
+  * [wiki:Commentary/Compiler/TypeNatSolver The solver for type-level naturals]
+
+
+== Source Code ==
+
+  * [http://darcs.haskell.org/cgi-bin/gitweb.cgi?p=ghc.git;a=shortlog;h=refs/heads/type-nats type-nats branch of GHC]
+  * [http://darcs.haskell.org/cgi-bin/gitweb.cgi?p=packages/base.git;a=shortlog;h=refs/heads/type-nats type-nats branch of the base library]
+  * [http://darcs.haskell.org/cgi-bin/gitweb.cgi?p=packages/template-haskell.git;a=shortlog;h=refs/heads/type-nats type nats branch of template-haskell]
+  * Also, there is a type-nats branch for 'haddock'.
+  
+== XXX: Cleanup ==
+  * [wiki:TypeNats/Naturals         Natural Numbers: From Values to Types]
+  * More advanced example: https://github.com/yav/memory-arrays/tree/master
+  * [wiki:TypeNats/Examples         Examples]
+  * [http://github.com/yav/tc-solver/blob/master/docs/axioms.md Axioms for type-level type operators]
