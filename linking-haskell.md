@@ -1,0 +1,147 @@
+# Linking in Haskell: Proposal for a Redesign
+
+
+## Terms
+
+
+
+Unfortunately, in computer industry different names are used for the same thing and linking is no exception. Define the following terms:
+
+
+- **dynamic library**: DLL (Windows), shared object (ELF, Linux, BSD and other UNIX systems)
+
+## Static, dynamic, and hybrid packages
+
+
+
+Some Haskell packages use libraries implemented in other languages (for short: C libraries). Linking against C libraries there are three cases:
+
+
+1. both dynamic
+1. both static
+1. Haskell static, C dynamic. Call this hybrid.
+
+## Linking with GHC Design
+
+
+### Both dynamic
+
+
+
+Linking against the Haskell package is sufficient. The user of a Haskell package `foo` does not need to know which C libraries and other Haskell packages package `foo` depends on and there is no need to link against those libraries. Users who have read Ulrich Drepper's paper [
+https://www.akkadia.org/drepper/dsohowto.pdf](https://www.akkadia.org/drepper/dsohowto.pdf) expect that in the dynamic case no dev dependencies are required. 
+
+
+### Both static
+
+
+
+The linker must be passed the transitive closure of all dependent C libraries and Haskell libraries.
+
+
+### Hybrid
+
+
+
+All Haskell libraries and all directly dependent C libraries must be passed to the linker. Currently, we cannot tell from the package information whether a C library is a direct dependency or a dependency of another C library.
+
+
+### Conclusion
+
+
+
+TODO
+Linking only against Haskell packages should be supported in the dynamic case and it is not difficult to implement that. The hybrid case needs some more thought. 
+
+
+## GHCi with System Runtime Linker and Loader (RTLD)
+
+
+### Current implementation
+
+
+1. An object file must be compiled as position independent code (`-fPIC`). 
+1. All transitive dependencies of that object file's Haskell module are checked and not yet loaded libraries (Haskell and C) are loaded.
+1. The object file is now linked with all loaded packages (old and new) and all temporary dynamic libraries from previously loaded object files to produce a new temporary dynamic library.
+1. The new temporary dynamic library is loaded.
+
+### Proposal
+
+
+1. An object file must be compiled as position independent code (`-fPIC`).
+1. A temporary dynamic library is produced by `ld` with no other inputs. Undefined symbols are ignored.
+1. Link all temporary dynamic libraries and all packages loaded and all command line libraries into one large dummy dynamic library. The order on the link command line must be observed so it is possible to override symbols defined in a library loaded earlier. The order is reverse loading order, i.e. most recently loaded first. **Note:** The transitive closure of all dependencies is not required here, only direct dependencies (Haskell dynamic libraries and C dynamic libraries) are needed.
+1. The previously loaded dummy dynamic library is closed to free up resources (file descriptors).
+
+### Discussion
+
+
+
+Should it be possible to override a symbol defined in a Haskell package with a symbol in an object file and vice versa? In that case the order of packages and temporary dynamic libraries as one list is important. 
+
+
+
+Do we need to support static libraries in a dynamic GHCi? (SM: not necessarily) (PT: Good!)
+
+
+
+Theoretically, in ELF there should be no difference between a statically linked and a dynamically linked GHCi.  
+
+
+- SM: you need to elaborate here.  There are big differences between the two: they load different libraries, use different linkers, etc.) 
+- PT: The current situation is GHCi dynamically linked the use system linker, GHCi statically linked use RTS linker. I think at least on ELF systems you could have a statically linked GHCi and still use the system linker to load dynamic Haskell libraries. Is there anything in the Haskell runtime that would prevent that?
+- SM: On Windows we can't mix dynamic and static Haskell code on the same runtime because there are representation differences.  On ELF systems the symbols of the RTS have to be exposed to the dynamic linker, so if the RTS were static you would at the very least have to link it with `--export-dynamic` when linking GHC. (Yes, the static GHCi must be prepared so that all its symbols are available to the dynamic linker to match the behavior of a dynamic GHCi). 
+- PT: Would it be OK to have a solution for ELF alone and try OS X later and leave everything like it is for Windows?
+
+
+SM: We now have [RemoteGHCi](remote-gh-ci), which means that it will become irrelevant whether GHCi itself is dynamically linked or not, and we'll be able to choose when we start GHCi whether we use dynamic linking or not.  You can try this out: `ghci -fexternal-interpreter -static` uses static linking, and `ghci -fexternal-interpreter -dynamic` uses dynamic linking. (PT: I would still like to get dynamic linking to work for platforms where we don't have an RTS linker but still want a statically linked GHCi so we can avoid the overhead of creating a separate process. If it cannot be done at least I would like to understand why.)
+
+
+## GHCi with Haskell runtime linker (RTS)
+
+
+### Current implementation
+
+
+1. Whether the object file contains position independent code or not does not matter. On some platforms code is always PIC.
+1. All transitive dependencies are loaded as in the dynamic case. Static Haskell libraries are loaded. By default dynamic C libraries are loaded.
+1. The object file is loaded by the RTS linker.
+
+### Issues
+
+
+1. To load dynamic C libraries the development files for the C library need to be installed. [\#9498](http://gitlabghc.nibbler/ghc/ghc/issues/9498)
+1. On some systems the development library file contains a linker script and the RTS linker implementation of the parser trips over some linker scripts. [\#9237](http://gitlabghc.nibbler/ghc/ghc/issues/9237)
+
+### Proposal
+
+
+
+The development files issue can be solved by improving the user's guide. It should make clear that running GHCi requires the same library files as linking.
+
+
+
+The linker script issue could be solved in two ways:
+
+
+1. When we find a linker script (check magic number) call out to the system link editor `ld` and produce a dummy dynamic library and load that dummy dynamic library.
+1. Create the dummy dynamic library at package build time and install it with the package.
+
+
+The latter could also solve the development files issue if we applied it to dynamic libraries in general.
+
+
+### Discussion
+
+
+
+TODO
+
+
+## Cabal support?
+
+
+
+TODO
+
+
