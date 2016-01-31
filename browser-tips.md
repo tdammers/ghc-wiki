@@ -1,0 +1,70 @@
+# Browser Tips
+
+
+## Add a search engine
+
+
+- Firefox: Add a new bookmark.
+- Google Chrome: Right-click on the address bar and select `Edit Search Engines`, then you can scroll all the way down and add a new search engine entry.
+
+## Finding tickets by number
+
+
+
+Add a new bookmark/entry, with
+
+
+```wiki
+Name: [#] GHC ticket
+Location/URL: http://ghc.haskell.org/trac/ghc/ticket/%s
+Keyword: #
+```
+
+
+Then typing `# 5129` in the title bar goes to that ticket (note the
+space).
+
+
+## Searching for tickets
+
+
+
+Add a new bookmark/entry, with
+
+
+```wiki
+Name: [t] GHC ticket search
+Location/URL: http://www.google.com/search?q=%s site:ghc.haskell.org/trac/ghc/ticket
+Keyword: t
+```
+
+
+Now typing `t <query>` into the title bar searches the GHC ticket
+database using Google, which is much faster than Trac's search.
+
+
+## Searching the wiki
+
+
+
+Add a new bookmark/entry, with
+
+
+```wiki
+Name: [w] GHC wiki search
+Location/URL: http://www.google.com/search?q=%s site:ghc.haskell.org/trac/ghc/wiki
+Keyword: w
+```
+
+## Searching for emails
+
+
+
+Add a new bookmark/entry, with
+
+
+```wiki
+Name: [m] GHC mail search
+Location/URL: http://www.google.com/search?q=%s (site:http://news.gmane.org/gmane.comp.lang.haskell.cvs.ghc OR site:http://www.haskell.org/pipermail/ghc-devs/ OR site:http://www.haskell.org/pipermail/glasgow-haskell-users/)
+Keyword: m
+```
