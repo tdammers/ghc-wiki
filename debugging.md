@@ -22,11 +22,11 @@ This part of the wiki collects all the information related to debugging GHC. Tha
 - Build failures.  If you're trying to debug a build failure, then you probably want to look at
 
   - [Building/Troubleshooting](building/troubleshooting): Fixing common problems in a GHC build
-  - [Building/Modifying](building/modifying#ebugging): Debugging the build system
+  - [Building/Modifying](building/modifying#debugging): Debugging the build system
 
 - Use [count\_lines](debugging#) to count the number of lines of code in the compiler
 
-- Use [compareSizes](debugging#omparesizes) to compare the sizes of corresponding .o or .hi files in two trees.
+- Use [compareSizes](debugging#comparesizes) to compare the sizes of corresponding .o or .hi files in two trees.
 
 - If know the last good commit, [bisection](bisection) may be useful to identify which commit introduced the bug.
 
