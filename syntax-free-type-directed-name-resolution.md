@@ -1,0 +1,85 @@
+# Proposal: Syntax-Free Type Directed Name Resolution
+
+
+
+The original [
+TDNR proposal](http://hackage.haskell.org/trac/haskell-prime/wiki/TypeDirectedNameResolution) was fairly controversial, with almost all of the objections related to the new dot syntax. However, TDNR can be implemented without any changes to the syntax of Haskell and without adding any new operators.
+
+
+# Disambiguation
+
+
+
+When GHC encounters an ambiguous name (i.e. imported from different modules without qualification), it will create a constraint for the name's type from available type information. If exactly one candidate definition matches this type constraint, it will be selected.
+
+
+
+The following sources of type information will be used, in order:
+
+
+
+\# A type signature applied to the name.
+\# A type signature applied to the name's argument (if the name is a function).
+\# The inferred type of the name's argument. The compiler will attempt to infer the types of the arguments while treating all ambiguous functions as if they were of type `a -> b`.
+
+
+# Other Considerations
+
+
+
+It is possible to enrich the disambiguation with other sources of type information, such as the inferred return type, by considering the set of candidate definitions when attempting to infer the type of the argument, or by attempting to disambiguate all ambiguous names simultaneously to find a mutually type-checking set.
+
+
+
+However, these would greatly complicate the implementation, and the above definition is sufficient to cover all of the regular use cases.
+
+
+# Example
+
+
+
+Adapted from [
+TDNR](http://hackage.haskell.org/trac/haskell-prime/wiki/TypeDirectedNameResolution):
+
+
+```
+{-# LANGUAGE TDNR #-}
+
+module Foo where
+  import Button( Button, reset )
+  import Canvas( Canvas, reset )
+
+  f :: Button -> Canvas -> IO ()
+  f b c = do { reset b; reset c }
+```
+
+
+The compiler will determine that `b` is of type `Button` from `f`'s signature, and the first `reset` must therefore be `Button.reset`, as this is the only one which applies to `Buttons`. Similarly `c` is a `Canvas`, and it's `reset` must therefore be `Canvas.reset`.
+
+
+# Backwards Compatibility
+
+
+
+Activating this extension would have no effect on existing programs. It will only permit programs which previously failed to compile due to ambiguous names.
+
+
+# Comparison to Overloaded Record Fields
+
+
+
+[Records/OverloadedRecordFields/MagicClasses](records/overloaded-record-fields/magic-classes) allow duplicate record names to be disambiguated. While there is some overlap, there are also some important differences, as they are solving different problems:
+
+
+- ORF allows polymorphism and duplicate definitions in the same module, but only works for record selectors.
+- TDNR only allows the compiler to qualify bear names, makes no changes to the type system, and applies to all names.
+
+>
+>
+> AntC: This section should also compare to [
+> https://ghc.haskell.org/trac/ghc/wiki/Records/OverloadedRecordFields/DuplicateRecordFields](https://ghc.haskell.org/trac/ghc/wiki/Records/OverloadedRecordFields/DuplicateRecordFields).
+> See the discussion starting [
+> https://mail.haskell.org/pipermail/glasgow-haskell-users/2016-May/026225.html](https://mail.haskell.org/pipermail/glasgow-haskell-users/2016-May/026225.html).
+>
+>
+
