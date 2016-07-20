@@ -1,0 +1,8 @@
+= Useful tools =
+
+This page collects tools which may be useful to humans working on GHC.
+
+ * Ben Gamari has a bunch of handy, albeit sometimes poorly documented, tools in his [[http://github.com/bgamari/ghc-utils|ghc-utils]] repository. These include the tools Ben uses for release management, day-to-day maintenance, performance characterization, and general GHC development 
+ * Joachim Breitner has developed the lovely [[http://github.com/nomeata/gipeda|gipeda]] web interface for comparing performance metrics between commits. This powers [[http://perf.haskell.org/|perf.haskell.org]] (with data from Joachim's [[http://github.com/nomeata/ghc-speed-logs|ghc-speed-logs]] repository)
+ * Ben Gamari has developed a set of [[http://github.com/bgamari/ghc-perf-import|tools]] for slurping the `ghc-speed-logs` data into a PostgreSQL database and do interesting timeseries analyses on it. See [[http://home.smart-cactus.org/~ben/ghc-perf-import/web/]].
+ * There is a [[WorkingConventions/Bisection|script]] for running automated bisections
