@@ -1,0 +1,48 @@
+This page gives a specification for how users should expect export lists to behave.
+
+Specifically, we concentrate on the very complex case of type constructors exported with data constructors.
+
+= Syntax =
+
+We are concerned with exports of the form.
+
+{{{
+T(a_1, a_2, ..., a_n)
+}}}
+
+where `a_1` to `a_n` are a mixture of
+
+1. Data Constructors
+2. Record Selectors
+3. Class methods
+4. Type Constructors (in the case of associated types)
+5. Pattern Synonyms
+6. Pattern Synonym Record Selectors
+7. Wildcards
+
+We then define two cases for each category. 
+1. When it is valid to include in the export list.
+2. Which names are exported as a result of the inclusion.
+
+We say that `a_1` can be *exported with* `T` in the case that the export is 1-valid.
+
+Definition: 
+
+= Semantics =
+
+1. A data constructor `D` can be exported with `T` just when `T` is the parent of `D`.
+2. A record selector `f` can be exported with `T` just when `T` is the parent of `D`.
+3. A type class method `foo` can be exported with `T` just when `T` is a type class which defines `foo`.
+3. A type constructor `S` can be exported with `T` just when `S` is an associated type defined in the type class `T`.
+4. A pattern synonym `P` can be exported with `T` in the case that either
+    a. The head of the type of the scrutinee is a definite type constructor (not a type variable) `S` and `T = S`.
+    b. The head of the type of the scrutinee is a type variable
+5. A pattern synonym selector `p` belonging to a pattern synonym `P` can be exported with `T` in the case that `P` can be exported with `T`.
+6. A wildcard can always appear in the export list. 
+
+1-5. The thing itself is exported from the module.
+6. All children of `T` are exported from the module.
+
+
+
+
