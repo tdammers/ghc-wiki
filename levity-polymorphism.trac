@@ -1,0 +1,15 @@
+= Levity polymorphism =
+
+This is a status page for levity polymorphism, as described in the [https://www.microsoft.com/en-us/research/publication/levity-polymorphism/ Levity Polymorphism paper].
+
+See also [wiki:UnliftedDataTypes]
+
+== Tickets ==
+
+Use Keyword = `LevityPolymorphism` to ensure that a ticket ends up on these lists.
+
+'''Open Tickets:'''
+[[TicketQuery(status=new|patch,keywords=~LevityPolymorphism)]]
+
+'''Closed Tickets:'''
+[[TicketQuery(status=closed,keywords=~LevityPolymorphism)]]
