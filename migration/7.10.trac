@@ -1,0 +1,260 @@
+[[PageOutline]]
+
+= GHC 7.10.x Migration Guide =
+
+This guide summarises the changes you may need to make to your code to migrate from GHC 7.8 to GHC 7.10.
+
+----------------------------------
+== Compiler changes
+
+=== Inferred type-signatures now may require to enable `FlexibleContexts`, `GADTs`, or `TypeFamilies`
+
+Basically GHC has become stricter and needs to explicitly enable language extensions in some cases that weren't needed previously. GHC will tell you which extension to enable. See also #8883 for details.
+
+Example breakages:
+
+ - https://github.com/haskell/HTTP/issues/62
+ - https://github.com/bos/attoparsec/issues/67
+ - https://github.com/diagrams/force-layout/pull/1
+
+--------------------------------
+== Library changes
+
+=== `base-4.8.0.0`
+
+The major changes include the implementation of the ''Functor/Applicative/Monad-Proposal'' as well as the ''Foldable/Traversable-Proposal''
+
+==== GHC says `No instance for (Applicative ...)` ====
+
+If GHC complains that
+
+{{{
+Foo.hs:7:10:
+    No instance for (Applicative Foo) arising from the superclasses of an instance declaration
+    In the instance declaration for ‘Monad Foo’
+}}}
+
+then an easy way to fix this error is by defining an `Applicative` (and possibly a `Functor`) instance:
+
+{{{#!hs
+instance Functor Foo where
+    fmap  = liftM
+    -- or alternatively:
+    --  fmap = m >>= pure . f
+
+instance Applicative Foo where
+    -- NB: DO NOT USE `pure = return`
+    pure  = {- move the definition of `return` from the `Monad` instance here -}
+
+    (<*>) = ap  {- defined in Control.Monad -}
+    -- or alternatively:
+    --  f1 <*> f2 = f1 >>= \v1 -> f2 >>= (pure . v1)
+
+    -- NB: DO NOT USE `(*>) = (>>)`
+    (*>) = {- move the definition of `>>` from the `Monad` instance here -}
+
+instance Monad Foo where
+    return = pure {- definition moved to `Applicative(pure)` -}
+
+    (>>) = (*>) {- definition moved to `Applicative((*>))` -}
+
+    {- ...retain other previous definitions... -}
+}}}
+
+{{{#!box info
+Starting with GHC 7.10, defining `Monad(return)` is optional (with the default implementation `return = pure`). For code not required to be compatible with GHC versions prior to GHC 7.10 it's recommended to omit the explicit `return` definition.
+
+Moreover, in order to avoid surprising performance issues with `Traversable`, `(>>)` should be defined in terms of `(*>)`, and with `(*>)` optionally being overridden by an optimised implementation.
+
+See also Proposal/MonadOfNoReturn
+}}}
+
+For more details see [https://www.haskell.org/haskellwiki/Functor-Applicative-Monad_Proposal#Future-proofing_current_code AMP Proposal: Future-proofing current code].
+
+==== GHC says `No instance for (Alternative ...)` ====
+
+A side-effect of the AMP is that `Alternative` became a super-class of `MonadPlus`. The easy remedy:
+
+{{{#!hs
+instance Alternative Foo where
+    (<|>) = mplus
+    empty = mzero
+}}}
+
+If pre-AMP compatibility is not a requirement, it's better to define `MonadPlus` in terms of `Alternative` as this corresponds to the superclass relationship and allows to omit the method definitions in `MonadPlus`, i.e.
+
+{{{#!hs
+instance Alternative Foo where
+   empty = {- move definition of `mzero` here -}
+   (<|>) = {- move definition of `mplus` here -}
+
+instance MonadPlus Foo -- NB: starting with `base-4.8`: no need to override methods here!
+}}}
+
+==== GHC says `No instance for (Foldable ...) arising from the use of...` ====
+
+Some functions in the Prelude were generalised to `Foldable`s in the implementation of the FTP. This can lead to type-inference problems for code making use of `-XOverloadedStrings`, in which code like e.g.
+
+{{{#!hs
+{-# LANGUAGE OverloadedStrings #-}
+
+main :: IO ()
+main = print ('I' `elem` "team")
+}}}
+
+will let GHC spit out the intimidating complaint that
+
+{{{
+Foo.hs:4:19:
+    No instance for (Foldable t0) arising from a use of ‘elem’
+    The type variable ‘t0’ is ambiguous
+    Note: there are several potential instances:
+      instance Foldable (Either a) -- Defined in ‘Data.Foldable’
+      instance Foldable Data.Proxy.Proxy -- Defined in ‘Data.Foldable’
+      instance GHC.Arr.Ix i => Foldable (GHC.Arr.Array i) -- Defined in ‘Data.Foldable’
+      ...plus three others
+    In the first argument of ‘print’, namely ‘('I' `elem` "team")’
+    In the expression: print ('I' `elem` "team")
+    In an equation for ‘main’: main = print ('I' `elem` "team")
+
+Foo.hs:4:26:
+    No instance for (Data.String.IsString (t0 Char)) arising from the literal ‘"team"’
+    The type variable ‘t0’ is ambiguous
+    Note: there is a potential instance available: instance Data.String.IsString [Char] -- Defined in ‘Data.String’
+    In the second argument of ‘elem’, namely ‘"team"’
+    In the first argument of ‘print’, namely ‘('I' `elem` "team")’
+    In the expression: print ('I' `elem` "team")
+}}}
+
+This can be fixed by helping GHC's type-inference to pin down `"team"` to `[Char]`, either by adding a `:: String` to the string literal, or (for short literals) by using list-syntax (i.e. `['t','e','a','m']`).
+
+==== GHC says `The import of ... is redundant` ====
+
+With `base-4.8`, the `Prelude` re-exports a few more entities from modules such as `Data.Monoid` and `Control.Applicative`. For example, the following module
+
+{{{#!hs
+module Foo (Int, Word, Monoid(..)) where
+
+import Data.Monoid
+import Data.Word
+-- import Prelude
+}}}
+
+will result in two redundant import warnings with GHC 7.10.1 (under `-Wall`):
+
+{{{
+foo.hs:3:1: Warning:
+    The import of ‘Data.Monoid’ is redundant
+      except perhaps to import instances from ‘Data.Monoid’
+    To import instances alone, use: import Data.Monoid()
+
+foo.hs:4:1: Warning:
+    The import of ‘Data.Word’ is redundant
+      except perhaps to import instances from ‘Data.Word’
+    To import instances alone, use: import Data.Word()
+}}}
+
+{{{#!rbox note
+This `import Prelude`-trick, however, doesn't work when explicit import lists are used. In that case, `qualified` imports can be used if `-XCPP` needs to be avoided at all costs.
+}}}
+One obvious way to silence such warnings is use `-XCPP`. However, there's also a less-known trick/hack to moving the implicit `import Prelude` into an explicit one after all `base`-imports. In the code example above just de-comment the `-- import Prelude` line.
+
+A more robust way (that works when the trick above doesn't work) to convince GHC without `-XCPP` to suppress redundancy-warnings is by referencing a module-prefixed entity form the respective module at least once. In the example below, `pure` is referenced just once via `A.pure`, thereby marking the `import` essential:
+
+{{{#!hs
+import Control.Applicative as A (Applicative(..))
+
+data Maybe' a = Nothing' | Just' a
+
+instance Functor Maybe' where
+    fmap f (Just' v) = Just' (f v)
+    fmap _ Nothing'  = Nothing'
+
+instance Applicative Maybe' where
+    pure = Just'
+    f1 <*> f2   = f1 >>= \v1 -> f2 >>= (pure . v1)
+
+instance Monad Maybe' where
+    Nothing' >>= _  = Nothing'
+    Just' x  >>= f  = f x
+
+    return = A.pure -- NB: This definition is redundant since GHC 7.10/base-4.8
+}}}
+=== `deepseq-1.4.0.0` (& `deepseq-1.4.1.0`)
+
+The default method implementation has been changed, so instances defined via
+
+{{{#!hs
+instance NFData Foo
+}}}
+
+will now result in the following compile error (unless a `Generic` instance happens to exist):
+
+{{{
+Foo.hs:5:10:
+    No instance for (GHC.Generics.Generic Foo) arising from a use of ‘Control.DeepSeq.$gdmrnf’
+    In the expression: Control.DeepSeq.$gdmrnf
+    In an equation for ‘rnf’: rnf = Control.DeepSeq.$gdmrnf
+    In the instance declaration for ‘NFData Foo’
+}}}
+
+The easiest way make code work again with `deepseq-1.4.0.0` which was relying on the pre-1.4 default method implementation of `rnf` is to explicitly define `rnf` like so
+
+{{{#!hs
+instance NFData Foo where rnf x = seq x ()
+}}}
+
+instead of relying on the default method implementation.
+
+For more details (and how to use the new facilities) see Haddock documentation of hackage:deepseq
+
+=== `integer-gmp-1.0.0.0`
+
+The internal representation for `Integer`s has changed. Code only referencing the `S#` constructor should not be affected. The `J#` constructor however has been replaced by two new `Jp#` and `Jn#` constructors (see below).
+
+Old representation:
+
+{{{#!hs
+data Integer
+   = S# Int#            -- ^ \"small\" integers fitting into an 'Int#'
+   | J# Int# ByteArray# -- ^ \"big\" integers (legal to be used to represent 'Int#'-range)
+}}}
+
+New representation:
+
+{{{#!hs
+data Integer 
+  = S# Int#      -- ^ iff value in @[minBound::'Int', maxBound::'Int']@ range
+  | Jp# !BigNat  -- ^ iff value in @]maxBound::'Int', +inf[@ range
+  | Jn# !BigNat  -- ^ iff value in @]-inf, minBound::'Int'[@ range
+}}}
+
+Please note that the new representation is now '''stricter regarding internal invariants''' (note the if-and-only-ifs `iff`s in the comments above). For more details, see
+
+ - wiki:Design/IntegerGmp2 and
+ - [hackage:integer-gmp-1.0.0.0/docs/GHC-Integer-GMP-Internals.html GHC.Integer.GMP.Internals's Haddock]
+
+=== `template-haskell-2.10.0.0`
+
+There are a number of API changes in this release of Template Haskell.
+
+* The `Pred` type (recall `type Cxt = [Pred]`) is now a synonym of `Type`, to allow TH to work with the `ConstraintKinds` extension. There is thus a new `EqualityT` constructor of `Type` that represents `~`. The `classP` and `equalP` functions from `TH.Lib` remain, but are deprecated.
+
+* There are two new `Dec` forms: `StandaloneDerivD` and `DefaultSigD`. Check the relevant documentation for more details.
+
+=== `time-1.5.0.1`
+
+The major breaking change in hackage:time-1.5.0.1 is not requiring `old-locale` anymore and providing its own locale-type. 
+
+See https://github.com/bos/aeson/commit/730a8c42b75f38e241da39933b03735a7c905538 for an example how to make code compatible with both, `time < 1.5` and `time >= 1.5`, or use http://hackage.haskell.org/package/time-locale-compat.
+
+=== `array-0.5.1.0`
+
+In 0.5.0.0, one could derive Data.Array.Unboxed instances for newtype Int's, Word64's etc.:
+
+{{{#!hs
+newtype N = MkN Word64
+  deriving (IArray UArray)
+}}}
+
+After https://ghc.haskell.org/trac/ghc/ticket/9220 changed the UArray role to nominal, one has to manually create instances (see http://stackoverflow.com/a/40988667/69663 for an example).
