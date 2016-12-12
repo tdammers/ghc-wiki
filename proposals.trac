@@ -1,0 +1,3 @@
+= Proposing changes in GHC =
+
+As of December 2016 GHC has a semi-formal process for considering user-facing changes to the compiler and its core libraries (specifically those falling outside of the purview of the [[http://www.haskell.org/haskellwiki/Core_Libraries_Committee|Core Libraries Committee]]. The proposals are tracked in the `ghc-proposals` [[http://github.com/ghc-proposals/ghc-proposals|Github repository]]. See the [[https://github.com/ghc-proposals/ghc-proposals/blob/master/README.rst|readme]] for details.
