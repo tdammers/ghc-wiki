@@ -1,0 +1,181 @@
+
+Error messages from GHC could cooperate better with external tooling, like for example `haskell-mode` in Emacs. 
+
+
+
+Rules
+
+
+- Prefix all error/warning messages with FILE:LINE:COL: or FILE:RANGE: starting in the first column
+- Lines that are starting with whitespace are a continuation of previous message
+- Warning/error messages may be followed by one or more `note` messages
+- Quote at most one line of source code
+- Mark starting point of error with caret (\\<sup>), extend with tildas (\\\~), but not longer than over one line
+  </sup>
+- Never print code from AST that was read from file
+- Try to keep code synthesized by GHC short
+
+
+Examples
+
+
+
+Current:
+
+
+```wiki
+MonadFailErrors.hs:16:5: error:
+    • Could not deduce (MonadFail m)
+        arising from a do statement
+        with the failable pattern ‘Just x’
+      from the context: Monad m
+        bound by the type signature for:
+                   general :: Monad m => m a
+        at MonadFailErrors.hs:14:1-25
+      Possible fix:
+        add (MonadFail m) to the context of
+          the type signature for:
+            general :: Monad m => m a
+    • In a stmt of a 'do' block: Just x <- undefined
+      In the expression:
+        do Just x <- undefined
+           undefined
+      In an equation for ‘general’:
+          general
+            = do Just x <- undefined
+                 undefined
+```
+
+
+Note the following issues with the above error message:
+
+
+- Long message does not conveniently fit in rather small error message windows in editors
+- Newcomers are intimidated just by the length of the mssage
+- For experts most of the information is redundant
+- Location info `at MonadFailErrors.hs:14:1-25` is not recognized by editors
+- Block of text starting from `In a stmt...` does not visually match anything on screen
+- Possible fix has little value for newcomers as they usually make unpredicable errors
+- Possible fix has little value for experts as they already know about `MonadFail`
+
+
+Proposed better formulation:
+
+
+```wiki
+MonadFailErrors.hs:16:5: error: Could not deduce (MonadFail m) for the failable pattern
+     Just x <- undefined
+     ^~~~~~
+MonadFailErrors.hs:14:1-25: note: do block begins here
+```
+
+
+Note how the above error message takes care of most issues with original message:
+
+
+- Message is short, it can fit on a single line
+- Message is easy to google and we expect stackoverflow to have a good discussion around causes of such messages
+- Message quotes directly from source code, only one line, pinpoints exact location
+- Additional info (note) is given in a machine readable format, prefixed with location
+- The part (MonadFail m) is synthesized by compiler and this is the only part where source code is pretty printed
+- Experts can esily navigate many such error messages on a single screen
+- Newcomers can easily google first line of the message and find discussion about it
+
+
+Other example:
+
+
+
+Current:
+
+
+```wiki
+FailDueToGivenOverlapping.hs:27:9: error:
+    • Overlapping instances for E [a0] arising from a use of ‘eop’
+      Matching givens (or their superclasses):
+        E [Int]
+          bound by the type signature for:
+                     bar :: E [Int] => () -> ()
+          at FailDueToGivenOverlapping.hs:26:1-26
+      Matching instances:
+        instance E [a] -- Defined at FailDueToGivenOverlapping.hs:21:10
+      (The choice depends on the instantiation of ‘a0’)
+    • In the expression: eop [undefined]
+      In an equation for ‘bar’: bar _ = eop [undefined]
+```
+
+
+Proposed:
+
+
+```wiki
+FailDueToGivenOverlapping.hs:27:9: error:
+   Overlapping instances for E [a0] arising from a use of ‘eop’
+      (The choice depends on the instantiation of ‘a0’)
+ bar _ = eop [undefined]
+         ^~~
+      Matching givens (or their superclasses):
+        E [Int]
+FailDueToGivenOverlapping.hs:26:1-26: note: bound by the type signature for bar
+      Matching instances:
+FailDueToGivenOverlapping.hs:21:10:        instance E [a]
+```
+
+
+Current:
+
+
+```wiki
+FrozenErrorTests.hs:26:9: error:
+    • Occurs check: cannot construct the infinite type: a ~ [a]
+        arising from a use of ‘goo1’
+    • In the expression: goo1 False undefined
+      In an equation for ‘test1’: test1 = goo1 False undefined
+    • Relevant bindings include
+        test1 :: a (bound at FrozenErrorTests.hs:26:1)
+```
+
+
+Proposed:
+
+
+```wiki
+FrozenErrorTests.hs:26:9: error: Occurs check: cannot construct the infinite type: a ~ [a]
+ test1 = goo1 False undefined
+         ^~~~
+FrozenErrorTests.hs:26:1: note: relevant binding test1
+```
+
+
+Why is it better:
+
+
+- Shorter
+- Does not pretty-print code, points to it
+- Googlable
+- Points to relevant information in other parts of code in machine friendly way
+
+
+Current:
+
+
+```wiki
+T10836.hs:5:5: error:
+    Type family equations violate injectivity annotation:
+      Foo Int = Int -- Defined at T10836.hs:5:5
+      Foo Bool = Int -- Defined at T10836.hs:6:5
+    In the equations for closed type family ‘Foo’
+    In the type family declaration for ‘Foo’
+```
+
+
+Better:
+
+
+```wiki
+T10836.hs:5:5: error:
+     Foo Int  = Int
+     ^~~~~~~        
+    Type family equations violate injectivity annotation:
+T10836.hs:6:5: note: other violating declaration
+```
