@@ -6,7 +6,7 @@ Probably the most important phase in the frontend is the type checker, which is 
 
 
 
-GHC defines the abstract syntax of Haskell programs in [compiler/hsSyn/HsSyn.hs](/trac/ghc/browser/ghc/compiler/hsSyn/HsSyn.hs) using a structure that abstracts over the concrete representation of bound occurences of identifiers and patterns. The module [compiler/typecheck/TcHsSyn.hs](/trac/ghc/browser/ghc/compiler/typecheck/TcHsSyn.hs) defines a number of helper function required by the type checker. Note that the type [compiler/typecheck/TcRnTypes.hs](/trac/ghc/browser/ghc/compiler/typecheck/TcRnTypes.hs).`TcId` used to represent identifiers in some signatures during type checking is, in fact, nothing but a synonym for a [plain Id](commentary/compiler/entity-types#ype-variables-and-term-variables).
+GHC defines the abstract syntax of Haskell programs in [compiler/hsSyn/HsSyn.hs](/trac/ghc/browser/ghc/compiler/hsSyn/HsSyn.hs) using a structure that abstracts over the concrete representation of bound occurences of identifiers and patterns. The module [compiler/typecheck/TcHsSyn.hs](/trac/ghc/browser/ghc/compiler/typecheck/TcHsSyn.hs) defines a number of helper function required by the type checker. Note that the type [compiler/typecheck/TcRnTypes.hs](/trac/ghc/browser/ghc/compiler/typecheck/TcRnTypes.hs).`TcId` used to represent identifiers in some signatures during type checking is, in fact, nothing but a synonym for a [plain Id](commentary/compiler/entity-types#type-variables-and-term-variables).
 
 
 
@@ -153,7 +153,7 @@ Expressions are type checked by [compiler/typecheck/TcExpr.hs](/trac/ghc/browser
 
 
 
-Usage occurences of identifiers are processed by the function tcId whose main purpose is to [instantiate overloaded identifiers](commentary/compiler/type-checker#andling-of-dictionaries-and-method-instances). It essentially calls `TcInst.instOverloadedFun` once for each universally quantified set of type constraints. It should be noted that overloaded identifiers are replaced by new names that are first defined in the LIE (Local Instance Environment?) and later promoted into top-level bindings.
+Usage occurences of identifiers are processed by the function tcId whose main purpose is to [instantiate overloaded identifiers](commentary/compiler/type-checker#handling-of-dictionaries-and-method-instances). It essentially calls `TcInst.instOverloadedFun` once for each universally quantified set of type constraints. It should be noted that overloaded identifiers are replaced by new names that are first defined in the LIE (Local Instance Environment?) and later promoted into top-level bindings.
 
 
 ### Handling of Dictionaries and Method Instances
