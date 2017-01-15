@@ -86,7 +86,7 @@ Source files:
 - Windows: [rts/win32/ConsoleHandler.h](/trac/ghc/browser/ghc/rts/win32/ConsoleHandler.h), [rts/win32/ConsoleHandler.c](/trac/ghc/browser/ghc/rts/win32/ConsoleHandler.c)
 
 
-A Haskell program can ask to install signal handlers, via the `System.Posix.Signals` API, or `GHC.ConsoleHandler` on Windows.  When a signal arrives that has a Haskell handler, it is the job of the runtime to create a new Haskell thread to run the signal handler and place the new thread on the run queue of a suitable [Capability](commentary/rts/scheduler#apabilities).
+A Haskell program can ask to install signal handlers, via the `System.Posix.Signals` API, or `GHC.ConsoleHandler` on Windows.  When a signal arrives that has a Haskell handler, it is the job of the runtime to create a new Haskell thread to run the signal handler and place the new thread on the run queue of a suitable [Capability](commentary/rts/scheduler#capabilities).
 
 
 
