@@ -1,0 +1,12 @@
+
+
+= The user manual =
+
+GHC's user manual contains documentation intended for users of GHC.  They are not interested in how GHC works; they just want to use it.
+
+The user manual is held in [[GhcFile(docs/users_guide)]], and is written in !ReStructuredText format (`.rst` files).  This allows us to typeset it as HTML pages, or as LaTeX.
+The user manual is rendered like [https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/ this page].
+
+See also the [wiki:Building/Docs notes on building the documentation].
+
+See the [https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/editing-guide.html "Care and feeding of your GHC User's Guide"] section for conventions and a basic introduction to ReST.
