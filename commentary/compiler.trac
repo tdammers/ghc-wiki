@@ -1,0 +1,76 @@
+
+
+= GHC Commentary: The Compiler =
+
+The compiler itself is written entirely in Haskell, and lives in the many sub-directories of the [[GhcFile(compiler)]] directory.  
+
+ * [wiki:ModuleDependencies Compiler Module Dependencies] (deals with the arcane mutual recursions among GHC's many data types)
+ * [wiki:Commentary/CodingStyle Coding guidelines]
+
+ * [wiki:Commentary/Compiler/CommandLineArgs Command line arguments] 
+ * [wiki:Commentary/Pipeline The compilation pipeline]
+
+ * '''Compiling one module: !HscMain'''
+   * [wiki:Commentary/Compiler/HscMain Overview] gives the big picture. 
+   * Some details of the [wiki:Commentary/Compiler/Parser parser]
+   * Some details of the [wiki:Commentary/Compiler/Renamer renamer]
+   * Some details of the [wiki:Commentary/Compiler/TypeChecker typechecker]
+   * Some details of the [wiki:Commentary/Compiler/Core2CorePipeline simplifier]
+   * Some details of the [wiki:Commentary/Compiler/CodeGen code generator] converts STG to Cmm
+   * [wiki:Commentary/Compiler/Backends Backends] convert Cmm to native code:
+     * [wiki:Commentary/Compiler/Backends/PprC C code generator]
+     * [wiki:Commentary/Compiler/Backends/NCG Native code generator]
+     * [wiki:Commentary/Compiler/Backends/LLVM LLVM backend]
+     * [wiki:Commentary/Compiler/Backends/GHCi GHCi backend]
+   * A guide to the [wiki:Commentary/Compiler/GeneratedCode generated assembly code]
+
+ * [wiki:Commentary/Compiler/KeyDataTypes Key data types]
+   * [wiki:Commentary/Compiler/HsSynType The source language: HsSyn] 
+   * [wiki:Commentary/Compiler/RdrNameType RdrNames, Modules, and OccNames]
+   * [wiki:Commentary/Compiler/ModuleTypes ModIface, ModDetails, ModGuts]
+   * [wiki:Commentary/Compiler/NameType Names]
+   * [wiki:Commentary/Compiler/EntityTypes Entities]: variables (Var), type constructors (TyCon), data constructors (DataCon), and classes (Class).
+     * [wiki:Commentary/Compiler/TyingTheKnot Tying the knot]: how we build the circular data structure representing entities
+   * Types: 
+     * [wiki:Commentary/Compiler/TypeType Types]
+     * [wiki:Commentary/Compiler/Kinds Kinds]
+     * [wiki:Commentary/Compiler/FC Equality types and coercions]
+   * [wiki:Commentary/Compiler/CoreSynType The core language]
+   * [wiki:Commentary/Compiler/StgSynType The STG language]
+   * [wiki:Commentary/Compiler/CmmType The Cmm language]
+   * [wiki:Commentary/Compiler/BackEndTypes Back end types]
+ 
+ * [wiki:Commentary/Compiler/Driver Compiling more than one module at once]
+ * [wiki:Commentary/Compiler/DataTypes How data type declarations are compiled]
+ * [wiki:Commentary/Compiler/API The GHC API]
+ * [wiki:Commentary/Compiler/SymbolNames Symbol names and the Z-encoding]
+ * [wiki:TemplateHaskell/Conversions Template Haskell]
+ * [wiki:Commentary/Compiler/WiredIn Wired-in and known-key things]
+ * [wiki:Commentary/Compiler/Packages Packages]
+ * [wiki:Commentary/Compiler/RecompilationAvoidance Recompilation Avoidance]
+
+Case studies:
+
+ * [wiki:Commentary/Compiler/CaseStudies/Bool Implementation of wired-in Bool data type]
+
+== Overall Structure ==
+
+Here is a block diagram of its top-level structure:
+
+[[Image(ghc-top.png)]]
+
+The part called [wiki:Commentary/Compiler/HscMain HscMain] deals with compiling a single module.  On top of this is built the '''compilation manager''' (in blue) that manages the compilation of multiple modules.  It exports an interface called the '''GHC API'''.  On top of this API are four small front ends:
+
+ * GHCi, the interactive environment, is implemented in [[GhcFile(ghc/GHCi/UI.hs)]] and [[GhcFile(compiler/main/InteractiveEval.hs)]]. It sits squarely on top of the GHC API.
+ 
+ * {{{--make}}} is almost a trivial client of the GHC API, and is implemented in [[GhcFile(compiler/main/GhcMake.hs)]]. 
+
+ * {{{-M}}}, the Makefile dependency generator, is also a client of the GHC API and is implemented in [[GhcFile(compiler/main/DriverMkDepend.hs)]]. 
+
+ * The "one-shot" mode, where GHC compiles each file on the command line separately (eg. {{{ghc -c Foo.hs}}}). This mode bypasses the GHC API, and is implemented
+   directly on top of [wiki:Commentary/Compiler/HscMain HscMain], since it compiles only one file at a time. In fact, this is all that   
+   GHC consisted of prior to version 5.00 when GHCi and `--make` were introduced.
+
+GHC is packaged as a single binary in which all of these front-ends are present, selected by the command-line flags indicated above.  There is a single command-line interface implemented in [[GhcFile(ghc/Main.hs)]].
+
+In addition, GHC is compiled, without its front ends, as a ''library'' which can be imported by any Haskell program; see [wiki:Commentary/Compiler/API the GHC API].
