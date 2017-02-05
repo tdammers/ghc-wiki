@@ -23,35 +23,35 @@ Register Transfer Language (RTL)](http://gcc.gnu.org/onlinedocs/gccint/RTL.html)
 # Table of Contents
 
 
-1. [Additions in Cmm](commentary/compiler/cmm-type#dditions-in-cmm)
-1. [Compiling Cmm with GHC](commentary/compiler/cmm-type#ompiling-cmm-with-ghc)
-1. [Basic Cmm](commentary/compiler/cmm-type#asic-cmm)
+1. [Additions in Cmm](commentary/compiler/cmm-type#additions-in-cmm)
+1. [Compiling Cmm with GHC](commentary/compiler/cmm-type#compiling-cmm-with-ghc)
+1. [Basic Cmm](commentary/compiler/cmm-type#basic-cmm)
 
-  1. [Code Blocks in Cmm](commentary/compiler/cmm-type#ode-blocks-in-cmm)
+  1. [Code Blocks in Cmm](commentary/compiler/cmm-type#code-blocks-in-cmm)
 
-    - [Basic Blocks and Procedures](commentary/compiler/cmm-type#asic-blocks-and-procedures)
-  1. [Variables, Registers and Types](commentary/compiler/cmm-type#ariables,-registers-and-types)
+    - [Basic Blocks and Procedures](commentary/compiler/cmm-type#basic-blocks-and-procedures)
+  1. [Variables, Registers and Types](commentary/compiler/cmm-type#variables,-registers-and-types)
 
-    1. [Local Registers](commentary/compiler/cmm-type#ocal-registers)
-    1. [Global Registers and Hints](commentary/compiler/cmm-type#lobal-registers-and-hints)
-    1. [Declaration and Initialisation](commentary/compiler/cmm-type#eclaration-and-initialisation)
-    1. [Memory Access](commentary/compiler/cmm-type#emory-access)
-  1. [Literals and Labels](commentary/compiler/cmm-type#iterals-and-labels)
+    1. [Local Registers](commentary/compiler/cmm-type#local-registers)
+    1. [Global Registers and Hints](commentary/compiler/cmm-type#global-registers-and-hints)
+    1. [Declaration and Initialisation](commentary/compiler/cmm-type#declaration-and-initialisation)
+    1. [Memory Access](commentary/compiler/cmm-type#memory-access)
+  1. [Literals and Labels](commentary/compiler/cmm-type#literals-and-labels)
 
-    - [Labels](commentary/compiler/cmm-type#abels)
-  1. [Sections and Directives](commentary/compiler/cmm-type#ections-and-directives)
+    - [Labels](commentary/compiler/cmm-type#labels)
+  1. [Sections and Directives](commentary/compiler/cmm-type#sections-and-directives)
 
-    - [Target Directive](commentary/compiler/cmm-type#arget-directive)
-  1. [Expressions](commentary/compiler/cmm-type#xpressions)
+    - [Target Directive](commentary/compiler/cmm-type#target-directive)
+  1. [Expressions](commentary/compiler/cmm-type#expressions)
 
-    - [Quasi-operator Syntax](commentary/compiler/cmm-type#uasi-operator-syntax)
-  1. [Statements and Calls](commentary/compiler/cmm-type#tatements-and-calls)
+    - [Quasi-operator Syntax](commentary/compiler/cmm-type#quasi-operator-syntax)
+  1. [Statements and Calls](commentary/compiler/cmm-type#statements-and-calls)
 
-    - [Cmm Calls](commentary/compiler/cmm-type#mm-calls)
-  1. [Operators and Primitive Operations](commentary/compiler/cmm-type#perators-and-primitive-operations)
+    - [Cmm Calls](commentary/compiler/cmm-type#cmm-calls)
+  1. [Operators and Primitive Operations](commentary/compiler/cmm-type#operators-and-primitive-operations)
 
-    1. [Operators](commentary/compiler/cmm-type#perators)
-    1. [Primitive Operations](commentary/compiler/cmm-type#rimitive-operations)
+    1. [Operators](commentary/compiler/cmm-type#operators)
+    1. [Primitive Operations](commentary/compiler/cmm-type#primitive-operations)
 1. [Cmm Design: Observations and Areas for Potential Improvement](commentary/compiler/cmm-type#)
 
 # The Cmm language
@@ -59,7 +59,7 @@ Register Transfer Language (RTL)](http://gcc.gnu.org/onlinedocs/gccint/RTL.html)
 
 
 `Cmm` is the GHC implementation of the `C--` language; it is also the extension of Cmm source code files: `.cmm` (see [What the hell is a .cmm file?](commentary/rts/cmm)).  The GHC [Code Generator](commentary/compiler/code-gen) (`CodeGen`) compiles the STG program into `C--` code, represented by the `Cmm` data type.  This data type follows the [
-definition of \`C--\`](http://www.cminusminus.org/) pretty closely but there are some remarkable differences.  For a discussion of the Cmm implementation noting most of those differences, see the [Basic Cmm](commentary/compiler/cmm-type#asic-cmm) section, below.
+definition of \`C--\`](http://www.cminusminus.org/) pretty closely but there are some remarkable differences.  For a discussion of the Cmm implementation noting most of those differences, see the [Basic Cmm](commentary/compiler/cmm-type#basic-cmm) section, below.
 
 
 - [compiler/cmm/Cmm.hs](/trac/ghc/browser/ghc/compiler/cmm/Cmm.hs): the main data type definition.
@@ -92,7 +92,7 @@ The \[R2\] part is the (set of) register(s) that you need to save over the call.
 
 
 
-Other additions to C-- are noted throughout the [Basic Cmm](commentary/compiler/cmm-type#asic-cmm) section, below.
+Other additions to C-- are noted throughout the [Basic Cmm](commentary/compiler/cmm-type#basic-cmm) section, below.
 
 
 ## Compiling Cmm with GHC
@@ -142,7 +142,7 @@ __stginit_Main_() {	// parse error `('
 ```
 
 
-The Cmm procedure names in [rts/PrimOps.cmm](/trac/ghc/browser/ghc/rts/PrimOps.cmm) are not followed by a (possibly empty) parenthetical list of arguments; all their arguments are Global (STG) Registers, anyway, see [Variables, Registers and Types](commentary/compiler/cmm-type#ariables,-registers-and-types), below.  Don't be confused by the procedure definitions in other handwritten `.cmm` files in the RTS, such as [rts/Apply.cmm](/trac/ghc/browser/ghc/rts/Apply.cmm): all-uppercase procedure invocations are special reserved tokens in [compiler/cmm/CmmLex.x](/trac/ghc/browser/ghc/compiler/cmm/CmmLex.x) and [compiler/cmm/CmmParse.y](/trac/ghc/browser/ghc/compiler/cmm/CmmParse.y).  For example, `INFO_TABLE` is parsed as one of the tokens in the Alex `info` predicate:
+The Cmm procedure names in [rts/PrimOps.cmm](/trac/ghc/browser/ghc/rts/PrimOps.cmm) are not followed by a (possibly empty) parenthetical list of arguments; all their arguments are Global (STG) Registers, anyway, see [Variables, Registers and Types](commentary/compiler/cmm-type#variables,-registers-and-types), below.  Don't be confused by the procedure definitions in other handwritten `.cmm` files in the RTS, such as [rts/Apply.cmm](/trac/ghc/browser/ghc/rts/Apply.cmm): all-uppercase procedure invocations are special reserved tokens in [compiler/cmm/CmmLex.x](/trac/ghc/browser/ghc/compiler/cmm/CmmLex.x) and [compiler/cmm/CmmParse.y](/trac/ghc/browser/ghc/compiler/cmm/CmmParse.y).  For example, `INFO_TABLE` is parsed as one of the tokens in the Alex `info` predicate:
 
 
 ```wiki
@@ -236,7 +236,7 @@ The Haskell representation of Cmm separates contiguous code into:
 - *basic blocks*
 
 
-Cmm modules contain static data elements (see [Literals and Labels](commentary/compiler/cmm-type#iterals-and-labels)) and [Basic Blocks](commentary/compiler/cmm-type#), collected together in `Cmm`, a type synonym for `GenCmm`, defined in [compiler/cmm/Cmm.hs](/trac/ghc/browser/ghc/compiler/cmm/Cmm.hs):
+Cmm modules contain static data elements (see [Literals and Labels](commentary/compiler/cmm-type#literals-and-labels)) and [Basic Blocks](commentary/compiler/cmm-type#), collected together in `Cmm`, a type synonym for `GenCmm`, defined in [compiler/cmm/Cmm.hs](/trac/ghc/browser/ghc/compiler/cmm/Cmm.hs):
 
 
 ```
@@ -268,13 +268,13 @@ type CmmTop = GenCmmTop CmmStatic CmmStmt
 
 
 
-`CmmStmt` is described in [Statements and Calls](commentary/compiler/cmm-type#tatements-and-calls);
+`CmmStmt` is described in [Statements and Calls](commentary/compiler/cmm-type#statements-and-calls);
 
-`Section` is described in [Sections and Directives](commentary/compiler/cmm-type#ections-and-directives);
+`Section` is described in [Sections and Directives](commentary/compiler/cmm-type#sections-and-directives);
 
 the static data in `[d]` is \[`CmmStatic`\] from the type synonym `Cmm`;
 
-`CmmStatic` is described in [Literals and Labels](commentary/compiler/cmm-type#iterals-and-labels).
+`CmmStatic` is described in [Literals and Labels](commentary/compiler/cmm-type#literals-and-labels).
 
 
 #### Basic Blocks and Procedures
@@ -291,11 +291,11 @@ Cmm procedures are represented by the first constructor in `GenCmmTop d i`:
 
 
 
-For a description of Cmm labels and the `CLabel` data type, see the subsection [Literals and Labels](commentary/compiler/cmm-type#iterals-and-labels), below.
+For a description of Cmm labels and the `CLabel` data type, see the subsection [Literals and Labels](commentary/compiler/cmm-type#literals-and-labels), below.
 
 
 
-Cmm Basic Blocks are labeled blocks of Cmm code ending in an explicit jump.  Sections (see [Sections and Directives](commentary/compiler/cmm-type#ections-and-directives)) have no jumps--in Cmm, Sections cannot contain nested Procedures (see, e.g., [Compiling Cmm with GHC](commentary/compiler/cmm-type#ompiling-cmm-with-ghc)).  Basic Blocks encapsulate parts of Procedures.  The data type `GenBasicBlock` and the type synonym `CmmBasicBlock` encapsulate Basic Blocks; they are defined in [compiler/cmm/Cmm.hs](/trac/ghc/browser/ghc/compiler/cmm/Cmm.hs):
+Cmm Basic Blocks are labeled blocks of Cmm code ending in an explicit jump.  Sections (see [Sections and Directives](commentary/compiler/cmm-type#sections-and-directives)) have no jumps--in Cmm, Sections cannot contain nested Procedures (see, e.g., [Compiling Cmm with GHC](commentary/compiler/cmm-type#compiling-cmm-with-ghc)).  Basic Blocks encapsulate parts of Procedures.  The data type `GenBasicBlock` and the type synonym `CmmBasicBlock` encapsulate Basic Blocks; they are defined in [compiler/cmm/Cmm.hs](/trac/ghc/browser/ghc/compiler/cmm/Cmm.hs):
 
 
 ```
@@ -317,8 +317,8 @@ The `BlockId` data type simply carries a `Unique` with each Basic Block.  For de
 
 
 - the [Renamer](commentary/compiler/renamer) page;
-- the [Known Key Things](commentary/compiler/wired-in#nown-key-things) section of the [Wired-in and Known Key Things](commentary/compiler/wired-in) page; and, 
-- the [Type variables and term variables](commentary/compiler/entity-types#ype-variables-and-term-variables) section of the [Entity Types](commentary/compiler/entity-types) page.
+- the [Known Key Things](commentary/compiler/wired-in#known-key-things) section of the [Wired-in and Known Key Things](commentary/compiler/wired-in) page; and, 
+- the [Type variables and term variables](commentary/compiler/entity-types#type-variables-and-term-variables) section of the [Entity Types](commentary/compiler/entity-types) page.
 
 ### Variables, Registers and Types
 
@@ -355,7 +355,7 @@ data LocalReg
 
 
 
-For a list of references with information on `Unique`, see the [Basic Blocks and Procedures](commentary/compiler/cmm-type#asic-blocks-and-procedures) section, above.
+For a list of references with information on `Unique`, see the [Basic Blocks and Procedures](commentary/compiler/cmm-type#basic-blocks-and-procedures) section, above.
 
 
 
@@ -419,8 +419,8 @@ There is currently no register for floating point vectors, such as `F128`.  The 
 **Note**: Even Cmm types that are not explicit variables (Cmm literals and results of Cmm expressions) have implicit `MachRep`s, in the same way as you would use temporary registers to hold labelled constants or intermediate values in assembler functions.  See:
 
 
-- [Literals and Labels](commentary/compiler/cmm-type#iterals-and-labels) for information related to the Cmm literals `CmmInt` and `CmmFloat`; and,
-- [Expressions](commentary/compiler/cmm-type#xpressions), regarding the `cmmExprRep` function defined in [compiler/cmm/Cmm.hs](/trac/ghc/browser/ghc/compiler/cmm/Cmm.hs).
+- [Literals and Labels](commentary/compiler/cmm-type#literals-and-labels) for information related to the Cmm literals `CmmInt` and `CmmFloat`; and,
+- [Expressions](commentary/compiler/cmm-type#expressions), regarding the `cmmExprRep` function defined in [compiler/cmm/Cmm.hs](/trac/ghc/browser/ghc/compiler/cmm/Cmm.hs).
 
 #### Global Registers and Hints
 
@@ -602,7 +602,7 @@ mov	al, [eax]  ; move value in memory at indirect address in register eax,
 ```
 
 
-The code between the brackets (`w` in `[w]`, above) is an *expression*.  See the [Expressions](commentary/compiler/cmm-type#xpressions) section.  For now, consider the similarity between the Cmm-version of indexed memory addressing syntax, here:
+The code between the brackets (`w` in `[w]`, above) is an *expression*.  See the [Expressions](commentary/compiler/cmm-type#expressions) section.  For now, consider the similarity between the Cmm-version of indexed memory addressing syntax, here:
 
 
 ```wiki
@@ -747,7 +747,7 @@ data CmmStatic
 
 
 Note the `CmmAlign` constructor: this maps to the assembler directive `.align N` to set alignment for a data item (hopefully one you remembered to label).  This is the same as the `align` directive noted in Section 4.5 of the [
-C-- specification (PDF)](http://cminusminus.org/extern/man2.pdf).  In the current implementation of Cmm the `align` directive seems superfluous because [compiler/nativeGen/PprMach.hs](/trac/ghc/browser/ghc/compiler/nativeGen/PprMach.hs) translates `Section`s to assembler with alignment directives corresponding to the target architecture (see [Sections and Directives](commentary/compiler/cmm-type#ections-and-directives), below).
+C-- specification (PDF)](http://cminusminus.org/extern/man2.pdf).  In the current implementation of Cmm the `align` directive seems superfluous because [compiler/nativeGen/PprMach.hs](/trac/ghc/browser/ghc/compiler/nativeGen/PprMach.hs) translates `Section`s to assembler with alignment directives corresponding to the target architecture (see [Sections and Directives](commentary/compiler/cmm-type#sections-and-directives), below).
 
 
 #### Labels
@@ -976,10 +976,10 @@ Expressions in Cmm follow the C-- specification.  They have:
 - one result: 
 
   - a *k*-bit value
-    --these expressions map to the `MachOp` data type, defined in [compiler/cmm/CmmMachOp.hs](/trac/ghc/browser/ghc/compiler/cmm/CmmMachOp.hs), see [Operators and Primitive Operations](commentary/compiler/cmm-type#perators-and-primitive-operations), the *k*-bit value may be:
+    --these expressions map to the `MachOp` data type, defined in [compiler/cmm/CmmMachOp.hs](/trac/ghc/browser/ghc/compiler/cmm/CmmMachOp.hs), see [Operators and Primitive Operations](commentary/compiler/cmm-type#operators-and-primitive-operations), the *k*-bit value may be:
 
     - a Cmm literal (`CmmLit`); or,
-    - a Cmm variable (`CmmReg`, see [Variables, Registers and Types](commentary/compiler/cmm-type#ariables,-registers-and-types));
+    - a Cmm variable (`CmmReg`, see [Variables, Registers and Types](commentary/compiler/cmm-type#variables,-registers-and-types));
       or, 
   - a boolean condition.
 
@@ -987,8 +987,8 @@ Expressions in Cmm follow the C-- specification.  They have:
 Cmm expressions may include 
 
 
-- a literal or a name (`CmmLit` contains both, see [Literals and Labels](commentary/compiler/cmm-type#iterals-and-labels), above);
-- a memory reference (`CmmLoad` and `CmmReg`, see [Memory Access](commentary/compiler/cmm-type#emory-access), above);
+- a literal or a name (`CmmLit` contains both, see [Literals and Labels](commentary/compiler/cmm-type#literals-and-labels), above);
+- a memory reference (`CmmLoad` and `CmmReg`, see [Memory Access](commentary/compiler/cmm-type#memory-access), above);
 - an operator (a `MachOp`, in `CmmMachOp`, below); or,
 - another expression (a `[CmmExpr]`, in `CmmMachOp`, below).
 
@@ -1032,7 +1032,7 @@ blt      Lch    ; branch instruction
 ```
 
 
-This condition mapping does have an unfortunate consequence: conditional expressions do not fold into single instructions.  In Cmm, as in C--, expressions with relational operators may evaluate to an integral (`0`, nonzero) instead of evaluating to a boolean type.  For certain cases, such as an arithmetic operation immediately followed by a comparison, extended mnemonics such as `addi.` might eliminate the comparison instruction.  See [Cmm Design: Observations and Areas for Potential Improvement](commentary/compiler/cmm-type#mm-design:-observations-and-areas-for-potential-improvement) for more discussion and potential solutions to this situation.
+This condition mapping does have an unfortunate consequence: conditional expressions do not fold into single instructions.  In Cmm, as in C--, expressions with relational operators may evaluate to an integral (`0`, nonzero) instead of evaluating to a boolean type.  For certain cases, such as an arithmetic operation immediately followed by a comparison, extended mnemonics such as `addi.` might eliminate the comparison instruction.  See [Cmm Design: Observations and Areas for Potential Improvement](commentary/compiler/cmm-type#cmm-design:-observations-and-areas-for-potential-improvement) for more discussion and potential solutions to this situation.
 
 
 
@@ -1050,7 +1050,7 @@ data BoolExpr
 
 
 
-The type `BoolExpr` maps to the `CmmCondBranch` or `CmmBranch` constructors of type `CmmStmt`, defined in [compiler/cmm/Cmm.hs](/trac/ghc/browser/ghc/compiler/cmm/Cmm.hs), see [Statements and Calls](commentary/compiler/cmm-type#tatements-and-calls).
+The type `BoolExpr` maps to the `CmmCondBranch` or `CmmBranch` constructors of type `CmmStmt`, defined in [compiler/cmm/Cmm.hs](/trac/ghc/browser/ghc/compiler/cmm/Cmm.hs), see [Statements and Calls](commentary/compiler/cmm-type#statements-and-calls).
 
 
 
@@ -1171,16 +1171,16 @@ If you read to the end of `expr` in [compiler/cmm/CmmParse.y](/trac/ghc/browser/
 1. `expr0` ``name`` `expr0`
   (just like infix-functions in Haskell);
 1. `type[ expression ]`
-  (the memory access quasi-expression described in [Memory Access](commentary/compiler/cmm-type#emory-access); the Haskell representation of this syntax is `CmmLoad CmmExpr MachRep`); 
+  (the memory access quasi-expression described in [Memory Access](commentary/compiler/cmm-type#memory-access); the Haskell representation of this syntax is `CmmLoad CmmExpr MachRep`); 
 1. `%name( exprs0 )`
-  (standard prefix form, similar to C-- *statement* syntax for procedures but with the distinguishing prefix `%`; in Cmm this is *also used as statement syntax for calls, which are really built-in procedures*, see [Cmm Calls](commentary/compiler/cmm-type#mm-calls)) 
+  (standard prefix form, similar to C-- *statement* syntax for procedures but with the distinguishing prefix `%`; in Cmm this is *also used as statement syntax for calls, which are really built-in procedures*, see [Cmm Calls](commentary/compiler/cmm-type#cmm-calls)) 
 
 
 A `expr0` may be a literal (`CmmLit`) integral, floating point, string or a `CmmReg` (the production rule `reg`: a `name` for a local register (`LocalReg`) or a `GlobalReg`).
 
 
 
-Note that the `name` in `expr0` syntax types 1. and 3. must be a known *primitive* (primitive operation), see [Operators and Primitive Operations](commentary/compiler/cmm-type#perators-and-primitive-operations).  The first and third syntax types are interchangeable:
+Note that the `name` in `expr0` syntax types 1. and 3. must be a known *primitive* (primitive operation), see [Operators and Primitive Operations](commentary/compiler/cmm-type#operators-and-primitive-operations).  The first and third syntax types are interchangeable:
 
 
 ```wiki
@@ -1235,7 +1235,7 @@ Cmm Statements generally conform to the C-- specification, with a few exceptions
 
 Cmm does not implement the C-- specification for Spans (sec. 6.1) or Continuations (sec. 6.7).
 
-Although Cmm supports primitive operations that may have side effects (see [Primitive Operations](commentary/compiler/cmm-type#rimitive-operations), below), it does not parse the syntax `%%` form mentioned in section 6.3 of the C-- specification.  Use the `%name(arg1,arg2)` expression-syntax instead.  
+Although Cmm supports primitive operations that may have side effects (see [Primitive Operations](commentary/compiler/cmm-type#primitive-operations), below), it does not parse the syntax `%%` form mentioned in section 6.3 of the C-- specification.  Use the `%name(arg1,arg2)` expression-syntax instead.  
 
 Cmm does not implement the `return` statement (C-- spec, sec. 6.8.2) but provides a set of macros that return a list of tuples of a `CgRep` and a `CmmExpr`: `[(CgRep,CmmExpr)]`.  For a description of `CgRep`, see comments in [compiler/codeGen/SMRep.lhs](/trac/ghc/browser/ghc/compiler/codeGen/SMRep.lhs).  The return macros are defined at the end of the production rule `stmtMacros` in [compiler/cmm/CmmParse.y](/trac/ghc/browser/ghc/compiler/cmm/CmmParse.y):
 
@@ -1311,14 +1311,14 @@ The computed procedure address, in this case `(bits32[x+4])`, should always be t
 
 
 
-`CmmBranch BlockId` represents an unconditional branch to another [Basic Block](commentary/compiler/cmm-type#asic-blocks-and-procedures) in the same procedure.  There are two unconditional branches in Cmm/C--:
+`CmmBranch BlockId` represents an unconditional branch to another [Basic Block](commentary/compiler/cmm-type#basic-blocks-and-procedures) in the same procedure.  There are two unconditional branches in Cmm/C--:
 
 
 1. `goto` statement; and
 1. a branch from the `else` portion of an `if-then-else` statement.
 
 
-`CmmCondBranch CmmExpr BlockId` represents a conditional branch to another [Basic Block](commentary/compiler/cmm-type#asic-blocks-and-procedures) in the same procedure.  This is the `if expr` statement where `expr` is a `CmmExpr`, used in both the unary `if` and `if-then-else` statements.  `CmmCondBranch` maps to more complex Assembler instruction sets or HC code ([compiler/cmm/PprC.hs](/trac/ghc/browser/ghc/compiler/cmm/PprC.hs)).  For assembler, labels are created for each new Basic Block.  During parsing, conditional statements map to the `BoolExpr` data type which guides the encoding of assembler instruction sets.
+`CmmCondBranch CmmExpr BlockId` represents a conditional branch to another [Basic Block](commentary/compiler/cmm-type#basic-blocks-and-procedures) in the same procedure.  This is the `if expr` statement where `expr` is a `CmmExpr`, used in both the unary `if` and `if-then-else` statements.  `CmmCondBranch` maps to more complex Assembler instruction sets or HC code ([compiler/cmm/PprC.hs](/trac/ghc/browser/ghc/compiler/cmm/PprC.hs)).  For assembler, labels are created for each new Basic Block.  During parsing, conditional statements map to the `BoolExpr` data type which guides the encoding of assembler instruction sets.
 
 
 
@@ -1329,7 +1329,7 @@ The computed procedure address, in this case `(bits32[x+4])`, should always be t
 
 
 
-Cmm calls include both calls to foreign functions and calls to Cmm quasi-operators using expression syntax (see [Quasi-operator Syntax](commentary/compiler/cmm-type#uasi-operator-syntax)). Although Cmm does not implement any of the control flow statements of C-- specification (section 6.8.1), foreign calls from Cmm are one of the most complex components of the system due to various differences between the Cmm and C calling conventions.
+Cmm calls include both calls to foreign functions and calls to Cmm quasi-operators using expression syntax (see [Quasi-operator Syntax](commentary/compiler/cmm-type#quasi-operator-syntax)). Although Cmm does not implement any of the control flow statements of C-- specification (section 6.8.1), foreign calls from Cmm are one of the most complex components of the system due to various differences between the Cmm and C calling conventions.
 
 
 
@@ -1355,7 +1355,7 @@ data CmmCallTarget
 
 
 
-`CallishMachOp` is defined in [compiler/cmm/CmmMachOp.hs](/trac/ghc/browser/ghc/compiler/cmm/CmmMachOp.hs); see, also, below [Primitive Operations](commentary/compiler/cmm-type#rimitive-operations).  `CallishMachOp`s are generally used for floating point computations (without implementing any floating point exceptions).  Here is an example of using a `CallishMachOp` (not yet implemented):
+`CallishMachOp` is defined in [compiler/cmm/CmmMachOp.hs](/trac/ghc/browser/ghc/compiler/cmm/CmmMachOp.hs); see, also, below [Primitive Operations](commentary/compiler/cmm-type#primitive-operations).  `CallishMachOp`s are generally used for floating point computations (without implementing any floating point exceptions).  Here is an example of using a `CallishMachOp` (not yet implemented):
 
 
 ```wiki
@@ -1536,7 +1536,7 @@ The C-- Language Specification mentions over 75 primitive operators.  The Specif
 1. no implementation of vector (SIMD) registers (though there is a `I128` `MachRep`)
 
 
-If a particular architecture supports it, assembler includes instructions such as mnemonics with the `.` ("dot") suffix (`add., fsub.`), which set the Condition Register (CR) thereby saving you at least one instruction.  (Extended mnemonics can save you even more.)  Extended mnemonics with side effects may be implemented as new `CallishMachOps`, see [Primitive Operations](commentary/compiler/cmm-type#rimitive-operations) and [Cmm Calls](commentary/compiler/cmm-type#mm-calls).  Assembler also supports machine exceptions, especially exceptions for floating-point operations, invalid storage access or misalignment (effective address alignment).  The current implementation of Cmm cannot model such exceptions through flow control because no flow control is implemented, see [Cmm Calls](commentary/compiler/cmm-type#mm-calls).
+If a particular architecture supports it, assembler includes instructions such as mnemonics with the `.` ("dot") suffix (`add., fsub.`), which set the Condition Register (CR) thereby saving you at least one instruction.  (Extended mnemonics can save you even more.)  Extended mnemonics with side effects may be implemented as new `CallishMachOps`, see [Primitive Operations](commentary/compiler/cmm-type#primitive-operations) and [Cmm Calls](commentary/compiler/cmm-type#cmm-calls).  Assembler also supports machine exceptions, especially exceptions for floating-point operations, invalid storage access or misalignment (effective address alignment).  The current implementation of Cmm cannot model such exceptions through flow control because no flow control is implemented, see [Cmm Calls](commentary/compiler/cmm-type#cmm-calls).
 
 
 
