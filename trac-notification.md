@@ -32,7 +32,7 @@ To receive notification mails, you can either enter a full email address or your
 
 
 
-Alternatively, a default domain name (**`smtp_default_domain`**) can be set in the [TracIni](trac-ini) file, see [Configuration Options](trac-notification#onfiguration-options) below. In this case, the default domain will be appended to the username, which can be useful for an "Intranet" kind of installation.
+Alternatively, a default domain name (**`smtp_default_domain`**) can be set in the [TracIni](trac-ini) file, see [Configuration Options](trac-notification#configuration-options) below. In this case, the default domain will be appended to the username, which can be useful for an "Intranet" kind of installation.
 
 
 
