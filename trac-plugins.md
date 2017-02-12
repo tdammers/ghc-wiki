@@ -15,7 +15,7 @@ plugin development](http://trac.edgewall.org/intertrac/TracDev/PluginDevelopment
 
 
 
-From the user's point of view, a plugin is either a standalone .py file or an .egg package. Trac looks for plugins in Python's `site-packages` directory, the [global shared](trac-ini#lobal-configuration) `plugins` directory and the [project environment](trac-environment) `plugins` directory. Components defined in globally-installed plugins must be explicitly enabled in the [ \[components\] ](trac-ini#) section of the `trac.ini` file. Components defined in the `plugins` directory of the project environment are enabled, unless explicitly disabled in the `[components]` section of the `trac.ini` file.
+From the user's point of view, a plugin is either a standalone .py file or an .egg package. Trac looks for plugins in Python's `site-packages` directory, the [global shared](trac-ini#global-configuration) `plugins` directory and the [project environment](trac-environment) `plugins` directory. Components defined in globally-installed plugins must be explicitly enabled in the [ \[components\] ](trac-ini#) section of the `trac.ini` file. Components defined in the `plugins` directory of the project environment are enabled, unless explicitly disabled in the `[components]` section of the `trac.ini` file.
 
 
 ## Requirements for Trac eggs
@@ -47,7 +47,7 @@ Plugins can also consist of a single `.py` file dropped directly into either the
 
 
 
-The instructions below are applicable to a plugin packaged as an egg. Plugins implemented as a single `py` file should be downloaded and copied to the [project environment](trac-environment) `plugins` directory or the [global shared](trac-ini#lobal-configuration) plugins directory.
+The instructions below are applicable to a plugin packaged as an egg. Plugins implemented as a single `py` file should be downloaded and copied to the [project environment](trac-environment) `plugins` directory or the [global shared](trac-ini#global-configuration) plugins directory.
 
 
 ### For a single project
@@ -123,7 +123,7 @@ You should end up with a directory having the same name as the zipped egg, compl
 
 
 
-Trac also searches for plugins installed in the shared plugins directory, see [TracIni\#GlobalConfiguration](trac-ini#lobal-configuration). This is a convenient way to share the installation of plugins across several, but not all, environments.
+Trac also searches for plugins installed in the shared plugins directory, see [TracIni\#GlobalConfiguration](trac-ini#global-configuration). This is a convenient way to share the installation of plugins across several, but not all, environments.
 
 
 #### From source
