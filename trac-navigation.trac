@@ -1,0 +1,70 @@
+= Trac Navigation
+
+The main and meta navigation entries can be customized in some basic ways. The `[mainnav]` and `[metanav]` configuration sections can be used to customize the navigation item text and link, change the ordering of the navigation items, or even disable them.
+
+=== `[mainnav]` #mainnav-bar
+`[mainnav]` corresponds to the '''main navigation bar''', the one containing entries such as ''Wiki'', ''Timeline'', ''Roadmap'', ''Browse Source'' and so on. This navigation bar is meant to access the default page of the main modules enabled in Trac that are accessible for the current user.
+
+
+** [=#Example Example] ** 
+
+In the following example we rename the link to WikiStart //Home//, and make the //View Tickets// entry link to a specific report.
+{{{#!ini
+[mainnav]
+wiki.label = Home
+tickets.href = /report/24
+}}}
+
+=== `[metanav]` #metanav-bar
+`[metanav]` corresponds to the '''meta navigation bar''', by default positioned above the main navigation bar and below the ''Search'' box. It contains the ''Login'', ''Logout'', ''!Help/Guide'' etc. entries. This navigation bar is meant to access some global information about the Trac project and the current user.
+
+There is one special entry in the  `[metanav]` section: `logout.redirect` is the page the user sees after hitting the logout button.  The ''!Help/Guide'' link is also hidden in the following example.
+[[comment(see also #Trac3808)]]
+
+** Example ** 
+
+{{{#!ini
+[metanav]
+help = disabled
+logout.redirect = wiki/Logout
+}}}
+
+
+=== URL Formats
+Possible URL formats for `.href` or `.redirect`:
+|| '''config''' || '''redirect to''' ||
+|| `wiki/Logout` || `/projects/env/wiki/Logout` ||
+|| `http://hostname/` || `http://hostname/` ||
+|| `/projects` || `/projects` ||
+
+
+=== Ordering #nav-order
+The `order` attribute specifies the order in which the navigation items are displayed. This can be particularly useful for plugins that add navigation items.
+
+Non-negative floating point values may be used for the `order` attribute. The navigation items will be arranged from left to right in increasing order. Navigation items without an `order` attribute are sorted alphabetically by name.
+
+The default values are:
+{{{#!ini
+[mainnav]
+browser.order = 4
+newticket.order = 6
+roadmap.order = 3
+search.order = 7
+tickets.order = 5
+timeline.order = 2
+wiki.order = 1
+
+[metanav]
+about.order = 5
+help.order = 4
+login.order = 1
+logout.order = 2
+prefs.order = 3
+}}}
+
+=== Context Navigation #ctxtnav-bar
+
+Note that it is still not possible to customize the '''contextual navigation bar''', ie the one usually placed below the main navigation bar.
+
+----
+See also: TracInterfaceCustomization, and the [http://trac-hacks.org/wiki/NavAddPlugin TracHacks:NavAddPlugin] or [http://trac-hacks.org/wiki/MenusPlugin TracHacks:MenusPlugin] (still needed for adding entries)
