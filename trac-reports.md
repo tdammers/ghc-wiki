@@ -93,7 +93,7 @@ Clicking on one of the report results will take you to that ticket. You can navi
 
 
 
-You can safely edit any of the tickets and continue to navigate through the results using the *Next/Previous/Back to Report* links after saving your results, but when you return to the report, there will be no hint about what has changed, as would happen if you were navigating a list of tickets obtained from a query (see [TracQuery\#NavigatingTickets](trac-query#avigating-tickets)).
+You can safely edit any of the tickets and continue to navigate through the results using the *Next/Previous/Back to Report* links after saving your results, but when you return to the report, there will be no hint about what has changed, as would happen if you were navigating a list of tickets obtained from a query (see [TracQuery\#NavigatingTickets](trac-query#navigating-tickets)).
 
 
 ## Alternative Download Formats
@@ -138,7 +138,7 @@ All reports support syndication using XML/RSS 2.0. To subscribe to an RSS feed, 
 
 
 
-**Note that you need to set up [permissions](trac-permissions#eports) in order to see the buttons for adding or editing reports.**
+**Note that you need to set up [permissions](trac-permissions#reports) in order to see the buttons for adding or editing reports.**
 
 
 
