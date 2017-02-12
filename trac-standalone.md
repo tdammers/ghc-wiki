@@ -250,7 +250,7 @@ This section describes how to use `tracd` with Apache .htpasswd files.
 >
 
 
-To create a .htpasswd file use Apache's `htpasswd` command (see [below](trac-standalone#enerating-passwords-without-apache) for a method to create these files without using Apache):
+To create a .htpasswd file use Apache's `htpasswd` command (see [below](trac-standalone#generating-passwords-without-apache) for a method to create these files without using Apache):
 
 
 ```
