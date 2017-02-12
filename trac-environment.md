@@ -28,7 +28,7 @@ $ trac-admin /path/to/myproject initenv
 ```
 
 
-`trac-admin` will ask you for the name of the project and the [database connection string](trac-environment#atabase-connection-strings).
+`trac-admin` will ask you for the name of the project and the [database connection string](trac-environment#database-connection-strings).
 
 
 ### Useful Tips
@@ -46,7 +46,7 @@ $ trac-admin /path/to/myproject initenv
 
 - Non-ascii environment paths are not supported.
 
-- [TracPlugins](trac-plugins) located in a [shared plugins folder](trac-ini#) that is defined in an [inherited configuration](trac-ini#lobal-configuration) are not loaded during creation, and hence, if they need to create extra tables for example, you'll need to [upgrade the environment](trac-upgrade#). Alternatively you can avoid the need to upgrade the environment by specifying a configuration file at the time the environment is created, using the `--config` option. See [TracAdmin\#FullCommandReference](trac-admin#) for more information.
+- [TracPlugins](trac-plugins) located in a [shared plugins folder](trac-ini#) that is defined in an [inherited configuration](trac-ini#global-configuration) are not loaded during creation, and hence, if they need to create extra tables for example, you'll need to [upgrade the environment](trac-upgrade#). Alternatively you can avoid the need to upgrade the environment by specifying a configuration file at the time the environment is created, using the `--config` option. See [TracAdmin\#FullCommandReference](trac-admin#) for more information.
 
 
 **Caveat:** don't confuse the *Trac environment directory* with the *source code repository directory*.
@@ -196,7 +196,7 @@ An environment consists of the following files and directories:
 - `plugins` - Environment-specific [plugins](trac-plugins).
 - `templates` - Custom Genshi environment-specific templates.
 
-  - `site.html` - Method to customize header, footer, and style, described in [TracInterfaceCustomization\#SiteAppearance](trac-interface-customization#ite-appearance).
+  - `site.html` - Method to customize header, footer, and style, described in [TracInterfaceCustomization\#SiteAppearance](trac-interface-customization#site-appearance).
 
 ---
 
