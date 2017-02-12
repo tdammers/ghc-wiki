@@ -251,7 +251,7 @@ Or you can uncompress the Genshi egg to resolve problems extracting from it.
 
 
 
-See corresponding section in the [TracModWSGI](trac-mod-wsgi#onfiguring-authentication) page.
+See corresponding section in the [TracModWSGI](trac-mod-wsgi#configuring-authentication) page.
 
 
 ## Advanced Configuration
