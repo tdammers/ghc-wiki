@@ -101,7 +101,7 @@ Which is displayed as:
 >
 
 
-This uses a very simple query language to specify the criteria, see [Query Language](trac-query#uery-language).
+This uses a very simple query language to specify the criteria, see [Query Language](trac-query#query-language).
 
 
 
