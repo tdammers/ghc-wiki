@@ -29,7 +29,7 @@ There are two FastCGI modules commonly available for Apache: `mod_fastcgi` and `
 
 
 
-The following sections focus on the FCGI specific setup, see also [TracModWSGI](trac-mod-wsgi#onfiguring-authentication) for configuring the authentication in Apache.
+The following sections focus on the FCGI specific setup, see also [TracModWSGI](trac-mod-wsgi#configuring-authentication) for configuring the authentication in Apache.
 
 
 
@@ -390,7 +390,7 @@ TracFaq](http://trac.edgewall.org/intertrac/TracFaq) question 2.13.
 
 
 
-Other important information like the [mapping static resources advices](trac-install#apping-static-resources) are useful for non-fastcgi specific installation aspects.
+Other important information like the [mapping static resources advices](trac-install#mapping-static-resources) are useful for non-fastcgi specific installation aspects.
 
 
 
