@@ -101,7 +101,7 @@ Repositories and repository attributes can be specified in the `[repositories]` 
 
 
 
-The main advantage of specifying repositories in `trac.ini` is that they can be inherited from a global configuration (see the [global configuration](trac-ini#lobal-configuration) section of [TracIni](trac-ini)). One drawback is that, due to limitations in the `ConfigParser` class used to parse `trac.ini`, the repository name is always all-lowercase.
+The main advantage of specifying repositories in `trac.ini` is that they can be inherited from a global configuration (see the [global configuration](trac-ini#global-configuration) section of [TracIni](trac-ini)). One drawback is that, due to limitations in the `ConfigParser` class used to parse `trac.ini`, the repository name is always all-lowercase.
 
 
 
