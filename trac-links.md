@@ -249,7 +249,7 @@ To create a link to a specific anchor in a page, use '\#':
 
 >
 >
-> [Link anchors](trac-links#ink-anchors) or [Link anchors](trac-links#ink-anchors)
+> [Link anchors](trac-links#link-anchors) or [Link anchors](trac-links#link-anchors)
 >
 >
 
@@ -568,7 +568,7 @@ Examples:
 
 
 
-See [WikiPageNames](wiki-page-names) and [quoting space in TracLinks](trac-links#uoting-space-in-traclinks) above. It is possible to create a link to a specific page revision using the syntax [WikiStart\@1](wiki-start?version=1).
+See [WikiPageNames](wiki-page-names) and [quoting space in TracLinks](trac-links#quoting-space-in-traclinks) above. It is possible to create a link to a specific page revision using the syntax [WikiStart\@1](wiki-start?version=1).
 
 
 ### Version Control related links
