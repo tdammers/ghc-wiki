@@ -139,7 +139,7 @@ Typically, there are seven steps involved in upgrading to a newer version of Tra
 
 
 
-It is not a good idea to update a running server: the server processes may have parts of the current packages cached in memory, and updating the code will likely trigger [internal errors](trac-upgrade#ipimporterror).
+It is not a good idea to update a running server: the server processes may have parts of the current packages cached in memory, and updating the code will likely trigger [internal errors](trac-upgrade#zipimporterror).
 
 
 
@@ -258,7 +258,7 @@ Trac has added functionality equivalent to the following plugins:
 
 - [ AdminEnumListPlugin](https://trac-hacks.org/wiki/AdminEnumListPlugin)
 - [
-  DateFieldPlugin](https://trac-hacks.org/wiki/DateFieldPlugin): see the **time** [custom field type](trac-tickets-custom-fields#vailable-field-types-and-options)
+  DateFieldPlugin](https://trac-hacks.org/wiki/DateFieldPlugin): see the **time** [custom field type](trac-tickets-custom-fields#available-field-types-and-options)
 - [
   GroupBasedRedirectionPlugin](https://trac-hacks.org/wiki/GroupBasedRedirectionPlugin): the default handler can set as a user preference.
 - [
@@ -296,7 +296,7 @@ permission_policies = ReadonlyWikiPolicy,
 ```
 
 
-If other permission policies are enabled, `trac.ini` will need to have `ReadonlyWikiPolicy` appended to the list of active `permission_policies`. See [TracFineGrainedPermissions\#ReadonlyWikiPolicy](trac-fine-grained-permissions#eadonlywikipolicy) for additional details on the proper ordering.
+If other permission policies are enabled, `trac.ini` will need to have `ReadonlyWikiPolicy` appended to the list of active `permission_policies`. See [TracFineGrainedPermissions\#ReadonlyWikiPolicy](trac-fine-grained-permissions#readonlywikipolicy) for additional details on the proper ordering.
 
 
 #### Upgrading from Trac 0.12 to Trac 1.0
@@ -377,7 +377,7 @@ PySqlite\#UpgradingSQLitefrom2.xto3.x](http://trac.edgewall.org/intertrac/PySqli
 
 
 [
-PySqlite](http://trac.edgewall.org/intertrac/PySqlite) 1.1.x is no longer supported. Please install 2.5.5 or later if possible, see [Trac database upgrade](trac-upgrade#rac-database-upgrade) below.
+PySqlite](http://trac.edgewall.org/intertrac/PySqlite) 1.1.x is no longer supported. Please install 2.5.5 or later if possible, see [Trac database upgrade](trac-upgrade#trac-database-upgrade) below.
 
 
 ##### Obsolete Plugins
@@ -393,11 +393,11 @@ Trac has added functionality equivalent to the following plugins:
 - [
   AnchorMacro](https://trac-hacks.org/wiki/AnchorMacro): see [WikiFormatting\#SettingAnchors](wiki-formatting#)
 - [
-  TicketChangePlugin](https://trac-hacks.org/wiki/TicketChangePlugin): see [TICKET\_EDIT\_COMMENT permission](trac-permissions#icket-system)
+  TicketChangePlugin](https://trac-hacks.org/wiki/TicketChangePlugin): see [TICKET\_EDIT\_COMMENT permission](trac-permissions#ticket-system)
 - [
   TicketDeletePlugin](https://trac-hacks.org/wiki/TicketDeletePlugin): see `tracopt.ticket.deleter`
 - [
-  SubversionLocationPlugin](https://trac-hacks.org/wiki/SubversionLocationPlugin): see [TracRepositoryAdmin\#Repositories](trac-repository-admin#epositories)
+  SubversionLocationPlugin](https://trac-hacks.org/wiki/SubversionLocationPlugin): see [TracRepositoryAdmin\#Repositories](trac-repository-admin#repositories)
 - [
   WikiCreoleRendererPlugin](https://trac-hacks.org/wiki/WikiCreoleRendererPlugin): see [
   WikiCreole](http://trac.edgewall.org/intertrac/WikiCreole)
@@ -471,7 +471,7 @@ The templating engine has changed in 0.11 to Genshi, please look at [TracInterfa
 
 
 
-If you are using custom CSS or modified templates in the `templates` directory of the [TracEnvironment](trac-environment), you will need to convert them to the Genshi way of doing things. To continue to use your style sheet, follow the instructions at [TracInterfaceCustomization\#SiteAppearance](trac-interface-customization#ite-appearance).
+If you are using custom CSS or modified templates in the `templates` directory of the [TracEnvironment](trac-environment), you will need to convert them to the Genshi way of doing things. To continue to use your style sheet, follow the instructions at [TracInterfaceCustomization\#SiteAppearance](trac-interface-customization#site-appearance).
 
 
 ##### Trac Macros, Plugins
@@ -533,7 +533,7 @@ If you are not running [CGI](trac-cgi), reload the new Trac code by restarting y
 
 
 
-Trac supports customization of its Genshi templates by placing copies of the templates in the `<env>/templates` folder of your [environment](trac-environment) or in a common location specified in the [ \[inherit\] templates\_dir](trac-ini#lobal-configuration) configuration setting. If you choose to do so, be aware that you will need to repeat your changes manually on a copy of the new templates when you upgrade to a new release of Trac (even a minor one), as the templates will likely evolve. So keep a diff around.
+Trac supports customization of its Genshi templates by placing copies of the templates in the `<env>/templates` folder of your [environment](trac-environment) or in a common location specified in the [ \[inherit\] templates\_dir](trac-ini#global-configuration) configuration setting. If you choose to do so, be aware that you will need to repeat your changes manually on a copy of the new templates when you upgrade to a new release of Trac (even a minor one), as the templates will likely evolve. So keep a diff around.
 
 
 
