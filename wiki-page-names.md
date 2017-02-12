@@ -49,7 +49,7 @@ It is possible to link to a specific *version* of a Wiki page as you would do fo
 
 
 
-You can prevent a CamelCase name from being interpreted as a [link](trac-links) by quoting it with an exclamation mark: `!CamelCase`. See [TracLinks\#EscapingLinks](trac-links#scaping-links).
+You can prevent a CamelCase name from being interpreted as a [link](trac-links) by quoting it with an exclamation mark: `!CamelCase`. See [TracLinks\#EscapingLinks](trac-links#escaping-links).
 
 
 
