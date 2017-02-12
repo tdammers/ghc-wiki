@@ -1,0 +1,33 @@
+= Accessibility Support in Trac
+
+Not every user has a graphic environment with a mouse or other pointing device. Some users rely on keyboard, alternative keyboard or voice input to navigate links and activate form controls. In a Trac session, users can use devices other than a pointing device by enabling keyboard shortcuts through the [/prefs/keybindings Keyboard Shortcuts] preferences panel.
+
+Trac supports accessibility keys for the most common operations. The access keys differ by browser and the following work for several browsers:
+ - on Linux platforms, press any of the keys listed below in combination with the `<Alt>` key
+ - on a Mac, use the `<Ctrl>` + `<Opt>` key instead
+ - on Windows, you need to hit `<Shift> + <Alt> + <Key>`. This works for the most common browsers, such as Firefox, Chrome, Safari and Internet Explorer
+
+Also see [wikipedia:Access_key#Access_in_different_browsers access in different browsers] for more details.
+
+== Global Access Keys
+
+ * `1` - WikiStart
+ * `2` - [TracTimeline Timeline]
+ * `3` - [TracRoadmap Roadmap]
+ * `4` - [TracSearch Search]
+ * `6` - [TracGuide Trac Guide / Documentation]
+ * `7` - [TracTickets New Ticket]
+ * `9` - [/about About Trac]
+ * `e` - Edit (wiki or report)
+ * `r` - Preview (wiki or ticket)
+ * `f` - Search
+
+== TracBrowser Access Keys
+
+* `j` - Select next entry
+* `k` - Select previous entry
+* `o` - Expand folder/view file
+* `<Enter>` - Expand folder/view file
+
+----
+See also: TracGuide
