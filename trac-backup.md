@@ -53,7 +53,7 @@ psql -U <user> -d <database> -f postgresql.dump
 ```
 
 
-The `<database>` option is the same as the [database connection string](trac-environment#atabase-connection-strings) in the `[trac]` `database` option of *trac.ini*.
+The `<database>` option is the same as the [database connection string](trac-environment#database-connection-strings) in the `[trac]` `database` option of *trac.ini*.
 
 
 ---
