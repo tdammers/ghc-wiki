@@ -250,11 +250,11 @@ For [TracStandalone](trac-standalone), you'll need to set up the `TRAC_ENV_INDEX
 
 
 
-The appearance of each individual Trac environment, ie instance of a project, can be customized independently of other projects, even those hosted on the same server. The recommended way is to use a `site.html` template whenever possible, see [\#SiteAppearance](trac-interface-customization#ite-appearance). Using `site.html` means changes are made to the original templates as they are rendered, and you should not normally need to redo modifications whenever Trac is upgraded. If you do make a copy of `theme.html` or any other Trac template, you need to migrate your modifiations to the newer version. If not, new Trac features or bug fixes may not work as expected.
+The appearance of each individual Trac environment, ie instance of a project, can be customized independently of other projects, even those hosted on the same server. The recommended way is to use a `site.html` template whenever possible, see [\#SiteAppearance](trac-interface-customization#site-appearance). Using `site.html` means changes are made to the original templates as they are rendered, and you should not normally need to redo modifications whenever Trac is upgraded. If you do make a copy of `theme.html` or any other Trac template, you need to migrate your modifiations to the newer version. If not, new Trac features or bug fixes may not work as expected.
 
 
 
-With that word of caution, any Trac template may be copied and customized. The default Trac templates are located inside the installed Trac egg, such as `/usr/lib/pythonVERSION/site-packages/Trac-VERSION.egg/trac/templates, ../trac/ticket/templates, ../trac/wiki/templates`. The [\#ProjectList](trac-interface-customization#roject-list) template file is called `index.html`, while the template responsible for main layout is called `theme.html`. Page assets such as images and CSS style sheets are located in the egg's `trac/htdocs` directory.
+With that word of caution, any Trac template may be copied and customized. The default Trac templates are located inside the installed Trac egg, such as `/usr/lib/pythonVERSION/site-packages/Trac-VERSION.egg/trac/templates, ../trac/ticket/templates, ../trac/wiki/templates`. The [\#ProjectList](trac-interface-customization#project-list) template file is called `index.html`, while the template responsible for main layout is called `theme.html`. Page assets such as images and CSS style sheets are located in the egg's `trac/htdocs` directory.
 
 
 
