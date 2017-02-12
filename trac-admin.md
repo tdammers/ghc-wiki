@@ -79,7 +79,7 @@ initenv [<projectname> <db> [<repostype> <repospath>]]
 
 
 It supports an extra `--inherit` option, which can be used to specify a global configuration file which can be used to share settings between several environments. You can also inherit from a shared configuration afterwards, by setting the `[inherit] file` option in the `conf/trac.ini` file in your newly created environment, but the advantage of specifying the inherited configuration file at environment creation time is that only the options *not* already specified in the global configuration file will be written in the created environment's `conf/trac.ini` file.
-See [TracIni\#GlobalConfiguration](trac-ini#lobal-configuration).
+See [TracIni\#GlobalConfiguration](trac-ini#global-configuration).
 
 
 
