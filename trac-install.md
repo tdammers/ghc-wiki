@@ -12,7 +12,7 @@ Genshi](http://genshi.edgewall.org) templating system.
 
 
 
-Trac can also be localized, and there is probably a translation available in your language. If you want to use the Trac interface in other languages, then make sure you have installed the optional package [Babel](trac-install#ther-python-packages). Pay attention to the extra steps for localization support in the [Installing Trac](trac-install#nstalling-trac) section below. Lacking Babel, you will only get the default English version.
+Trac can also be localized, and there is probably a translation available in your language. If you want to use the Trac interface in other languages, then make sure you have installed the optional package [Babel](trac-install#other-python-packages). Pay attention to the extra steps for localization support in the [Installing Trac](trac-install#installing-trac) section below. Lacking Babel, you will only get the default English version.
 
 
 
@@ -239,7 +239,7 @@ VersionControlSystem](http://trac.edgewall.org/intertrac/VersionControlSystem).
 
 
 
-A web server is optional because Trac is shipped with a server included, see the [Running the Standalone Server](trac-install#unning-the-standalone-server) section below.
+A web server is optional because Trac is shipped with a server included, see the [Running the Standalone Server](trac-install#running-the-standalone-server) section below.
 
 
 
@@ -336,7 +336,7 @@ setuptools](http://trac.edgewall.org/intertrac/wiki%3Asetuptools) page.
 
 
 
-**Setuptools Warning:** If the version of your setuptools is in the range 5.4 through 5.6, the environment variable `PKG_RESOURCES_CACHE_ZIP_MANIFESTS` must be set in order to avoid significant performance degradation. More information may be found in [Deploying Trac](trac-install#eploying-trac).
+**Setuptools Warning:** If the version of your setuptools is in the range 5.4 through 5.6, the environment variable `PKG_RESOURCES_CACHE_ZIP_MANIFESTS` must be set in order to avoid significant performance degradation. More information may be found in [Deploying Trac](trac-install#deploying-trac).
 
 
 ### Using `pip`
@@ -770,7 +770,7 @@ Please refer to one of the following sections:
 
 
 - [TracStandalone\#UsingAuthentication](trac-standalone#) if you use the standalone server, `tracd`.
-- [TracModWSGI\#ConfiguringAuthentication](trac-mod-wsgi#onfiguring-authentication) if you use the Apache web server, with any of its front end: `mod_wsgi`, `mod_python`, `mod_fcgi` or `mod_fastcgi`.
+- [TracModWSGI\#ConfiguringAuthentication](trac-mod-wsgi#configuring-authentication) if you use the Apache web server, with any of its front end: `mod_wsgi`, `mod_python`, `mod_fcgi` or `mod_fastcgi`.
 - [TracFastCgi](trac-fast-cgi) if you're using another web server with FCGI support (Cherokee, Lighttpd, LiteSpeed, nginx)
 
 
