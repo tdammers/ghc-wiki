@@ -43,7 +43,7 @@ A ticket contains the following information:
 - **Assigned to/Owner** — Principal person responsible for handling the issue.
 - **Cc** — A comma-separated list of other users or email addresses to notify. Note that this does not imply responsibility or any other policy.
 - **Resolution** — Reason for why a ticket was closed. One of `fixed`, `invalid`, `wontfix`, `duplicate`, `worksforme`.
-- **Status** — What is the current status? The statuses are defined in the [ticket workflow](trac-workflow#asic-ticket-workflow-customization). For the default workflow the statuses are `new`, `assigned`, `accepted`, `closed` and `reopened`.
+- **Status** — What is the current status? The statuses are defined in the [ticket workflow](trac-workflow#basic-ticket-workflow-customization). For the default workflow the statuses are `new`, `assigned`, `accepted`, `closed` and `reopened`.
 - **Summary** — A description summarizing the issue. Simple text without [WikiFormatting](wiki-formatting).
 - **Description** — The body of the ticket. A good description should be specific, descriptive and to the point. Accepts [WikiFormatting](wiki-formatting).
 
