@@ -30,11 +30,11 @@ permission_policies = ReadonlyWikiPolicy, DefaultPermissionPolicy, LegacyAttachm
 ```
 
 
-This lists the [\#ReadonlyWikiPolicy](trac-fine-grained-permissions#eadonlywikipolicy) which controls readonly access to wiki pages, followed by the DefaultPermissionPolicy which checks for the traditional coarse grained style permissions described in [TracPermissions](trac-permissions), and the LegacyAttachmentPolicy which knows how to use the coarse grained permissions for checking the permissions available on attachments.
+This lists the [\#ReadonlyWikiPolicy](trac-fine-grained-permissions#readonlywikipolicy) which controls readonly access to wiki pages, followed by the DefaultPermissionPolicy which checks for the traditional coarse grained style permissions described in [TracPermissions](trac-permissions), and the LegacyAttachmentPolicy which knows how to use the coarse grained permissions for checking the permissions available on attachments.
 
 
 
-Among the optional choices, there is [\#AuthzPolicy](trac-fine-grained-permissions#uthzpolicy), a very generic permission policy, based on an Authz-style system. See
+Among the optional choices, there is [\#AuthzPolicy](trac-fine-grained-permissions#authzpolicy), a very generic permission policy, based on an Authz-style system. See
 [
 authz\_policy.py](http://trac.edgewall.org/intertrac/source%3Abranches/1.0-stable/tracopt/perm/authz_policy.py) for details. 
 
@@ -419,7 +419,7 @@ The `ReadonlyWikiPolicy` returns `False` to deny modify, delete and rename actio
 
 
 
-When active, the [\#AuthzPolicy](trac-fine-grained-permissions#uthzpolicy) should therefore come before `ReadonlyWikiPolicy`, allowing it to grant or deny the actions on individual resources, which is the usual ordering for `AuthzPolicy` in the `permission_policies` list.
+When active, the [\#AuthzPolicy](trac-fine-grained-permissions#authzpolicy) should therefore come before `ReadonlyWikiPolicy`, allowing it to grant or deny the actions on individual resources, which is the usual ordering for `AuthzPolicy` in the `permission_policies` list.
 
 
 ```wiki
