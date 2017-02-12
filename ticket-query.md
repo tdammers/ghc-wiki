@@ -3,7 +3,7 @@
 
 
 The TicketQuery macro lets you display information on tickets within wiki pages.
-The query language used by the `[[TicketQuery]]` macro is described in [TracQuery](trac-query#sing-the-[[ticketquery]]-macro) page.
+The query language used by the `[[TicketQuery]]` macro is described in [TracQuery](trac-query#using-the-[[ticketquery]]-macro) page.
 
 
 ## Usage
