@@ -105,14 +105,14 @@ under CGI](http://pythonweb.org/projects/webmodules/doc/0.5.3/html_multipage/lib
 
 
 
-See [TracInstall\#MappingStaticResources](trac-install#apping-static-resources).
+See [TracInstall\#MappingStaticResources](trac-install#mapping-static-resources).
 
 
 ## Adding Authentication
 
 
 
-See [TracInstall\#ConfiguringAuthentication](trac-install#onfiguring-authentication).
+See [TracInstall\#ConfiguringAuthentication](trac-install#configuring-authentication).
 
 
 ---
