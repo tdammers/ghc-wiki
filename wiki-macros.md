@@ -33,7 +33,7 @@ Macro calls are enclosed in double-square brackets `[[..]]`. Like Python functio
 
 
 
-The list of available macros and the full help can be obtained using the MacroList macro, as seen [below](wiki-macros#vailable-macros).
+The list of available macros and the full help can be obtained using the MacroList macro, as seen [below](wiki-macros#available-macros).
 
 
 
@@ -670,7 +670,7 @@ http://trac-hacks.org/wiki/AdvParseArgsPlugin](http://trac-hacks.org/wiki/AdvPar
 
 This function is used in [WikiMacros](wiki-macros) to parse the macro arguments. This enhanced 
 version is meant as a replacement of `trac.wiki.macros.parse_args` and supports 
-several advanced options (see section [\#Parameters](wiki-macros#arameters)). The most important feature 
+several advanced options (see section [\#Parameters](wiki-macros#parameters)). The most important feature 
 is the support for quoting the delimiter, e.g. 
 '`key1=val1,key2="some,text",key3=val3`' will correctly return '`some,text`' as 
 the value of `key2`. The original `parse_args` function would return '`"some`' 
@@ -1037,7 +1037,7 @@ in the form "key=value".
 
 
 If the key is the name of a field, the value must use the syntax
-of a filter specifier as defined in [TracQuery\#QueryLanguage](trac-query#uery-language).
+of a filter specifier as defined in [TracQuery\#QueryLanguage](trac-query#query-language).
 Note that this is *not* the same as the simplified URL syntax
 used for `query:` links starting with a `?` character. Commas (`,`)
 can be included in field values by escaping them with a backslash (`\`).
