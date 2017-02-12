@@ -10,7 +10,7 @@ Trac is configured through the **`trac.ini`** file, located in the `<projectenv>
 
 
 
-Trac monitors the timestamp of the file to trigger a complete environment reload and flush its caches when the timestamp changes. Most changes to the configuration will be reflected immediately, though changes to the `[components]` or `[logging]` sections will require restarting the web server. You may also need to restart the web server after creating a [global configuration](trac-ini#lobal-configuration) file when none was previously present.
+Trac monitors the timestamp of the file to trigger a complete environment reload and flush its caches when the timestamp changes. Most changes to the configuration will be reflected immediately, though changes to the `[components]` or `[logging]` sections will require restarting the web server. You may also need to restart the web server after creating a [global configuration](trac-ini#global-configuration) file when none was previously present.
 
 
 ## Global Configuration
