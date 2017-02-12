@@ -108,7 +108,7 @@ Trac can be run on top of mod\_wsgi with the help of an application script, whic
 
 
 
-A robust and generic version of this file can be created using the `trac-admin <env> deploy <dir>` command which automatically substitutes the required paths, see [TracInstall\#cgi-bin](trac-install#). The script should be sufficient for most installations and users not wanting more information can proceed to [configuring Apache](trac-mod-wsgi#apping-requests-to-the-script).
+A robust and generic version of this file can be created using the `trac-admin <env> deploy <dir>` command which automatically substitutes the required paths, see [TracInstall\#cgi-bin](trac-install#). The script should be sufficient for most installations and users not wanting more information can proceed to [configuring Apache](trac-mod-wsgi#mapping-requests-to-the-script).
 
 
 
@@ -713,14 +713,14 @@ On Ubuntu, the WSGI mod configuration is at `/etc/apache2/mods-enabled/wsgi.conf
 
 
 
-The same issue is seen with `PythonOptimize On` in [ModPython](trac-mod-python#age-layout-issues).
+The same issue is seen with `PythonOptimize On` in [ModPython](trac-mod-python#page-layout-issues).
 
 
 ### Other resources
 
 
 
-For more troubleshooting tips, see also the [mod\_python troubleshooting](trac-mod-python#roubleshooting) section, as most Apache-related issues are quite similar, plus discussion of potential [
+For more troubleshooting tips, see also the [mod\_python troubleshooting](trac-mod-python#troubleshooting) section, as most Apache-related issues are quite similar, plus discussion of potential [
 application issues](https://code.google.com/archive/p/modwsgi/wikis/ApplicationIssues.wiki) when using mod\_wsgi. The wsgi page also has a [
 Integration With Trac](https://code.google.com/archive/p/modwsgi/wikis/IntegrationWithTrac.wiki) document.
 
