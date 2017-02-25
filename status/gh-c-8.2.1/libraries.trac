@@ -1,0 +1,212 @@
+= GHC 8.2.1 Library Status
+
+For general guidelines regarding boot library maintenance see [[WorkingConventions/BootLibraries]].
+
+=== For GHC 8.2.1 RC1
+
+A package bundled with the upcoming GHC 8.2.1 RC1 (and exposed via `ghc-pkg list`) shall either
+
+ - have its submodule point to the commit matching an existing release on Hackage, ''or''
+ - point to the commit representing the unreleased release-candidate state planned for inclusion in GHC 8.0.1
+
+In the latter case, the unreleased candidate's advertised package version number shall be distinct from any officially released package version available on Hackage, and have the appropriate version bump according to the PVP (i.e. patch-level, minor, or major) relative to previous releases.
+
+=== For GHC 8.2.1 final
+
+All `ghc-pkg`-exposed packages must match their officially released Hackage release.
+
+
+== 3rd Party Packages needing a release (candidate)
+
+GHC HQ controlled `base`/`array`/`integer-gmp`/`template-haskell`/etc. are not listed here
+
+=== `Cabal`
+
+[[Image(https://img.shields.io/hackage/v/Cabal.svg,link=hackage:Cabal)]]
+
+TODO
+
+=== `binary`
+
+[[Image(https://img.shields.io/hackage/v/binary.svg,link=hackage:binary)]]
+
+Should bundle version 0.9.0.0.
+
+
+=== `bytestring`
+
+[[Image(https://img.shields.io/hackage/v/bytestring.svg,link=hackage:bytestring)]]
+
+TODO
+
+
+=== `containers`
+
+[[Image(https://img.shields.io/hackage/v/containers.svg,link=hackage:containers)]]
+
+TODO
+
+
+=== `deepseq`
+
+[[Image(https://img.shields.io/hackage/v/deepseq.svg,link=hackage:deepseq)]]
+
+TODO
+
+
+=== `directory`
+
+[[Image(https://img.shields.io/hackage/v/directory.svg,link=hackage:directory)]]
+
+DONE: `directory-1.3.0.0` should be used.
+
+
+=== `filepath`
+
+[[Image(https://img.shields.io/hackage/v/filepath.svg,link=hackage:filepath)]]
+
+TODO
+
+
+=== `haskeline`
+
+[[Image(https://img.shields.io/hackage/v/haskeline.svg,link=hackage:haskeline)]]
+
+TODO
+
+
+=== `hoopl`
+
+[[Image(https://img.shields.io/hackage/v/hoopl.svg,link=hackage:hoopl)]]
+
+TODO
+
+
+=== `hpc`
+
+[[Image(https://img.shields.io/hackage/v/hpc.svg,link=hackage:hpc)]]
+
+TODO
+
+
+=== `pretty`
+
+[[Image(https://img.shields.io/hackage/v/pretty.svg,link=hackage:pretty)]]
+
+TODO
+
+
+=== `process`
+
+[[Image(https://img.shields.io/hackage/v/process.svg,link=hackage:process)]]
+
+TODO
+
+=== `terminfo`
+
+[[Image(https://img.shields.io/hackage/v/terminfo.svg,link=hackage:terminfo)]]
+
+TODO
+
+=== `time`
+
+[[Image(https://img.shields.io/hackage/v/time.svg,link=hackage:time)]]
+
+TODO
+
+=== `transformers`
+
+[[Image(https://img.shields.io/hackage/v/transformers.svg,link=hackage:transformers)]]
+
+TODO
+
+=== `unix`
+
+[[Image(https://img.shields.io/hackage/v/unix.svg,link=hackage:unix)]]
+
+TODO
+
+=== `Win32`
+
+[[Image(https://img.shields.io/hackage/v/Win32.svg,link=hackage:Win32)]]
+
+TODO
+
+=== `xhtml`
+
+[[Image(https://img.shields.io/hackage/v/xhtml.svg,link=hackage:xhtml)]]
+
+TODO
+
+== What's currently in GHC HEAD
+
+As of '''7.11.20151216''', `ghc-pkg list` reports (on Linux, i.e. `Win32` is missing):
+
+{{{
+    Cabal-1.23.0.0
+    array-0.5.1.0
+    base-4.9.0.0
+    binary-0.8.0.0
+    bytestring-0.10.7.0
+    containers-0.5.6.3
+    deepseq-1.4.2.0
+    directory-1.2.5.0
+    filepath-1.4.1.0
+    ghc-7.11.20151216
+    ghc-boot-0.0.0.0
+    ghc-prim-0.5.0.0
+    haskeline-0.7.2.1
+    hoopl-3.10.2.0
+    hpc-0.6.0.2
+    integer-gmp-1.0.0.0
+    pretty-1.1.3.2
+    process-1.4.1.0
+    rts-1.0
+    template-haskell-2.11.0.0
+    terminfo-0.4.0.1
+    time-1.5.0.1
+    transformers-0.5.0.0
+    unix-2.7.1.1
+    xhtml-3000.2.1
+}}}
+
+and `git submodule status` says
+
+{{{
+ 85ece0f8653e7b1e7de6024d372cfeaf36ab5fa9 .arc-linters/arcanist-external-json-linter (85ece0f)
+ ec37a68838566cb830c33cb30bfade003a306cff libffi-tarballs (remotes/origin/libffi-3.2.1)
+ a7fb9b9ae733ceb3c52fee68e6e1a6ded5fb91da libraries/Cabal (Cabal-1.22.0.0-release-2448-ga7fb9b9)
+ bb9469ece0b882017fa7f3b51e8db1d2985d6720 libraries/Win32 (v2.3.1.1)
+ 049db4ac25dd8d21b3a1bba6fe6dfab05d0e3d46 libraries/array (v0.5.1.1-1-g049db4a)
+ 38aef85a759c9a0f64e8c40042e9fa1f675a2f1a libraries/binary (0.8.3.0)
+ 84253da85952765dd7631e467cc2b1d1bba03f24 libraries/bytestring (0.10.8.1)
+ aa982fb83f2561d3b27b89b46d36ffca21e072cc libraries/containers (v0.5.7.1-13-gaa982fb)
+ cb66aa890b0972375e31deaee3bc424f46beb68a libraries/deepseq (v1.4.2.0)
+ ad2e0a110bf2ee2e2a3bd87963fa55505ca58b28 libraries/directory (v1.2.6.2)
+ 64eca669f13f4d216af9024474a3fc73ce101793 libraries/dph (2009-06-25-1150-g64eca66)
+ 07b334b406a45057a80e821e72c4b973117caae9 libraries/filepath (v1.4.1.0-4-g07b334b)
+ 8addaa2f6f4256da76bac4075316597d0b1d8f67 libraries/haskeline (0.7.2.3)
+ 67dff9a7db8e103d379068df0323bbc97452e769 libraries/hoopl (v3.10.2.1-11-g67dff9a)
+ 956887d4a15de3e68aae82b14bfa1630c8149649 libraries/hpc (v0.6.0.3-3-g956887d)
+ b01d6daa5a12c31439cdb6f75f89de8820a295a4 libraries/parallel (v3.2.1.0-6-gb01d6da)
+ 56bc78e2c2cfcc850f6fec87fe79743750d4c8b4 libraries/pretty (v1.1.3.3)
+ 1af89788d5c9ab7a0a93ff6764e1770e6c80d957 libraries/primitive (primitive-0.5.2.1-release-58-g1af8978)
+ 296cbce6294316d6534b4449fc7ab0f0d3f5775b libraries/process (v1.4.2.0)
+ c72dd0a01ae6255bead2d4fad33f002bb5684030 libraries/random (v1.1-9-gc72dd0a)
+ fe8899331e6ca7bdf80d57cf77dd597023ae4718 libraries/stm (v2.4.4.1-5-gfe88993)
+ 140ca44db6fc734cfc0388e82f9e5270f31475d8 libraries/terminfo (0.4.0.2)
+ 52e0f5e85ffbaab77b155d48720fb216021c8a73 libraries/time (time-1.6.0.1-release)
+ 10348c4bbf60debbfc82463e1035aca1cb7b51bc libraries/transformers (0_5_2_0)
+ 7b20b4cbc35a2fea3f26c988f9b2a95640babaaa libraries/unix (v2.7.2.0-8-g7b20b4c)
+ 224eccbac0125b7bd302f24063bbb473b2c2e1dc libraries/vector (0_7-253-g224eccb)
+ 45e5cb820a129780407bc37968364e4f64174f7d libraries/xhtml (3000.2.1-6-g45e5cb8)
+ bed591d4aa45c7b92a40985c72bc6b3daaa68f0d nofib (2009-06-25-243-gbed591d)
+ f4e355f7023057924161160ce75aeaaa3a8d9914 utils/haddock (haddock-2.17.1-release-50-gf4e355f)
+ f5ae016e5a69ebf42d612805e51afd9227df9389 utils/hsc2hs (v0.68-1-gf5ae016)
+
+
+}}}
+
+{{{#!box important
+The `git describe`-version reported in brackets (e.g. `(v0.5.1.0-7-g4b43c95)`) tells us whether a commit points to an annotated Git tag (and thus most likely corresponds to a released package version). Version descriptions with ah `-g[0-9a-f]+` suffix denote commits in between Git tags!
+}}}
