@@ -1,0 +1,45 @@
+= Inlining =
+
+Inlining is the most important compiler optimisation pass as it enables most other optimisation opportunities. The pass is simple, saturated names are replaced with their definitions, the details are complicated. The compiler must make judgements as to whether inlining a function will lead to further optimisations, if not then it is easy to increase the code size needlessly.
+
+== Getting Started ==
+
+* [http://research.microsoft.com/en-us/um/people/simonpj/Papers/inlining/ Secrets of the GHC inliner] -- quite an old paper but a great description of the main ideas
+* [https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html?highlight=inline#inline-and-noinline-pragmas GHC User Guide] -- Provides a description of `INLINE`, `INLINABLE` and `NOINLINE` pragmas. 
+* [http://mpickering.github.io/posts/2017-03-20-inlining-and-specialisation.html Inlining and Specialisation] -- A blog post explaining the basic operation of the inliner and specialiser and the interaction of different pragmas and options.
+
+== Generics and Inlining ==
+
+Inlining is essential to remove intermediate representations from generic programs. There are a number of papers about the topic.
+
+* [http://dreixel.net/research/pdf/ogie.pdf Optimizing Generics Is Easy! (2010)]
+* [http://michaeldadams.org/papers/syb-opt/syb-opt-2014-pepm-authors-copy.pdf Optimizing SYB Is Easy! (2014)]
+
+== Debugging the inliner ==
+
+Firstly, remember that the inliner only fires with optimisations turns on (at least `-O1`). This will save you a lot of time wondering why nothing is happening!
+
+There are several flags which are useful when working with the inliner. 
+
+||= Flag =||= Usage =||
+|| [https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/using.html?highlight=show-iface#ghc-flag---show-iface `--show-iface`] || Shows the contents of an interface file. Can be useful to check which unfoldings are being included. ||
+|| [https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/debugging.html?highlight=show-passes#ghc-flag--dshow-passes `-dshow-passes`] || Shows the size of the program after each optimisation pass. ||
+|| [https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/debugging.html?highlight=show-passes#ghc-flag--ddump-inlinings `-ddump-inlinings`] || Shows inlinings which take place ||
+|| [https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/debugging.html?highlight=show-passes#ghc-flag--ddump-simpl `-ddump-simpl`] || Dump the (core) output of the simplifer ||
+
+== Newcomer Tickets ==
+
+[[TicketQuery(status=infoneeded,status=new|patch,keywords=~Inlining newcomer)]]
+
+== Relevant Tickets ==
+
+There are lots of old relevant tickets related to inlining. Perfect for a keen newcomer!
+
+Use `Keyword` = `Inlining` to ensure that a ticket ends up on these lists.
+
+[[TicketQuery(status=infoneeded,status=new|patch,keywords=~Inlining)]]
+
+== Relevant Wiki Pages ==
+
+* Commentary/Compiler/DesugaringInstances -- About how default methods can lead to poor inliner performance due to recursion
+* Proposal/SelfExplinatoryInlinePragmas 
