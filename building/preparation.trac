@@ -1,0 +1,29 @@
+
+
+= Setting up your system for building GHC =
+
+This section describes how to set up your system with all the tools you need to build and develop GHC. Jump to the relevant section for your [wiki:Platforms platform]:
+
+{{{#!comment
+TODO. Cleanup. For some platforms the information is split between 'preparation' and 'building', for others it isn't. There are even more platform pages linked from [wiki:Platforms]. 
+
+If you think one of these pages linked from here is out-of-date, either update that page, or 
+1. remove the link here
+2. delete its content (really, all these outdated instructions are useless) and replace it with a link to a page that is up-to-date
+}}}
+
+ * [wiki:Building/Preparation/Linux Preparation Linux]
+ * [wiki:Building/Preparation/MacOSX Preparation MacOS X]
+ * [wiki:Building/Preparation/Windows Preparation Windows] ([wiki:WindowsGhc Windows support for GHC])
+ * [wiki:Building/Preparation/FreeBSD Preparation FreeBSD] ([wiki:FreeBSDGhc FreeBSD support for GHC])
+ * [wiki:Building/Preparation/Solaris Preparation Solaris] and [wiki:Building/Solaris Building under Solaris]
+ * [wiki:Building/Preparation/Illumos Illumos] (SmartOS, OpenIndiana, etc.)
+ * [wiki:Building/Preparation/RaspberryPi Raspberry Pi] (cross-compiling from Linux)
+ * [wiki:Building/Preparation/OpenBSD Preparing and Building OpenBSD]
+
+ 
+Alternatively:
+
+ * [wiki:Building/Preparation/Tools List of tools needed to build GHC]
+
+See the [wiki:Newcomers] page for how to proceed after this.
