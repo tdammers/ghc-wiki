@@ -1,0 +1,18 @@
+= Template Haskell =
+
+Stuff about Template Haskell
+ * [wiki:TemplateHaskell/BlogPostChanges Major revision of Template Haskell] propsed in Simon's blog post.  
+ * [wiki:TemplateHaskell/Typed Implementation page for typed Template Haskell] implementing the blog-post proposals.
+ * [wiki:TemplateHaskell/RichKinds Polymorphic kinds in Template Haskell]
+ * [wiki:TemplateHaskell/UsingHaskellSrcExts Unifying TH syntax with `haskell-src-exts`]
+ * [wiki:TemplateHaskell/Conversions Conversions between different data types in TH]
+ * [wiki:TemplateHaskell/Restricted A Proposal for restricted subsets of TH]
+ * [wiki:TemplateHaskell/CrossCompilation Cross Compilation]
+
+== Tickets ==
+
+Use Component = `Template Haskell` to ensure that a ticket ends up on these lists.  
+
+(Sadly this is different to other groupings for which we use the Keywords field.  We could switch to Keyword if we went back and added `TemplateHaskell` as a keyword to all the existing tickets.)
+
+[[TicketQuery(status=new|patch,component=Template Haskell,format=table,col=milestone|summary|priority|owner,order=priority)]]
