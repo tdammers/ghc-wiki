@@ -1,0 +1,298 @@
+# Status of DWARF debugging support
+
+
+## Current Status as of 8.2
+
+
+
+Happily, DWARF support should finally be stable in GHC 8.2.1. This means that it should now be possible to use the `GHC.ExecutionStack` interface to request stacktraces from within a Haskell program without fear of causing a program crash.
+
+
+
+Enabling DWARF support in 8.2 requires building a compiler with the following in `mk/build.mk`,
+
+
+```
+GhcLibHcOpts += -g3
+GhcRtsHcOpts += -g3
+```
+
+
+This enables debug information for GHC's boot libraries (e.g. `base`, `bytestring`, etc.) as well as the runtime system. This will allow `gdb` to make sense of your program.
+
+
+
+If you would also like to enable the runtime's unwind support (e.g. allowing use of `GHC.ExecutionStack`), you will need to install `libdw` and its development headers, and pass `--enable-dwarf-unwind` to GHC's `configure` script. Note that this is currently only on x86\_64 Linux (although i386 may also work; other platforms will need more implementation). In addition to `GHC.ExecutionStack`, this also enables a  `SIGUSR2` signal handler which dumps a stacktrace to standard error. This can be quite handy while debugging "hung" processes.
+
+
+
+Note that there may be some stack frame types that aren't quite reported correctly. Ben suspects that stack overflow frames may be among these but hasn't been able to confirm this; if you see a stack trace strangely truncated do let him know.
+
+
+### The state of statistical profiling
+
+
+
+One of the goals Ben had in mind while pursuing the DWARF project was bringing low-cost statistical profiling support to GHC. In fact, the "Statistical Profiling" section below refers to a number of patches which collectively implement most of the infrastructure for a statistical profiler embedded in the GHC runtime system, with samples dumped to GHC's eventlog. While ideally we would be able to use something like `perf` to fill this gap, currently GHC's calling convention intentionally avoids using the platform's stack register (e.g. `$rsp` on x86-64); this precludes use of `perf`'s kernel-based callstack sampling mechanism. Not only is this unfortunate from a code-reuse perspective, but it also means that sampling on PMU counters requires an additional user-/kernel-mode switch, increasing sampling overhead.
+
+
+
+On the other hand, the approach does have the advantage of being reasonable cross-platform, not dependent upon `perf`, integrates well into GHC's eventlog framework, and can be implemented with no changes to GHC's calling convention (which would be difficult to carry out and may carry a runtime cost). Moreover, Peter Wortmann's [
+thesis](http://etheses.whiterose.ac.uk/8321/) demonstrated that profiling Haskell may have rather different tooling demands than more traditional languages.
+
+
+
+Sidenote: On recent Linux versions it may even be possible to realize sampling of the Haskell stack from the kernel using eBPF, which can be triggered by `perf_event` events. This would allow us to retain most of the efficiency of `perf`'s approach in a GHC-specific profiler.
+
+
+
+Weighing all of these considerations is tricky. Moreover, while the RTS bits of the prototype profiler are functional, it will take a rather significant amount of work to get the required tooling into shape (currently there only exists a rather primitive set of analysis tools). Consequently, this work is currently on hold. If you are interested in furthering this work yourself or would like to support work in this direction please be in touch.
+
+
+### DWARF and Exceptions
+
+
+
+In many languages exceptions are automatically tagged with a stack-trace of the source of the exception. This is currently not possible with DWARF stacktraces. While there is a proposal which would enable this use-case ([Exceptions/StackTraces](exceptions/stack-traces)), there are a number of details that still need to be worked out..
+
+
+## Status as of 8.0
+
+
+
+While DWARF support will be much improved in 8.0.1, it is unfortunately still rather unsafe. This is due to prevalence of foreign calls in GHC/Haskell code, which can currently result in incorrect stack unwinding information ([\#11353](http://gitlabghc.nibbler/ghc/ghc/issues/11353), [\#11338](http://gitlabghc.nibbler/ghc/ghc/issues/11338), [\#11337](http://gitlabghc.nibbler/ghc/ghc/issues/11337)). This means that requesting a stack trace may result in a segmentation fault of the program. Unfortunately, fixing this was beyond the scope of my time budget for 8.0, although hopefully can be done for 8.2.
+
+
+
+If you are prepared to accept the potential for segfaults, GHC 8.0.1 now provides a good amount of new functionality,
+
+
+- the DWARF output is more correct, meaning that external tools should have less trouble working with GHC's output
+- GHC's runtime system has support for DWARF stack unwinding on Linux, x86\_64 and i386 via `libdw`. This is exposed in two ways,
+
+  - A stack trace will be provided on stderr when runtime system panics
+  - A stack trace will be dumped to stderr when the program receives the `SIGUSR2` signal
+  - A stack trace can be requested from Haskell code with the `GHC.ExecutionStack` module
+
+
+All of this requires that the program is compiled with GHC's `-g` flag. To get reliable output, the program's dependencies must also be compiled with `-g`.
+
+
+## Notation
+
+
+
+These are in various states of completion which I (Ben Gamari) will encode with the
+following designations,
+
+
+<table><tr><th>MERGED</th>
+<td>Already merged to `master`, listed here for completeness
+</td></tr></table>
+
+
+<table><tr><th>READY</th>
+<td>Believed to be finished with no expectation of major rework
+being necessary. Should be in merge-worthy condition, pending
+code review.
+</td></tr></table>
+
+
+<table><tr><th>RFC</th>
+<td>Code done, builds, and tested to some extent; needs design
+review.
+</td></tr></table>
+
+
+<table><tr><th>EXPLOR</th>
+<td>Exploratory work, may not even build but included to document
+the expected future direction of the work.
+</td></tr></table>
+
+
+<table><tr><th>IDEA</th>
+<td>Just an idea, no implementation yet.
+</td></tr></table>
+
+
+
+I'll list the commits in the order of their logical progression,
+
+
+## The Patches for 8.0
+
+
+
+Below is a listing of relevant patches which were merged for GHC 8.0.1.
+
+
+### Basic DWARF support
+
+
+
+These preparatory commits address a few bugs and deficiencies in the
+current DWARF production implementation,
+
+
+- \[MERGED\]  [
+  Phab:D1172](https://phabricator.haskell.org/D1172) Dwarf: Fix DW\_AT\_use\_UTF8 attribute
+- \[MERGED\]  [
+  Phab:D1173](https://phabricator.haskell.org/D1173) Dwarf: Produce {low,high}\_pc attributes for compilation units
+- \[MERGED\]  [
+  Phab:D1174](https://phabricator.haskell.org/D1174) Dwarf: Produce .dwarf\_aranges section
+- \[MERGED\]  [
+  Phab:D1220](https://phabricator.haskell.org/D1220) Dwarf: Ensure block length is encoded correctly
+
+
+These introduce DWARF parsing and stack unwinding to the RTS by
+introducing an optional dependency on `libdw`. This is the same library
+used by `perf`.
+
+
+- \[MERGED\]  [
+  Phab:D1196](https://phabricator.haskell.org/D1196): Libdw: Add libdw-based stack unwinding
+- \[MERGED\]  [
+  Phab:D1197](https://phabricator.haskell.org/D1197): Signals: Print backtrace on SIGUSR2
+- \[MERGED\]  [
+  Phab:D1418](https://phabricator.haskell.org/D1418): Produce a stacktrace when the RTS barfs
+
+
+With the RTS groundwork in place we can plumb things in for use by user
+programs,
+
+
+- \[MERGED\]  [
+  Phab:D1198](https://phabricator.haskell.org/D1198): Provide DWARF-based backtraces to Haskell-land
+
+
+Unfortunately up until this point we have no ability to unwind out of
+Haskell code back to the C stack. These commits introduce the ability to
+unwind all the way back to `_start`,
+
+
+- \[MERGED\]  [
+  Phab:D1224](https://phabricator.haskell.org/D1224): Dwarf: Preserve stack pointer register
+- \[MERGED\]  [
+  Phab:D1225](https://phabricator.haskell.org/D1225): cmm: Expose machine's stack pointer and return address registers
+- \[MERGED\]  [
+  Phab:D1223](https://phabricator.haskell.org/D1223): StgStartup: Add DWARF unwinding annotations for stg\_stop\_thread
+- \[READY\]   [
+  Phab:D1532](https://phabricator.haskell.org/D1532): Dwarf: Assume first block in a proc has an info table
+
+
+This should be enough to get reasonable backtraces for error-handling
+and reporting.
+
+
+### Further stabilization
+
+
+
+While the DWARF annotations produced by GHC 8.0.1 were a significant improvement over
+previous releases, they still broke in a number of important cases (largely
+due to foreign calls; see [\#11137](http://gitlabghc.nibbler/ghc/ghc/issues/11137), [\#11138](http://gitlabghc.nibbler/ghc/ghc/issues/11138)). GHC 8.2 will hopefully fix up these remaining cases,
+
+
+- \[RFC\]     [
+  Phab:D1732](https://phabricator.haskell.org/D1732): Improve accuracy of unwinding in presence of foreign calls
+- \[RFC\]     [
+  Phab:D2738](https://phabricator.haskell.org/D2738): Cmm: Add support for undefined unwinding statements
+
+### Statistical Profiling
+
+
+
+However, we also want profiling. For this, however, DWARF annotations
+alone aren't sufficient. The plan here is to incorporate a more details
+from the source notes produced by GHC into the DWARF vendor extension
+DIEs.
+
+
+
+The RTS then takes these DIEs during program initialization and
+emits a representation of them to the eventlog for later use by analysis
+code,
+
+
+- \[MERGED\] [
+  Phab:D1279](https://phabricator.haskell.org/D1279): Output source notes in extended DWARF DIEs
+- \[RFC\]    [
+  Phab:D1280](https://phabricator.haskell.org/D1280): rts: Emit debug information about program to event log
+- \[MERGED\] [
+  Phab:D1281](https://phabricator.haskell.org/D1281): Support multiple debug output levels
+- \[MERGED\] [
+  Phab:D1387](https://phabricator.haskell.org/D1387): Preserve tick parentage
+
+
+Now we have everything necessary to add some basic statistical
+profiling. Here we collect samples from heap checks and black hole block
+events and emit them to the event log,
+
+
+- \[RFC\]    [
+  Phab:D1215](https://phabricator.haskell.org/D1215): A simple statistical profiler
+- \[RFC\]    [
+  Phab:D1216](https://phabricator.haskell.org/D1216): StatProfile: Heap and black-hole sampling
+
+
+This all appears to work and I have some rather crude analysis tools
+which I should really clean up a bit. Ideally someone would dust off
+Peter's Threadscope integration as this would make for an extremely
+compelling performance analysis story.
+
+
+
+I also have yet to examine the impact of profiling on performance when
+not enabled. In principle it should be cheap enough to compile in
+unconditionally (although event log support is needed) but this needs to
+be measured.
+
+
+
+It would also be nice to support time- or cycle-based sampling.
+
+
+- \[IDEA\]   Support basic timer-based sampling
+- \[RFC\]    [
+  Phab:D1517](https://phabricator.haskell.org/D1517): Support sampling with Linux `perf_events` interface
+- \[IDEA\]   Support for kernel-mode Haskell stack sampling on Linux via eBPF
+
+
+In addition, we may want to support some form of call-graph collection.
+This, however, will be left for future work.
+
+
+
+In his prototype implementation Peter also had the lovely ability to
+preserve simplified Core for later examination. This would be a nice
+thing to have but probably won't happen for 8.0. The challenge here is
+recording the Core fragments without introducing enormous amounts of
+redundancy.
+
+
+- \[IDEA\]   Record tree of Core fragments into DWARF DIEs (Core Notes)
+
+
+Finally, it would be great if we could provide stack traces alongside exceptions.
+There are some ideas for how to do this in [Exceptions/StackTraces](exceptions/stack-traces).
+
+
+- \[IDEA\]   Record stack traces with synchronous and asynchronous exceptions
+
+
+Also, currently we only provide debug information with the native code generator.
+Doing the same in the LLVM code generator shouldn't be so hard,
+
+
+- \[RFC\]    [
+  Phab:D2343](https://phabricator.haskell.org/D2343): Add debug information output to LLVM code generator
+
+### Documentation
+
+
+
+Now since we have all of these features, we need to make sure the user knows what they do.
+
+
+- \[MERGED\] [
+  Phab:D1369](https://phabricator.haskell.org/D1369)   Add debugging information chapter to the GHC users guide
