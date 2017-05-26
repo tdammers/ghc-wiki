@@ -1,0 +1,624 @@
+= A plan for type-indexed type representations
+
+This is Ben Gamari's plan for moving ahead with the type-indexed `Typeable`
+scheme, described most recently in
+[[http://research.microsoft.com/en-us/um/people/simonpj/papers/haskell-dynamic/|A reflection on types]].
+
+[[PageOutline]]
+
+== Status
+
+A branch with the current state of things can be found [[https://github.com/ghc/ghc/compare/master...bgamari:wip/ttypeable|here]]. There is also an intermittently-updated Phabricator differential, Phab:D2010. It's still rather preliminary however it does give you a working stage2 compiler with functional type-indexed type representations and what I believe is a pretty reasonable set of interfaces, described below.
+
+There are a number of tasks outstanding. These involve only Ben,
+  * The representation of tycon kinds needs work
+  * Fix representation pretty-printer to correctly handle tuples, lists, arrows, and precedence
+  * Examine performance changes (even some improvements, perplexingly)
+  * Look at testsuite failures involving stack overflows: `T10294, plugins01, T5550, annrun01, ann01, annth_make`
+  * Evaluate whether we want to try harder to preserve the re-exports that have been dropped from `Data.Dynamic`.
+  * Some of the new naming choices should be revisited (e.g. `TRFun`)
+  * Typeable fingerprints need to be made more robust (#7897)
+  * When, if at all, should the `Show` instance produce kind signatures?
+    * Should `show (typeRep @Int)` produce `Int` or `Int :: *`?
+    * Should `show (typeRep @(Proxy Int#)` produce `Proxy` or `Proxy :: *`?
+    * Should `show (typeRep @(Proxy :: # -> *)` produce `Proxy` or `Proxy :: # -> *`?
+  * Performance:
+    * Carefully check `Data.Typeable` for deviations from the previous interface and fill in gaps where possible
+    * Examine whether the primitive `TypeRep`s (e.g. `trTYPE`, `trArrow`) should be `INLINEABLE`; we perform a number of runtime checks during serialization/deserialization so being able to inline these fingerprints may be helpful.
+    * Perhaps generated `TyCon`s should also be inlined (or generate rules to inline just fingerprints)
+    * Perhaps it would be worth offering unsafe deserialization interface without runtime checks?
+
+These are issues that need to be addressed elsewhere in the compiler,
+  * #11736: Core Lint rejects unsaturated applications of unlifted types; it's not clear whether this is actually a safe thing to do
+  * #11714: kind of  `(->)` is overly-restrictive consequently `T11120` testcase fails
+  * #11722: need a representation for unboxed types; closely related to #11736
+  * #11715: `TypeOf` fails due to the fact that `Constraint` and `*` are indistinguishable in Core
+  * #12670: RuntimeRep polymorphism check is too strict (needed to implement `TrFun` described below)
+
+== Immediate next steps ==
+ 
+ * Fix #11714
+ * Move things to a richer `TypeRep` representation to make user serialization implementations safer.
+
+== Representing tycon kinds ==
+
+In order to provide `typeRepKind` we must have some way of getting a kind from a `TrTyCon` `TypeRep` node. There are two ways of doing this,
+
+ 1. Making the `TrTyCon` carry its kind
+ 2. Making the `TrTyCon` carry the instantiations of its kind variables and ensuring that we have a way of conjuring the final kind from these variables (e.g. encoding a representation of the type's uninstantiated kind in its `TyCon`)
+
+In many ways (1) is easier but has a few unfortunate disadvantages,
+
+ * several types has recursive kind relationships (e.g. `Type :: Type`)
+ * it increases the size of all `TypeRep`s to allow for the rather uncommon case of kind polymorphism
+
+On the other hand, (2) lacks these disadvantages but presents a few challenges,
+
+ * `TyCon`s become much larger, potentially blowing up compilation time for modules not using `Typeable`
+ * `TyCon`s need to refer to `TypeRep` dictionaries, potentially complicating evidence generation
+
+=== The need for kind representations ===
+
+While `typeRepKind` may seem like a non-essential feature, it ends up being quite important in the presence of representationally polymorphic arrow lest we may produce ill-kinded type representations. Consider, for a moment, that we have a function, `mkApp`, which attempts to construct an application type from two `SomeTypeRep`s. It might look like,
+{{{#!hs
+mkApp :: SomeTypeRep -> SomeTypeRep -> Maybe SomeTypeRep
+mkApp (SomeTypeRep f) (SomeTypeRep x) = do
+    FunTy a b <- pure f
+    Refl <- a `eqTypeRep` typeRepKind x
+    return (App f x)
+}}}
+Note that before we can apply `x` to `f` we must prove to GHC that the kind of `x` is compatible with that expected by `f`. I haven't proven to myself that omitting this check will result in unsafety, but I'm fairly confident that someone with enough time to read through #9858 would be able to find a way.
+
+
+=== Encoding kind instantiations ===
+
+One approach would be,
+{{{#!hs
+type KindBndr = Int
+data KindRep = KindTyCon TyCon
+             | KindVar !KindBndr
+             | KindApp KindRep KindRep
+
+data TyCon = TyCon { tyConName :: String, ...
+                   , tyConKindRep :: KindRep
+                   }
+data TypeRep (a :: k) where
+  TrCon :: TyCon -> [SomeTypeRep] -> TypeRep a
+  TrApp :: TypeRep a -> TypeRep b -> TypeRep (a b)
+
+data SomeTypeRep where
+    SomeTypeRep :: forall k (a :: k). TypeRep a -> SomeTypeRep
+
+}}}
+
+However this has the unfortunate side-effect of making the production of `TyCon`s (and hence all data types) significantly more expensive due to the need to produce `KindRep`.
+
+An alternative to this would be to push the `KindRep` out of `TyCon` and into evidence generation,
+{{{#!hs
+type KindBndr = Int
+data KindRep = KindTyCon TyCon
+             | KindVar !KindBndr
+             | KindApp KindRep KindRep
+
+data TyCon = TyCon { tyConName :: String, ...
+                   }
+
+data TypeRep (a :: k) where
+  TrCon :: TyCon -> KindRep -> [SomeTypeRep] -> TypeRep a
+  TrApp :: TypeRep a -> TypeRep b -> TypeRep (a b)
+
+data SomeTypeRep where
+    SomeTypeRep :: forall k (a :: k). TypeRep a -> SomeTypeRep
+}}}
+This has the advantage of only inflicting the cost of `KindRep` generation on users of `Typeable`. However, this means we lose sharing of `KindRep`s.
+
+Another alternative would be to drop `KindRep` entirely and instead capture kinds through constraints,
+{{{#!hs
+data TyCon = TyCon { tyConName :: String, ...
+                   }
+
+data TypeRep (a :: k) where
+  TrCon :: TyCon -> [SomeTypeRep] -> TypeRep a
+  TrApp :: TypeRep a -> TypeRep b -> TypeRep (a b)
+
+class Typeable k => Typeable (a :: k) where
+  typeRep :: TypeRep a
+
+-- Which has slight consequences on withTypeable,
+withTypeable :: Typeable k => TypeRep (a :: k) -> (Typeable a => r) -> r
+
+-- and SomeTypeRep
+data SomeTypeRep where
+    SomeTypeRep :: forall k (a :: k). Typeable k => TypeRep a -> SomeTypeRep
+}}}
+
+== Notes from meeting with Simon (5 Oct. 2016)
+
+Next step,
+1. Introduce special case in `TypeRep` for functions (`TrFun`)
+2. Encode instantiated kind variables in `TrTyCon` instead of full kind
+2. GHC: Try failing in `splitTyConApp` when splitting `(->)` application that has unlifted kind
+3. Introduce `FunCo` coercion
+4. Generalize (->) kind
+
+=== Encoding instantiated kind variables ===
+
+Instead of encoding the kind of a constructor in `TrTyCon` let's encode its instantiated kind variables. This has two advantages,
+1. It's more concise: most tycons are not kind polymorphic
+2. It's easier: we avoid having to represent kind loops
+
+This slightly complicates the implementation of `typeRepKind`, however. We will need some way of moving from the list of kind variable instantiations to the resulting kind of a tycon. This will need to be encoded with the `TyCon` in a manner than can serialized. For instance,
+{{{#!hs
+data TyCon = Tc String [String] TyConKindRep
+data TyConKindRep = Var String | TyConApp TyCon [TyConKindRep]
+}}}
+This unfortunately bloats the `TyCon` bindings produced by the compiler with every datatype.
+
+== Tickets ==
+
+Use Keyword = `Typeable` to ensure that a ticket ends up on these lists.
+
+'''Open Tickets:'''
+[[TicketQuery(status=infoneeded,status=new|patch,keywords=~Typeable)]]
+
+'''Closed Tickets:'''
+[[TicketQuery(status=infoneeded,status=closed,keywords=~Typeable)]]
+
+
+== `Type.Reflection`
+
+The new type-indexed typeable machinery will be exposed via a new module
+(`Type.Reflection` is chosen here, although this name is still up in the air;
+`Reflection` in particular has an unfortunate conflict with Edward Kmett's `reflection`
+library). The user-visible interface of `Type.Reflection` will look like this,
+
+{{{#!hs
+-- The user-facing interface
+module Type.Reflection where
+
+class Typeable (a :: k)
+
+-- This is how we get the representation for a type
+typeRep :: forall (a :: k). Typeable a => TypeRep a 
+
+-- This is merely a record of some metadata about a type constructor.
+-- One of these is produced for every type defined in a module during its
+-- compilation.
+--
+-- This should also carry a fingerprint; to address #7897 this fingerprint
+-- should hash not only the name of the tycon, but also the structure of its
+-- data constructors
+data TyCon
+
+tyConPackage :: TyCon -> String
+tyConModule :: TyCon -> String
+tyConName :: TyCon -> String
+
+-- A runtime type representation with O(1) access to a fingerprint.
+data TypeRep (a :: k)
+
+instance Show (TypeRep a)
+
+-- Since TypeRep is indexed by its type and must be a singleton we can trivially
+-- provide these
+instance Eq (TypeRep a)  where (==) _ _    = True
+instance Ord (TypeRep a) where compare _ _ = EQ
+
+-- While TypeRep is abstract, we can pattern match against it.
+-- This can be a bi-directional pattern (using mkTrApp for construction).
+pattern TRApp :: forall k2 (fun :: k2). ()
+              => forall k1 (a :: k1 -> k2) (b :: k1). (fun ~ a b)
+              => TypeRep a -> TypeRep b -> TypeRep fun
+
+-- Open question: Should this pattern include the kind of the constructor?
+-- In practice you often need it when you need the TyCon
+pattern TRCon :: forall k (a :: k). TyCon -> TypeRep a
+
+-- Decompose functions, also bidirectional
+pattern TRFun :: forall fun. ()
+              => forall arg res. (fun ~ (arg -> res))
+              => TypeRep arg
+              -> TypeRep res
+              -> TypeRep fun
+
+-- We can also request the kind of a type
+typeRepKind :: TypeRep (a :: k) -> TypeRep k
+
+-- and compare types
+eqTypeRep  :: forall k (a :: k) (b :: k).
+              TypeRep a -> TypeRep b -> Maybe (a :~: b)
+eqTypeRep' :: forall k1 k2 (a :: k1) (b :: k2).
+              TypeRep a -> TypeRep b -> Maybe (a :~~: b)
+
+-- it can also be useful to quantify over the type such that we can, e.g.,
+-- index a map on a type
+data TypeRepX where
+    TypeRepX :: forall a. TypeRep a -> TypeRepX
+
+-- these have some useful instances
+instance Eq TypeRepX
+instance Ord TypeRepX
+instance Show TypeRepX
+
+-- A `TypeRep a` gives rise to a `Typeable a` instance without loss of
+-- confluence.
+withTypeable :: TypeRep a -> (Typeable a => b) -> b
+withTypeable = undefined
+
+-- We can also allow the user to build up his own applications
+mkTrApp :: forall k1 k2 (a :: k1 -> k2) (b :: k1).
+           TypeRep (a :: k1 -> k2)
+        -> TypeRep (b :: k1)
+        -> TypeRep (a b)
+
+-- However, we can't (easily) allow instantiation of TyCons since we have
+-- no way of producing the kind of the resulting type...
+--mkTrCon :: forall k (a :: k). TyCon -> [TypeRepX] -> TypeRep a
+}}}
+
+== Preserving compatibility with `Data.Typeable`
+
+Note how above we placed the new type-indexed Typeable machinery in an entirely new
+module. The goal of this is to preserve compatibility with the old
+`Data.Typeable`. Notice how the old `Data.Typeable.TypeRep` is essentially
+`TypeRepX` under the new scheme. This gives us a very nice compatibility story
+(thanks due to Richard Eisenberg for first proposing this),
+{{{#!hs
+module Data.Typeable
+    ( -- We can use the same Typeable class
+      I.Typeable
+    , I.TyCon
+    , I.tyConPackage
+    , I.tyConModule
+    , I.tyConName
+    , (:~:)(Refl)
+    , module Data.Typeable
+    ) where
+
+import Type.Reflection as I
+import Data.Type.Equality
+
+-- Merely expose TypeRepX opaquely under the old name
+type TypeRep = I.TypeRepX
+
+typeOf :: forall a. Typeable a => a -> TypeRep
+typeOf _ = I.typeRepX (Proxy :: Proxy a)
+
+typeRep :: forall proxy a. Typeable a => proxy a -> TypeRep
+typeRep = I.typeRepX
+
+cast :: forall a b. (Typeable a, Typeable b) => a -> Maybe b
+cast x
+  | Just HRefl <- ta `I.eqTypeRep` tb = Just x
+  | otherwise                         = Nothing
+  where
+    ta = I.typeRep :: I.TypeRep a
+    tb = I.typeRep :: I.TypeRep b
+
+eqT :: forall a b. (Typeable a, Typeable b) => Maybe (a :~: b)
+eqT
+  | Just HRefl <- ta `I.eqTypeRep` tb = Just Refl
+  | otherwise                         = Nothing
+  where
+    ta = I.typeRep :: I.TypeRep a
+    tb = I.typeRep :: I.TypeRep b
+
+funResultTy :: TypeRep -> TypeRep -> Maybe TypeRep
+funResultTy (I.TypeRepX f) (I.TypeRepX x)
+  | Just HRefl <- (I.typeRep :: I.TypeRep Type) `I.eqTypeRep` I.typeRepKind f
+  , I.TRFun arg res <- f
+  , Just HRefl <- arg `I.eqTypeRep` x
+  = Just (I.TypeRepX res)
+  | otherwise
+  = Nothing
+
+typeRepTyCon :: TypeRep -> TyCon
+
+-- the old typeOfN exports from the pre-PolyKinds days can
+-- also be trivially provided.
+}}}
+
+== The representation serialization problem
+
+Serialization of type representations is a bit tricky in this new world. Let's
+say that we want to serialize (say, using the `binary` package), for instance, a
+type-indexed map,
+
+{{{#!hs
+data TMap a
+lookup :: TypeRepX -> TMap a -> Maybe a
+insert :: TypeRepX -> a -> TMap a -> TMap a
+
+-- we want to support these operations...
+getTMap :: Binary a => Get (TMap a)
+putTMap :: Binary a => TMap a -> Put
+}}}
+
+This is the sort of usage we might see in, for instance, the `Shake` build system.
+
+=== Serializing `TypeRep`
+
+Of course in order to provide `getTMap` and `putTMap` we need to be able to both
+serialize and deserialize `TypeRepX`s. Serialization poses no particular issue.
+For instance, we might write,
+{{{#!hs
+instance Binary TyCon
+
+putTypeRep :: TypeRep a -> Put
+putTypeRep tr@(TRCon tc) = do put 0
+                              put tc
+                              putTypeRep (typeRepKind tr) 
+putTypeRep (TRApp f x)   = do put 1
+                              putTypeRep f
+                              putTypeRep x
+
+putTypeRepX :: TypeRepX -> Put
+putTypeRepX (TypeRepX rep) = putTypeRep rep
+}}}
+That was easy.
+
+Now let's try deserialization.
+
+=== Deserialization
+
+First, we need to define how deserialization should behave. For instance, defining
+{{{#!hs
+getTypeRep :: Get (TypeRep a)
+}}}
+is a non-starter as we have no way to verify that the representation that we
+deserialize plausibly represents the type `a` that the user requests.
+
+Instead, let's first consider `TypeRepX` (thanks to Adam Gundry for his guidance),
+{{{#!hs
+getTypeRepX :: Get TypeRepX
+getTypeRepX = do
+    tag <- get :: Get Word8
+    case tag of
+        0 -> do con <- get :: Get TyCon
+                TypeRepX rep_k <- getTypeRepX
+                case rep_k `eqTypeRep` (typeRep :: TypeRep Type) of
+                    Just HRefl -> pure $ TypeRepX $ mkTrCon con rep_k
+                    Nothing    -> fail "getTypeRepX: Kind mismatch"
+
+        1 -> do TypeRepX f <- getTypeRepX
+                TypeRepX x <- getTypeRepX
+                case typeRepKind f of
+                    TRFun arg _ | Just HRefl <- arg `eqTypeRep` x ->
+                      pure $ TypeRepX $ mkTrApp f x
+                    _ -> fail "getTypeRepX: Kind mismatch"
+        _ -> fail "getTypeRepX: Invalid TypeRepX"
+}}}
+Note how we need to invoke type equality here to ensure,
+
+ * in the case of a tycon: that the tycon's kind is `Type` (as all kinds must be in the `TypeInType` scheme)
+ * in the case of applications `f x`:
+  * that the type `f` is indeed an arrow
+  * that the type `f` is applied at the type `x` that it expects
+
+Given this we can easily implement `TypeRep a` given a representation of the expected `a`,
+{{{#!hs
+getTypeRep :: Typeable a => Get (TypeRep a)
+getTypeRep = do
+   TypeRepX rep <- getTypeRepX
+   case rep `eqTypeRep` (typeRep :: TypeRep a) of
+       Just HRefl -> pure rep
+       Nothing    -> fail "Binary: Type mismatch"
+}}}
+
+=== Alternative: Through static data?
+
+One might have the idea that the solution here may be to avoid encoding
+representations at all: instead use GHC's existing support for static data, e.g.
+add `TypeRep a` entries to the static pointer table for every known type. One will quickly realize, however, that
+this is unrealistic: we have no way of enumerating the types that must
+be considered and even if we did, there would be very many of them.
+
+== Alternative: Type-indexed `TyCon`s?
+
+Under the above proposal `TyCon` is merely a record of static metadata; it has no
+type information and consequently the user is quite limited in what they can do with it.
+Another point in the design space would be to add a type index to `TyCon`,
+{{{#!hs
+-- metadata describing a tycon
+data TyConMeta = TyConMeta { tyConPackage :: String
+                           , tyConModule  :: String
+                           , tyConName    :: String
+                           }
+newtype TyCon (a :: k) = TyCon TyConMeta
+
+pattern TRCon :: TyCon a -> TypeRep a
+
+-- which allows us to provide
+mkTyCon :: TyCon a -> TypeRep a
+}}}
+
+While this is something that we could do, I have yet to see a compelling reason
+why we **should** do it. The only way you can produce a `TyCon` is from a `TypeRep`,
+so ultimately you should be able to accomplish everything you can with type-index
+`TyCon`s by just not destructuring the `TypeRep` from which it arose.
+
+== `Data.Dynamic`
+
+`Dynamic` doesn't really change,
+{{{#!hs
+module Data.Dynamic where
+
+-- Dynamic itself no longer needs to be abstract
+data Dynamic where
+    Dynamic :: TypeRep a -> a -> Dynamic
+
+-- Construction
+toDynR :: TypeRep a -> a -> Dynamic
+toDyn  :: Typeable a => a -> Dynamic
+
+-- Elimination
+fromDynamicR :: TypeRep a -> Dynamic -> Maybe a
+fromDynamic  :: Typeable a => Dynamic -> Maybe a
+
+-- 
+fromDynR :: TypeRep a -> Dynamic -> a -> a
+fromDyn  :: Typeable a => Dynamic -> a -> a
+
+-- Application
+dynApp   :: Dynamic -> Dynamic -> Dynamic  -- Existing function; calls error on failure
+                                           -- I think this should be deprecated
+dynApply :: Dynamic -> Dynamic -> Maybe Dynamic
+}}}
+
+Ben Pierce also
+[[https://ghc.haskell.org/trac/ghc/wiki/TypeableT#Data.Dynamic|suggested]] this
+variant of `Dynamic`, which models a value of dynamic type "inside" of a known
+functor. He p
+{{{#!hs
+data SDynamic s where
+    SDynamic :: TypeRep a -> s a -> SDynamic s
+
+toSDynR :: TypeRep a -> s a -> SDynamic s
+toSDyn :: Typeable a => s a -> SDynamic s
+fromSDynamicR :: TypeRep a -> SDynamic s -> Maybe (s a)
+fromSDynamic :: Typeable a => SDynamic s -> Maybe (s a)
+fromSDynR :: TypeRep a -> SDynamic s -> s a -> s a
+fromSDyn :: Typeable a => SDynamic s -> s a -> s a
+}}}
+
+== Implementation notes
+
+The implementation of the above plan shares a great deal with the previous
+`Typeable` implementation. As we did before, we split the generation of
+`Typeable` representations into two halves,
+
+ 1. At time of type definition: When compiling a type definition we emit a
+    `TyCon` binding describing its type constructor
+
+ 2. When solving for a `Typeable` constraint: We produce a dictionary referring
+    to `TyCon` binding associated with the type for which `Typeable` is needed.
+
+Step (1) is essentially unchanged from the previous implementation. There's
+nothing particularly interesting here other than some tiresome details regarding
+generating representations for primitive types, which doesn't really change (see
+`Note [The Grand Typeable Story]` in `TcTypeable` for details).
+
+Step (2), however, changes slightly in that it needs to produce evidence for the
+kind of type.
+
+`Typeable` evidence is merely a `TypeRep`,
+{{{#!hs
+data TypeRep (a :: k) where
+    TrTyCon :: !Fingerprint -> !TyCon -> TypeRep k -> TypeRep (a :: k)
+
+    TrApp   :: forall k1 k2 (a :: k1 -> k2) (b :: k1).
+               !Fingerprint
+            -> TypeRep a
+            -> TypeRep b
+            -> TypeRep (a b)
+}}}
+Note that a `Fingerprint` is included in each node for O(1) comparison.
+
+=== Dealing with recursive kinds
+
+The fact that we now have the ability to reflect on kinds poses an interesting
+challenge (especially in the `TypeInType` world) as we now have to worry about 
+recursive kind relationships during evidence generation. Thankfully there are
+only a few types which we need to worry about,
+{{{#!hs
+TYPE               :: RuntimeRep -> TYPE 'PtrRepLifted
+RuntimeRep         :: TYPE 'PtrRepLifted
+'PtrRepLifted      :: RuntimeRep
+(->)               :: TYPE 'PtrRepLifted -> TYPE 'PtrRepLifted -> Type 'PtrRepLifted
+TYPE 'PtrRepLifted :: TYPE 'PtrRepLifted
+}}}
+While in principle we could generate knot-tied dictionaries for these in the
+typechecker, this would be quite tiresome; moreover these types are ubiquitous
+and it would be wasteful to replicate representations for them.
+Instead, the implementation manually defines representations for these types in
+`Data.Typeable.Internal` and using these definitions instead of generated bindings.
+
+=== Alternative: Richer `TypeRep`
+Another approach would be to to encode these special cases in the `TypeRep`
+type itself
+
+{{{#!hs
+data TypeRep (a :: k) where
+    TrTyCon :: !Fingerprint -> !TyCon -> TypeRep k -> TypeRep (a :: k)
+
+    TrApp   :: forall k1 k2 (a :: k1 -> k2) (b :: k1).
+               !Fingerprint
+            -> TypeRep a
+            -> TypeRep b
+            -> TypeRep (a b)
+
+    TrArrow :: forall k1 k2.
+               !Fingerprint
+            -> TypeRep k1
+            -> TypeRep k2
+            -> TypeRep ((->) :: k1 -> k2 -> *)
+
+    TrTYPE  :: TypeRep TYPE
+    TrType  :: TypeRep (TYPE 'PtrRepLifted)
+
+    TrRuntimeRep    :: TypeRep RuntimeRep
+    Tr'PtrRepLifted :: TypeRep 'PtrRepLifted
+}}}
+(although `TrArrow` won't quite work yet due to #11714)
+
+With this we can easily write `typeRepKind`,
+{{{#!hs
+typeRepKind :: forall k (a :: k). TypeRep a -> TypeRep k
+-- these cases are unchanged...
+typeRepKind (TrTyCon _ _ k) = k
+typeRepKind (TrApp _ f _)   = case typeRepKind f of TRFun _arg res -> res
+
+-- these are new...
+typeRepKind (TrArrow x y)   = mkTrApp (mkTrApp (TrArrow TrType TrType) x) y
+typeRepKind TrTYPE          = mkTrApp TrRuntimeRep TrType
+typeRepKind TrType          = TrType
+typeRepKind TrRuntimeRep    = TrType
+typeRepKind Tr'PtrRepLifted = TrRuntimeRep
+}}}
+
+Although providing pattern synonyms to allow decomposition of, e.g.,
+`TYPE 'PtrTypeLifted` becomes a bit trickier,
+{{{#!hs
+-- Just as above, we can decompose applications but we
+-- now need to define it in terms of the splitApp helper,
+pattern TRApp :: forall k2 (t :: k2). ()
+              => forall k1 (a :: k1 -> k2) (b :: k1). (t ~ a b)
+              => TypeRep a -> TypeRep b -> TypeRep t
+pattern TRApp x y = (splitApp -> Just (App x y))
+
+data AppResult (t :: k) where
+    App :: TypeRep a -> TypeRep b -> AppResult (a b)
+
+splitApp :: TypeRep a -> Maybe (AppResult a)
+splitApp (TrTyCon _ _ _) = Nothing
+splitApp (TrApp _ f x)   = Just $ App f x
+splitApp (TrArrow _ x y) = Just $ App (mkTrApp (TrArrow (typeRepKind x) (typeRepKind y)) x) y
+splitApp TrTYPE          = Nothing
+splitApp TrType          = Just $ App TrTYPE Tr'PtrRepLifted
+splitApp TrRuntimeRep    = Nothing
+splitApp Tr'PtrRepLifted = Nothing
+}}}
+
+Pretty much everything else follows from this. For instance `TRFun`,
+{{{#!hs
+pattern TRFun :: forall fun. ()
+              => forall arg res. (fun ~ (arg -> res))
+              => TypeRep arg
+              -> TypeRep res
+              -> TypeRep fun
+pattern TRFun arg res <- TRApp _ (TRApp _ (TrArrow _ _) arg) res where
+    TRFun arg res = mkTrApp (mkTrApp trArrow arg) res
+}}}
+
+This approach trades some user-code complexity for a more complex
+representation type. I'm not yet certain whether it would be an improvement over
+the current state of affairs. It has the disadvantage that the implementation
+needs to take care to normalize representations that it builds (e.g. prefer
+`TrType` to `TrApp TrTYPE Tr'PtrRepLifted`). That being said, it may be a bit
+more efficient for the compiler to produce dictionaries in this form.
+
+{{{#!hs
+mkApp :: TypeRep a -> TypeRep b -> TypeRep (a b)
+mkApp TrTYPE Tr'PtrRepLifted = TrType
+mkApp TrTYPE 
+}}}
