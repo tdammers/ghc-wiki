@@ -1,0 +1,173 @@
+
+
+
+# `OverloadedLabels`
+
+
+
+This page describes the `OverloadedLabels` extension, as implemented in [
+Phab:D1331](https://phabricator.haskell.org/D1331) and included in GHC 8.0. Note that the [
+latest proposal for OverloadedRecordFields](https://github.com/ghc-proposals/ghc-proposals/pull/6) proposes changes to `OverloadedLabels` from what is described here.
+
+
+### Digression: implicit parameters
+
+
+
+First, let's review Haskell's existing and long-standing *[
+implicit parameters](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/other-type-extensions.html#implicit-parameters)*.
+Here is how they work in GHC today.
+
+
+- There is a class `IP` defined thus in `GHC.IP`:
+
+  ```wiki
+  class IP (x :: Symbol) a | x -> a where
+    ip :: a
+
+  -- Hence ip's signature is
+  --    ip :: forall x a. IP x a => a
+  ```
+- When you write `?x` in an expression, what GHC does today is to replace it with `(ip @"x" @alpha)`, where `alpha` is a unification variable and `@` is type application.
+
+- Of course, that call `(ip @"x" @alpha)` gives rise to a constraint `IP "x" alpha`, which must be satisfied by the context.
+
+- The form `?x` in an expression is only valid with `{-# LANGUAGE ImplicitParameters #-}`
+
+- The pretty printer displays the constraint `IP x t` as `?x::t`.
+
+- The functional dependency `x->a` on class `IP` implements the inference rules for implicit parameters. (See the [
+  orginal paper](http://galois.com/wp-content/uploads/2014/08/pub_JL_ImplicitParameters.pdf).)
+
+- There is some magic with implicit-parameter bindings, of form `let ?x = e in ...`, which in effect brings into scope a local instance declaration for `IP`.
+
+
+And that's really about it.  The class `IP` is treated specially in a few other places in GHC.  If you are interested, grep for the string "`isIP`".
+
+
+### Overloaded labels
+
+
+
+Now consider the following class:
+
+
+```wiki
+class IsLabel (x :: Symbol) a where
+  fromLabel :: Proxy# x -> a
+```
+
+
+Exactly like `IP` but without the functional dependency, and with an extra proxy argument. It is also rather similar to a version of the `IsString` class from `OverloadedStrings`, but with an additional parameter making the string available at the type level.
+
+
+
+It behaves like this:
+
+
+- When you write `#x` in an expression, what GHC does is to replace it with `(fromLabel @"x" @alpha proxy#)`, where `alpha` is a unification variable and `@` is type application.   Just like implicit parameters, in fact.
+
+- Of course the call `(fromLabel @"x" @alpha proxy#)` gives rise to a constraint `(IsLabel "x" alpha)` which must be satisfied by the context.
+
+- The form `#x` in an expression is only valid with `{-# LANGUAGE OverloadedLabels #-}` (which will be implied by `OverloadedRecordFields`).
+
+- The pretty printer could print `IsLabel "x" t` as `#x::t` (but it doesn't, yet).
+
+- There is no functional dependency, and no equivalent to the implicit-parameter `let ?x=e` binding.  So overloaded labels are much less special than implicit parameters.
+
+
+Notice that overloaded labels might be useful for all sorts of things that are nothing to do with records; that is why they don't mention "record" in their name.
+
+
+
+User code can call `fromLabel` directly (unlike `ip`), thanks to the proxy argument.
+
+
+### Syntax
+
+
+
+It's not absolutely necessary to use `#x` for a field.  Here are some alternatives:
+
+
+- We could say "if there is at least one data type in scope with a field `x`, then `x` is treated like `(fromLabel @"x" @alpha)`".  But I hate it.  And it doesn't work for virtual fields like `#area` above.
+
+- (Suggested by Edward K.)  We could define a magic module `GHC.ImplicitValues`, and say that if you say
+
+  ```wiki
+  import GHC.ImplicitValues( p, q, area )
+  ```
+
+  then all occurrences of `p`, `q`, `area` will be treated as implicit values (written `#p`, `#q`, `#area` above).  That has the merit that it works fine for virtual fields like `area`, and it removes the `#p` syntactic clutter.
+
+>
+>
+> It leaves open questions.  If you declare a H98 record with fields `p`, etc, do you have to import `p` from `GHC.ImplicitValues` as well?  Presumably not?  What if you *import* such a record?
+>
+>
+
+
+But *neither of these exploit the similarity to implicit parameters*.
+I really really like the similarity between the models, and I think it'd be a pity to lose it.
+And would implicit parameters *really* be better (from a software engineering point of view) if we replaced `?x` notation with `import GHC.ImplicitParameters( x )`?
+
+
+
+Note that the `#x` form only behaves specially if you have `OverloadedLabels` or `OverloadedRecordFields` enabled. So existing libraries that use `#` as an operator will work fine.  If you want `OverloadedRecordFields` as well, you'll have to put a space between an infix `#` and its second argument, thus `(a # b)` not `(a #b)`.  But that's not so bad. And exactly the same constraint applies with `MagicHash`: you must put a space between the `a` and the `#`, not `(a# b)`.  I don't think this is a big deal.
+
+
+
+The downside of the `#x` syntax is that uses of lenses like `foo^.bar.baz` become something like `foo ^. #bar . #baz` or `foo ^. xx #bar . xx #baz` (if we need a combinator `xx` to turn an implicit value into a lens). However, this can be mitigated to some extent by users by making their own definitions `bar = xx #bar; baz = xx #baz`.
+
+
+
+Sadly the `#x` syntax clashes with [
+hsc2hs](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/hsc2hs.html#idp35055056), so users will have to write `##x` in `.hsc` files. But we don't see a better alternative.
+
+
+### Reflections
+
+
+
+An `IsLabel` constraint is, in effect, rather like a (family of) single-method type classes.  Instead of
+
+
+```wiki
+f :: Ix a => a -> a -> a -> Bool
+f i u l = inRange (l,u) i
+```
+
+
+which uses only one method from `Ix`, you could write the finer-grained function
+
+
+```wiki
+f :: (IsLabel "inRange" ((a,a) -> a -> Bool))
+  => a -> a -> Bool
+f i u l = #inRange (l,u) i
+```
+
+
+Note that this example has nothing to do with records, which is part of the point.
+Perhaps `IsLabel` will find other uses.
+It is rather reminiscent of Carlos Camaro's [
+System CT](http://homepages.dcc.ufmg.br/~camarao/CT/).
+
+
+## Implementation
+
+
+
+The implementation is fairly straightforward and close to (but simpler than) the existing `ImplicitParameters` extension. The key points:
+
+
+- We extend the lexer to treat `#x` as a single lexeme (only when `OverloadedLabels` is enabled) and parse it into a new constructor `HsOverLabel "x"` of `HsSyn`.
+
+- A new module `GHC.OverloadedLabels` defines the `IsLabel` class
+
+- When the typechecker sees `HsOverLabel "x"`, it emits a new wanted constraint `IsLabel "x" alpha`, just like `HsIPVar`.
+
+
+The only complicated part is that the lexer currently treats `#` specially if it is the first symbol on a line, because of `#!` shell script markers and `#line` pragmas, so some more substantial lexer tweaks are needed.
+
+
