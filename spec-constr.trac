@@ -1,0 +1,17 @@
+= SpecConstr =
+
+`SpecConstr` is a GHC optimisation that specialises functions for particular values of their arguments.
+
+* [https://www.microsoft.com/en-us/research/publication/system-f-with-type-equality-coercions-2/ Here is the paper about SpecConstr]
+
+== Tickets ==
+
+Use Keyword = `SpecConstr` to ensure that a ticket ends up on these lists.
+
+'''Open Tickets:'''
+[[TicketQuery(status=new|patch,keywords=~SpecConstr)]]
+
+'''Closed Tickets:'''
+[[TicketQuery(status=closed,keywords=~SpecConstr)]]
+
+
