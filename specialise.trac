@@ -1,0 +1,15 @@
+= Specialise: type-class specialisation =
+
+The type-class specialiser is a GHC optimisation that specialises functions for type-class arguments.
+
+== Tickets ==
+
+Use Keyword = `Specialise` to ensure that a ticket ends up on these lists.
+
+'''Open Tickets:'''
+[[TicketQuery(status=new|patch,keywords=~Specialise)]]
+
+'''Closed Tickets:'''
+[[TicketQuery(status=closed,keywords=~Specialise)]]
+
+
