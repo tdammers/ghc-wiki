@@ -1,0 +1,134 @@
+# Bisection to find bad commits
+
+
+
+Say you have a program `TestCase.hs` in which a rewrite rule stopped firing at some point between GHC 7.10.1 and 7.10. It can often be useful to know which commit introduced the regression. [
+Bisection](https://en.wikipedia.org/wiki/Bisection_%28software_engineering%29) is an efficient way of determining this, requiring at most `log_2(N)` commits to find the culprit among `N` commits.
+
+
+
+This approach is especially appealing as git provides convenient support in the form of [
+\`git bisect\`](https://www.kernel.org/pub/software/scm/git/docs/git-bisect.html). `git bisect` coupled with a reliable test case and the script below (with appropriate modifications) turns the task of bisection into a relatively painless exercise.
+
+
+
+**Note:** Bisecting revisions before the switch to submodules (i.e. more than a couple of months prior to the GHC 7.10.1 release) is quite difficult and is generally not worth the effort. The script below probably won't work in this regime.
+
+
+
+To begin, it's best to minimize the work required to build GHC. For this setting `BuildFlavour=quick` in `mk/build.mk` is recommended. Next download the script below and edit it to reflect your test-case. Now begin the bisection,
+
+
+```
+$ git bisect start
+$ git bisect good ghc-7.10.1-release   # we know the testcase worked here
+$ git bisect bad ghc-7.10.2-release    # but it fails here
+$ git bisect run ghc-bisect.sh
+```
+
+
+This will run the script for each point in the bisection, skipping commits which are unbuildable. Hopefully this will end with a message informing you of the first bad commit. A log of this procedure will be place in `$logs`: `$logs/all` gives a nice high-level overview and the remaining files record each step of the bisection.
+
+
+
+By default the script will clean the tree for every commit. While this is likely to give correct results, it performs a number of potentially redundant rebuilds. The process can be made faster by setting `ALWAYS_CLEAN=0`, which will only clean the tree when a commit fails to build.
+
+
+## ghc-bisect.sh
+
+
+```
+#!/bin/bash
+
+logs=/mnt/work/ghc/tickets/T13930/logs
+make_opts="-j9"
+ghc=`pwd`/inplace/bin/ghc-stage2
+
+mkdir -p $logs
+rev=$(git rev-parse HEAD)
+
+# Bisection step return codes
+function skip_commit() { exit 125; }
+function commit_good() { exit 0; }
+function commit_bad() { exit 1; }
+function stop_bisection() { exit 255; }
+
+function log() {
+    echo "$@" | tee -a $logs/all
+}
+
+function do_it() {
+    step=$1
+    shift
+    log "Commit $rev: $step = $@"
+    $@ 2>&1 | tee  $logs/$rev-$step.log
+    ret="${PIPESTATUS[0]}"
+    log "Commit $rev: $step = $ret"
+    return $ret
+}
+
+function build_ghc() {
+    do_it submodules git submodule update || skip_commit
+    # We run `make` twice as sometimes it will spuriously fail with -j
+    if [ -z "$ALWAYS_CLEAN" -o "x$ALWAYS_CLEAN" == "x0" ]; then
+        # First try building without cleaning, if that fails then clean and try again
+        do_it ghc1 make $make_opts || \
+          do_it ghc2 make $make_opts || \
+          do_it clean make clean && \
+          do_it ghc3 make $make_opts || \
+          do_it ghc4 make $make_opts || \
+          skip_commit
+    else
+        do_it clean make clean || log "clean failed"
+        do_it ghc1 make $make_opts || do_it ghc2 make $make_opts || skip_commit
+    fi
+}
+
+# This is the actual testcase
+# Note that this particular case depended upon the `cabal`
+# library, which is checked out in $tree
+function run_test() {
+    tree=$HOME/trees/cabal
+    cd $tree
+    #do_it "clean-test" rm -R dist-newstyle
+    do_it "build-test" cabal new-build cabal-install --disable-library-profiling --allow-newer=time --with-compiler=$ghc
+    do_it "make-links" /home/ben/.env/bin/mk-cabal-bin.sh
+    do_it "run-test" timeout 10 bin/cabal configure
+
+    # The test has succeeded if the rule fired 
+    if [ "x$?" = "x124" ]; then
+        log "Commit $rev: failed"
+        commit_bad
+    else
+        log "Commit $rev: passed"
+        commit_good
+    fi
+}
+
+if [ -z "$@" ]; then
+    build_ghc
+    run_test
+else
+    $@
+fi
+```
+
+## Gotchas
+
+
+### Pre-8.2
+
+
+
+If you are on Linux and see errors of the form,
+
+
+```wiki
+/usr/bin/ld: -r and -pie may not be used together
+collect2: error: ld returned 1 exit status
+```
+
+
+You are seeing [\#12759](http://gitlabghc.nibbler/ghc/ghc/issues/12759) and need to cherry-pick d421a7e2.
+
+
