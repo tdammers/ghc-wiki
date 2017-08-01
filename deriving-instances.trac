@@ -1,0 +1,13 @@
+= Deriving instances =
+
+All about the `deriving` keyword.
+
+= Status =
+
+Use '''Keyword''' = `deriving` (or `deriving-perf` for performance-related tickets) to ensure that a ticket ends up on these lists.
+
+Open Tickets:
+[[TicketQuery(status=infoneeded,status=new|patch|infoneeded,keywords=~Deriving)]]
+
+Closed Tickets:
+[[TicketQuery(status=infoneeded,status=closed,keywords=~Deriving)]]
