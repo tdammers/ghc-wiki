@@ -1,0 +1,314 @@
+# Live profiling via RTS and ghc-events project
+
+
+
+This wiki page is for my (Karolis Velicka \<karolis.velicka at google's email service\>) project that I carried out when working for Microsoft Research in the summer of 2014.
+
+
+
+In short, the goal of the project is to improve the GHC RTS and [
+ghc-events](http://hackage.haskell.org/package/ghc-events) library to allow for real-time profiling of programs. As a side effect, the changes will also enable the handling of arbitrary sized .eventlog files as well as parsing of them even if they are incomplete (e.g. following a crash). 
+
+
+
+This wiki page documents my current understanding of the system, the new API, the changes that I've made, and plans for future work. In case you find some flaws in my understanding, something that you disagree with or statements that are outright wrong, please do contact me. Any other contributions/advice/edits are very welcome!
+
+
+
+See also: [
+https://hackage.haskell.org/package/ghc-events-0.6.0/docs/GHC-RTS-Events-Incremental.html](https://hackage.haskell.org/package/ghc-events-0.6.0/docs/GHC-RTS-Events-Incremental.html)
+
+
+
+and commit
+
+
+```wiki
+commit 4dfc6d1c40b298d4b8f136e46420227eda60a03d
+Author: alexbiehl <alex.biehl@gmail.com>
+Date:   Tue Jan 31 16:06:33 2017 -0500
+
+    Abstract over the way eventlogs are flushed
+    
+    Currently eventlog data is always written to a file `progname.eventlog`.
+    This patch introduces the `flushEventLog` field in `RtsConfig` which
+    allows to customize the writing of eventlog data.
+    
+    One possible scenario is the ongoing live-profile-monitor effort by
+    @NCrashed which slurps all eventlog data through `fluchEventLog`.
+    
+    `flushEventLog` takes a buffer with eventlog data and its size and
+    returns `false` (0) in case eventlog data could not be procesed.
+    
+    Reviewers: simonmar, austin, erikd, bgamari
+    
+    Reviewed By: simonmar, bgamari
+    
+    Subscribers: qnikst, thomie, NCrashed
+    
+    Differential Revision: https://phabricator.haskell.org/D2934
+```
+
+## Goals
+
+
+### RTS
+
+
+- Allow turning event logging on/off as a whole at runtime.
+- Allow turning on/off individual classes of events at runtime.
+- Allow redirecting the eventlog output from a file to an arbitrary FD. (Interesting policy Q: what to do when sending out the eventlog blocks...)
+- Allow emitting "synchronisation" events, mainly to be used when switching eventlog on/off or redirecting the output to a new sink, or just from time to time to let monitoring apps get a full tracking state. The synchronisation events would be basically the same ones as are emitted at startup, including process info, declaration of capsets, threads etc. (May require new events to distinguish the new "I'm reminding you that this thread exists" from the existing events like "I'm now creating this new thread". Or we may be able to have a semantics where a second "I'm creating thread 42" event is treated as a sync event and can be ignored.)
+- Allow active flushing of the eventlog buffers. Normally the eventlog data is only flushed when a per-cap buffer is full. This can be a long time if one cap is very active while another is not. Software being monitored may wish to ensure that the latest data is sent out every few sec, even if the buffers are not full.
+- Alternatively to the above, or as well, allow setting the per-cap eventlog buffer size.
+- Haskell APIs for all the RTS features above.
+
+### ghc-events
+
+
+- redo the binary parser to be incremental both on input and output: that is allow supplying input chunk by chunk, and getting parsed events out for the data already supplied. This should be doable using the current version of the binary library.
+
+### Basic demo of live monitoring using above new features
+
+
+- demo CLI 'monitored' prog that uses the RTS APIs to direct its eventlog to a local FIFO, emit the various sync events. Perhaps interactive to exercise turning the eventlog on/off, enabling/disabling various event classes.
+- demo CLI 'monitoring' prog that uses the new ghc-events lib to start reading and decoding the event stream.
+- Proof-of-concept EKG-like functionality would be to emit mem/GC summary stats lines every second.
+
+## Implemented changes
+
+
+### ghc-events
+
+
+- Implemented an incremental parser for ghc-events
+- Made the code compile on both 7.8 and 7.9
+- Removed the ErrorT instances (Get has its own fail method now)
+- Added an incomplete .eventlog file to the test suite to test incremental parsing
+- Cleaned some of the code with hlint
+
+### RTS
+
+
+
+None
+
+
+## Next steps
+
+
+
+Functions to implement:
+
+
+- pullOutHeader :: EPS -\> Maybe Header
+- writeEvtLog :: Header -\> \[Event\] -\> IO ()
+
+
+For next release (0.5.0):
+
+
+- compile ThreadScope
+- fix writing to files and check for identity on output (not necessarily in binary)
+- ensure merge works
+- check performance against 0.4.3 on parsing full logs (including sorting e.g. events show)
+
+
+Other:
+
+
+- need to rework the writing so that we generate block markers. we want the same output, but not necessarily the same binary.
+- double check the quicksort - ghc-events's implementation may be more efficient
+- could be useful to get input in blocks rather than individual events
+
+### API for ghc-events
+
+
+
+Client API relevant to real-time event monitoring.  The full API is larger; you can find it in the [
+ghc-events library documentation](https://hackage.haskell.org/package/ghc-events).
+
+
+```wiki
+-- Equivalent to the current API: --------------------------------
+data EventInfo = {...} 
+data ThreadStopStatus = {...} 
+data CapsetType = {...} 
+newtype KernelThreadId = {...}
+
+type Timestamp = Word64
+type ThreadId = Word32
+type TaskId = Word64
+
+-- Read/write from/to files
+readEventLogFromFile :: FilePath -> IO (Either String [Event])
+writeEventLogToFile :: FilePath -> [Event] -> IO ()
+
+-- Pretty printing support
+showEventInfo :: EventInfo -> String
+showThreadStopStatus :: ThreadStopStatus -> String
+ppEventLog :: EventLog -> String
+ppEventType :: EventType -> String
+ppEvent :: IntMap EventType -> CapEvent -> String
+
+-- Perf events
+nEVENT_PERF_NAME :: EventTypeNum
+nEVENT_PERF_COUNTER :: EventTypeNum
+nEVENT_PERF_TRACEPOINT :: EventTypeNum
+sz_perf_num :: EventTypeSize
+sz_kernel_tid :: EventTypeSize
+
+-- Note: new field and changed names
+data Event = Event { evTime :: Timestamp,
+             , evCap  :: Maybe Int
+             , evInfo :: EventInfo
+             } deriving Show
+
+
+-- New functionality: --------------------------------------------
+
+-- Datatype that holds a link to the eventlog
+data EventParserState -- Abstract
+
+-- Datatype that describes the result of getEvent
+data Result a
+  -- Successfully parsed an item
+  = One a
+  -- The eventlog wasn't complete but the input did not contain any more complete
+  -- items
+  | PartialEventLog
+  -- Parsing was completed successfully
+  | CompleteEventLog
+  -- An error in parsing has occurred
+  | EventLogParsingError String
+
+-- Creates a fresh instance of EventParserState for a parser
+initEventParser :: EventParserState
+
+-- Given a state and a bytestring, parses at most one event (if the BS contains
+-- enough data) and keeps the remainder ofthe BS in the state (to be used in 
+-- successive call to readEvent). Expects the first bytes to contain a complete Header
+readEvent :: EventParserState -> B.ByteString -> (Result Event, EventParserState)
+
+-- Deprecated functions and datatypes
+time :: Event -> Timestamp
+spec :: Event -> EventInfo
+
+data CapEvent
+  = CapEvent { ce_cap   :: Maybe Int,
+               ce_event :: Event
+             } deriving Show
+
+```
+
+## Proposed RTS event logging API
+
+
+
+C side:
+
+
+```
+
+///////////
+/* USAGE */
+///////////
+
+/*
+Functions in the API expect to be called in a certain sequence:
+1. initEventLogging(); - initialises the system using the default values for all settings
+   (see below)
+2. Settings functions can be called as per needs of an user
+3. sendHeader(); - sends header to the fd. This is necessary for parsing the log
+   as ghc-events expects all logs to begin with a header that defines the events
+   held in the log
+4. startEventLogging(); - starts sending the events to the fd. No settings functions should be
+   called when event logging is active
+5. stopEventLogging(); - stops sending the events to the fd. This closes all tags,
+   making the log "complete". May not be a good idea to restart streaming to the same fd
+*/
+
+//////////////
+/* RUNNING */
+//////////////
+
+// Initialise the event logging system with the default values
+// The API uses state to control the default values. More information
+// is available in the SETTINGS section.
+initEventLogging();
+
+// Sends the header file of the eventlog via the fd
+sendHeader();
+
+//Starts sending the events to the fd
+startEventLogging();
+
+// Stops sending the events to the fd
+stopEventLogging();
+
+//////////////
+/* SETTINGS */
+//////////////
+
+// Sets the destination file descriptor that the eventlog will be written to.
+// Should only be called when logging is not active.
+// Default: a file called <progname>.eventlog
+setDestination(fd);
+
+// Sets the size of the per-capability eventlog buffers to sz words.
+// Should only be called when logging is not active.
+// Default: 2,097,152 (2MB)
+setBufferSize(int sz);
+
+// Enable or disable particular classes of events. Argument is a bit array
+// Should only be called when logging is not active
+// More info on the classes: 
+// http://www.haskell.org/ghc/docs/latest/html/users_guide/runtime-control.html
+//    Section 4.17.6, the -lclass flag
+// The list above may be out of date, refer to $ghc_source/rts/Trace.h for all 
+// currently available event classes
+// TODO: NB: enableEvents needs room for arguments as well as "flags". 
+enableEvents(long EventClasses);
+disableEvents(long EventClasses);
+
+// Set the flush timer for a Capability's buffer. I.e. the buffer will get 
+// flushed after ms milliseconds of inactivity
+// Should only be called when logging is not active.
+// Default: 0, i.e. do not flush buffers automatically
+// TODO: no equivalent in current RTS, may need a default value
+flushEventLog(int ms);
+
+```
+
+
+Haskell implementation:
+
+
+```wiki
+initEventLogging:: IO()
+setDestination:: Fd -> IO()
+-- <...> 
+-- equivalent to functions on C side
+```
+
+## Misc Notes
+
+
+### Implementation concerns
+
+
+- In current state, RTS writes to the eventlog asynchronously.
+- Start/stop of logging would need to stop the HECs for sync. Need to measure the performance of this
+
+  - Peter: Stop HECs for sync: Could request a global GC for this? That gives you RTS-wide synchronization for free, and doing a GC is probably (?) cheap enough.
+- During this we need to traverse threads in struct generation\_, they are in global variable called generations. Also look into StgTSO (thread structures)
+- Flushing only needs to flush inactive buffers (that are also not empty)
+- Possibly add some GC events (some are currently in tracegc at the moment):
+
+  - heap size
+  - heap live
+- Start/stop of streaming is different from the "sync events" mentioned in goals
+- Tracing has two levels:
+
+  - "Tracing" - more general, prints to stderr, used for debugging
+  - "Event" - lives in RTS/Eventlog, used for writing \*.eventlog files
