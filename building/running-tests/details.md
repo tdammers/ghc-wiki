@@ -1,0 +1,377 @@
+# Testsuite Details
+
+
+
+The testsuite is designed largely as follows, where we take the root of the testsuite to be `testsuite/`. Firstly we have the individual test cases to run. Each test case though can be run in multiple ways. These different ways (which are simply called ```ways```) correspond to things like different optimisation levels, using the threaded RTS or not... ect. Some test cases can be run in any way while others are specific to certain ways. The general layout of the testsuite is this:
+
+
+- `config`: Contains the definition of the different ways supported. The only file of relevance here is `ghc`. No other Haskell compiler is actually supported by the testsuite.
+- `driver`: Contains the python source code that forms the testsuite framework.
+- `mk`: Contains the make source code that forms the testsuite framework. The make part is mostly concerned with invoking the python component, which does the actual work.
+- `tests`: Contains the actual test cases to run.
+- `timeout`: Contains a Haskell program that kills a running test case after a certain amount of time. Used by the testsuite framework.
+
+
+More documentation can also be found in the driver, particularly in its README.md file.
+
+
+## Testsuite Implementation details
+
+
+
+The testsuite driver is just a set of Python scripts, as are all of
+the .T files in the testsuite.  The driver (driver/runtests.py) first
+searches for all the .T files it can find, and then proceeds to
+execute each one, keeping a track of the number of tests run, and
+which ones succeeded and failed.
+
+
+
+The script runtests.py takes several options:
+
+
+>
+>
+> -e \<stmt\>
+>
+>
+
+>
+> >
+> >
+> > executes the Python statement \<stmt\> before running any tests.
+> > The main purpose of this option is to allow certain
+> > configuration options to be tweaked from the command line; for
+> > example, the build system adds '-e config.accept=1' to the
+> > command line when 'make accept' is invoked.
+> >
+> >
+>
+
+>
+>
+> --config-file \<file\>
+>
+>
+
+
+  
+
+
+>
+> >
+> >
+> > \<file\> is just a file containing Python code which is 
+> > executed.   The purpose of this option is so that a file
+> > containing settings for the configuration options can
+> > be specified on the command line.  Multiple --config-file 
+> > options may be given. (There is a depreciated --configfile
+> > flag that exists so the testsuite runs on older commits) 
+> >
+> >
+>
+
+>
+>
+> --config \<field\>
+>
+>
+
+>
+> >
+> >
+> > This command is the single-field variant of --config-file.
+> > Multiple --config options may be given.
+> >
+> >
+>
+
+>
+>
+> --rootdir \<dir\>
+>
+>
+
+>
+> >
+> >
+> > \<dir\> is the directory below which to search for .T files
+> > to run.
+> >
+> >
+>
+
+>
+>
+> --summary-file \<file\>
+>
+>
+
+>
+> >
+> >
+> > In addition to dumping the test summary to stdout, also
+> > put it in \<file\>.  (stdout also gets a lot of other output
+> > when running a series of tests, so redirecting it isn't  
+> > always the right thing).
+> >
+> >
+>
+
+>
+>
+> --no-print-summary
+>
+>
+
+>
+> >
+> >
+> > If this flag is given on the commandline, the summary will 
+> > not be printed.
+> >
+> >
+>
+
+>
+>
+> --only \<test\>
+>
+>
+
+>
+> >
+> >
+> > Only run tests named \<test\> will be run; multiple --only options 
+> > can be given.  Useful for running a single test from a .T file
+> > containing multiple tests.
+> >
+> >
+>
+
+>
+>
+> --way \<way\>
+>
+>
+> >
+> >
+> > Only ways named \<way\> will be run; multiple --way options can
+> > be given.
+> >
+> >
+>
+
+>
+>
+> --skipway \<way\>
+>
+>
+> >
+> >
+> > The inverse of --way. \<way\> will be skipped if it would
+> > otherwise be ran.
+> >
+> >
+>
+
+>
+>
+> --threads \<number\>
+>
+>
+> >
+> >
+> > Execute the testsuite in parallel.
+> >
+> >
+>
+
+>
+>
+> --verbose \<number\>
+>
+>
+> >
+> >
+> > A verbosity value between 0 and 5. 0 is silent, 4 and higher
+> > activates extra output.
+> >
+> >
+>
+
+>
+>
+> --skip-perf-tests
+>
+>
+> >
+> >
+> > All performance tests will be skipped.
+> >
+> >
+>
+
+>
+>
+> --only-perf-tests
+>
+>
+> >
+> >
+> > Skips all tests except for performance tests. Useful for
+> > quickly determining if any changes have introduced a
+> > performance regression.
+> >
+> >
+>
+
+>
+>
+> --junit \<file\>
+>
+>
+> >
+> >
+> > Writes the testsuite summary to \<file\> in JUnit format.
+> >
+> >
+>
+
+>
+>
+> --test-env \<string\>
+>
+>
+> >
+> >
+> > Test-env defaults to 'local' if this flag is not given.
+> > If given, the performance test output (which is saved to
+> > git notes automatically) will contain the test-env you
+> > set. This is useful for copying over git notes to different
+> > computers without having to worry about different performance
+> > numbers due to hardware differences; it can also be used
+> > as an ad-hoc "tag" with the comparison tool to separate
+> > out different test-runs without committing.
+> >
+> >
+>
+
+
+Most of the code for running tests is located in driver/testlib.py.
+Most of the code for dealing with performance tests is inside of 
+driver/perf\_notes.py; it is well commented with implementation
+details. Take a look.
+
+
+
+Of special mention is the driver/README.md file; it covers quite a bit
+of detail from a different perspective and should also be helpful,
+epecially regarding performance test implementation and design.
+
+
+
+There is a single Python class (TestConfig) containing the global
+configuration for the testsuite.  It contains information such as the
+kind of compiler being used, which flags to give it, which platform
+we're running on, and so on.  The idea is that each platform and
+compiler would have its own file containing assignments for elements
+of the configuration, which are sourced by passing the appropriate
+--config options to the test driver.  For example, the GHC
+configuration is contained in the file config/ghc.
+
+
+
+A .T file can obviously contain arbitrary Python code, but the general
+idea is that it contains a sequence of calls to the function test(),
+which resides in testlib.py.  As described above, test() takes four
+arguments:
+
+
+>
+>
+> test(\<name\>, \<opt-fn\>, \<test-fn\>, \<args\>)
+>
+>
+
+
+The function \<opt-fn\> is allowed to be any Python callable object,
+which takes a single argument of type TestOptions.  TestOptions is a
+class containing options which affect the way that the current test is
+run: whether to skip it, whether to expect failure, extra options to
+pass to the compiler, etc. (see testglobals.py for the definition of the
+TestOptions class).  The idea is that the \<opt-fn\> function modifies
+the TestOptions object that it is passed.  For example, to expect
+failure for a test, we might do this in the .T file:
+
+
+```wiki
+   def fn(opts):
+      opts.expect = 'fail'
+
+   test(test001, fn, compile, [''])
+```
+
+
+so when fn is called, it sets the instance variable "expect" in the
+instance of TestOptions passed as an argument, to the value 'fail'.
+This indicates to the test driver that the current test is expected to
+fail.
+
+
+
+One somewhat special \<opt-fn\> that is provided in the test driver is the
+function collect\_stats(). It marks the test as a performance test at which
+point the test driver will automatically collect performance metrics and 
+detect performance regressions. More information about collect\_stats is 
+provided in perf\_notes.py
+
+
+
+Some of these \<opt-fn\> functions, such as the 'expect failure' one above, 
+are common, so rather than forcing every .T file to redefine them, we provide 
+canned versions.  For example, the provided function expect\_fail does the
+same as fn in the example above. See testlib.py for all the canned functions
+we provide for \<opt-fn\>.
+
+
+
+The argument \<test-fn\> is a function which performs the test.  It
+takes three or more arguments:
+
+
+```wiki
+      <test-fn>( <name>, <way>, ... )
+```
+
+
+where \<name\> is the name of the test, \<way\> is the way in which it is
+to be run (eg. opt, optasm, prof, etc.), and the rest of the arguments
+are constructed from the list \<args\> in the original call to test().
+The following \<test-fn\>s are provided at the moment:
+
+
+```wiki
+           compile
+           compile_fail
+           compile_and_run
+           multimod_compile
+           multimod_compile_fail
+           multimod_compile_and_run
+           multisrc_compile
+           multisrc_compile_fail
+           multisrc_compile_and_run
+           multi_compile
+           multi_compile_fail
+           multi_compile_and_run
+           run_command
+           run_command_ignore_output
+           ghci_script
+```
+
+
+and obviously others can be defined.  The function should return
+either 'pass' or 'fail' indicating that the test passed or failed
+respectively.
+
+
