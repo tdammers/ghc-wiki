@@ -27,7 +27,7 @@ But, why would we be interested in modifying GHC's concurrency environment? Ther
 
 
 
-While we want to provide flexibility to the Haskell programmer, this should not come at a cost of added complexity and decreased performance. This idea reflects in the synchronization abstractions exposed to the programmer - [Primitive Transactional Memory(PTM)](lightweight-concurrency#tm)), and our decision to keep certain pieces of the concurrency puzzle in the RTS ([Safe Foreign Calls](lightweight-concurrency#afe-foreign-calls),[Blackholes](lightweight-concurrency#)). One would think lifting parts of the runtime system to Haskell, and retaining other parts in C, would complicate the interactions between the concurrency primitives and schedulers. We abstract the scheduler interface using PTM monads, which simplifies the interactions. The figure below captures the key design principles of the proposed system.
+While we want to provide flexibility to the Haskell programmer, this should not come at a cost of added complexity and decreased performance. This idea reflects in the synchronization abstractions exposed to the programmer - [Primitive Transactional Memory(PTM)](lightweight-concurrency#ptm)), and our decision to keep certain pieces of the concurrency puzzle in the RTS ([Safe Foreign Calls](lightweight-concurrency#safe-foreign-calls),[Blackholes](lightweight-concurrency#)). One would think lifting parts of the runtime system to Haskell, and retaining other parts in C, would complicate the interactions between the concurrency primitives and schedulers. We abstract the scheduler interface using PTM monads, which simplifies the interactions. The figure below captures the key design principles of the proposed system.
 
 
 
@@ -74,7 +74,7 @@ retry      :: PTM a
 ```
 
 
-A PTM transaction may allocate, read and write transactional variables of type `PVar a`. Transaction is atomically executed using the `atomically` primitive. It is important to notice that PTM provides a blocking `retry` mechanism which needs to interact with the scheduler, to block the current thread and resume another thread. We will see [later](lightweight-concurrency#tm-retry) how we allow such interactions while not imposing any restriction on the structure of the schedulers.
+A PTM transaction may allocate, read and write transactional variables of type `PVar a`. Transaction is atomically executed using the `atomically` primitive. It is important to notice that PTM provides a blocking `retry` mechanism which needs to interact with the scheduler, to block the current thread and resume another thread. We will see [later](lightweight-concurrency#ptm-retry) how we allow such interactions while not imposing any restriction on the structure of the schedulers.
 
 
 ### One-shot Continuations
@@ -97,7 +97,7 @@ Given an I/O-performing computation `newSCont` returns a reference to an SCont w
 
 
 
-Performing the body of switch atomically in a transaction avoids the nasty race conditions usually seen in multicore runtimes where one-shot continuations are used for modelling schedulers. In such systems, there are often cases where before the switch primitive has had a chance to return, another processor picks up the current continuation (appended to the scheduler) and tries to switch to it. It becomes necessary to go for complicated solutions such as releasing the scheduler locks after the target thread resumes execution to prevent races. In our case, PTM eliminates the need for such a mechanism - the other processor would not be able to access the current SCont, unless the transaction has committed and control has switched to the target SCont. Primitive `getCurrentSCont` returns a reference to the current SCont under PTM. Primitive `switchTo` commits the current PTM transaction and switches to the given SCont. As we will see, these two primitives are necessary for [abstracting the scheduler](lightweight-concurrency#bstracting-the-scheduler). 
+Performing the body of switch atomically in a transaction avoids the nasty race conditions usually seen in multicore runtimes where one-shot continuations are used for modelling schedulers. In such systems, there are often cases where before the switch primitive has had a chance to return, another processor picks up the current continuation (appended to the scheduler) and tries to switch to it. It becomes necessary to go for complicated solutions such as releasing the scheduler locks after the target thread resumes execution to prevent races. In our case, PTM eliminates the need for such a mechanism - the other processor would not be able to access the current SCont, unless the transaction has committed and control has switched to the target SCont. Primitive `getCurrentSCont` returns a reference to the current SCont under PTM. Primitive `switchTo` commits the current PTM transaction and switches to the given SCont. As we will see, these two primitives are necessary for [abstracting the scheduler](lightweight-concurrency#abstracting-the-scheduler). 
 
 
 #### Return value of a switching transaction
@@ -159,7 +159,7 @@ Before a switch operation, we expect the programmer to indicate the reason for s
 
 
 
-Resume tokens are utilized for supporting asynchronous exceptions. Resume tokens are discussed along with the [discussion on asynchronous exceptions](lightweight-concurrency#synchronous-exceptions).
+Resume tokens are utilized for supporting asynchronous exceptions. Resume tokens are discussed along with the [discussion on asynchronous exceptions](lightweight-concurrency#asynchronous-exceptions).
 
 
 ### SCont-Local Storage
@@ -223,7 +223,7 @@ yieldControlAction = do
 ```
 
 
-The implementation is pretty straight-forward; scheduleSContAction appends the given scont to the back of the list, and yieldControlAction picks an SCont from the front of the list and switches to it. The `otherwise` case of yieldControlAction is chosen if the there are no available SConts to switch to. This will be discussed later under [Sleep Capability](lightweight-concurrency#leep-capability). Having the scheduler actions as PTM actions ensures that the operations on the scheduler are always properly synchronized. Notice that scheduleSContAction returns while yieldControlAction does not. We expect every user-level thread (SCont) to be associated with a scheduler. The scheduler actions are saved as fields in the SCont's TSO structure so that the RTS can access them. Typically, when a new SCont is created, it is immediately associated with a scheduler. 
+The implementation is pretty straight-forward; scheduleSContAction appends the given scont to the back of the list, and yieldControlAction picks an SCont from the front of the list and switches to it. The `otherwise` case of yieldControlAction is chosen if the there are no available SConts to switch to. This will be discussed later under [Sleep Capability](lightweight-concurrency#sleep-capability). Having the scheduler actions as PTM actions ensures that the operations on the scheduler are always properly synchronized. Notice that scheduleSContAction returns while yieldControlAction does not. We expect every user-level thread (SCont) to be associated with a scheduler. The scheduler actions are saved as fields in the SCont's TSO structure so that the RTS can access them. Typically, when a new SCont is created, it is immediately associated with a scheduler. 
 
 
 ## User-level Concurrency
@@ -402,7 +402,7 @@ sleepCapability :: PTM ()
 ```
 
 
-primitive that aborts the current transaction and blocks the current capability. The capability is implicitly woken up when one of the PVars that it has read from has been updated. Then, the original transaction is re-executed. Under yieldControlAction, one of the PVars read before sleeping will be the scheduler data structure. Hence, the capability is woken up when the scheduler data structure is updated. The complete implementation of yieldControlAction example introduced [earlier](lightweight-concurrency#bstracting-the-scheduler) is given below.
+primitive that aborts the current transaction and blocks the current capability. The capability is implicitly woken up when one of the PVars that it has read from has been updated. Then, the original transaction is re-executed. Under yieldControlAction, one of the PVars read before sleeping will be the scheduler data structure. Hence, the capability is woken up when the scheduler data structure is updated. The complete implementation of yieldControlAction example introduced [earlier](lightweight-concurrency#abstracting-the-scheduler) is given below.
 
 
 ```wiki
@@ -459,7 +459,7 @@ We retain certain components of GHC's concurrency support that interact with the
 
 
 
-We observe that our [scheduler actions](lightweight-concurrency#bstracting-the-scheduler) are sufficient to capture the interaction of user-level scheduler and RTS. As mentioned earlier, the scheduler actions are saved as fields in the TSO structure. In order to invoke the scheduler actions from the RTS (*upcalls*), we need a container thread. We associate with every capability an *upcall thread* and an *upcall queue*. 
+We observe that our [scheduler actions](lightweight-concurrency#abstracting-the-scheduler) are sufficient to capture the interaction of user-level scheduler and RTS. As mentioned earlier, the scheduler actions are saved as fields in the TSO structure. In order to invoke the scheduler actions from the RTS (*upcalls*), we need a container thread. We associate with every capability an *upcall thread* and an *upcall queue*. 
 
 
 
@@ -507,7 +507,7 @@ For the given thread, `setFinalizer` installs the given IO () as the finalizer. 
 
 
 
-GHC's concurrency library supports preemptive scheduling of threads. In the LWC implementation, we utilize the scheduler actions to preempt the thread; on a timer interrupt, we execute the current thread's schedulerSContAction followed by yieldControlAction. This is similar to the implementation of the `yield` primitive described [earlier](lightweight-concurrency#chedulers).
+GHC's concurrency library supports preemptive scheduling of threads. In the LWC implementation, we utilize the scheduler actions to preempt the thread; on a timer interrupt, we execute the current thread's schedulerSContAction followed by yieldControlAction. This is similar to the implementation of the `yield` primitive described [earlier](lightweight-concurrency#schedulers).
 
 
 ### Safe Foreign Calls
@@ -580,7 +580,7 @@ Since each of these conditions can either be true or false, we have 8 cases to c
 
 
 
-Since thunk evaluation and blackholing is a critical for good performance, we would like the common case - thunk finishes evaluation without being blackholed - to be fast. Hence, we retain the RTS messaging layer between the capabilities for blocking on a blackhole. When a thread enters a blackhole whose owner thread resides on another capability, a block request message is sent to the corresponding capability. Notice that the [association](lightweight-concurrency#cont-affinity) between SConts (threads) and capabilities is essential for identifying which capability to send the block request message to. During every iteration of the RTS Schedule loop, a capability checks its inbox for pending messages, and if any, processes the messages. Hence, no synchronization is necessary for replacing a thunk with a value. 
+Since thunk evaluation and blackholing is a critical for good performance, we would like the common case - thunk finishes evaluation without being blackholed - to be fast. Hence, we retain the RTS messaging layer between the capabilities for blocking on a blackhole. When a thread enters a blackhole whose owner thread resides on another capability, a block request message is sent to the corresponding capability. Notice that the [association](lightweight-concurrency#scont-affinity) between SConts (threads) and capabilities is essential for identifying which capability to send the block request message to. During every iteration of the RTS Schedule loop, a capability checks its inbox for pending messages, and if any, processes the messages. Hence, no synchronization is necessary for replacing a thunk with a value. 
 
 
 ### Exceptions Escaping SConts
