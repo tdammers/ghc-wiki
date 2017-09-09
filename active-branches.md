@@ -45,7 +45,7 @@ These branches are not merged, but they are also not totally dead ended, and the
 
 - `wip/cbv-conv-thunk`: **Opportunistic evaluation of thunks**. This is a side-line of `wip/nested-cpr`: Nested CPR requires a convergence analysis, and it might be worth evaluating them ([\#7596](http://gitlabghc.nibbler/ghc/ghc/issues/7596)). Seems to be not as useful as hoped. Joachim Breitner.
 
-- `wip/common-context`: **Common context transformation** which can reduce code size and possibly produce more join points. See [NestedCPR](nested-cpr#ommon-context). Joachim Breitner.
+- `wip/common-context`: **Common context transformation** which can reduce code size and possibly produce more join points. See [NestedCPR](nested-cpr#common-context). Joachim Breitner.
 
 # Uncertain
 
