@@ -56,7 +56,7 @@ Haskell threads are much lighter-weight (at least 100x) than OS threads.
 
 
 
-When running on an SMP, we begin by creating the number of OS threads specified by the `+RTS -N` option, although during the course of running the program more OS threads might be created in order to continue running Haskell code while foreign calls execute.  Spare OS threads are kept in a pool attached to each `Capability` (see [\#Capabilities](commentary/rts/scheduler#apabilities)).
+When running on an SMP, we begin by creating the number of OS threads specified by the `+RTS -N` option, although during the course of running the program more OS threads might be created in order to continue running Haskell code while foreign calls execute.  Spare OS threads are kept in a pool attached to each `Capability` (see [\#Capabilities](commentary/rts/scheduler#capabilities)).
 
 
 
