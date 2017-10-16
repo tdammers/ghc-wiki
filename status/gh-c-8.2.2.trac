@@ -1,0 +1,37 @@
+= GHC plans for 8.2.2 =
+
+[[PageOutline]]
+
+This page is our road-map for what will be in 8.2.2.
+
+== Current status ==
+
+The release is currently stabilizing.
+
+== Dates ==
+
+8.2.2-rc1 was released on 1 October 2017.
+8.2.2-rc2 will be released the week of 16 October 2017.
+
+== Libraries Status
+
+See [wiki:./Libraries]
+
+
+== Tickets marked merge with no milestone
+
+[[TicketQuery(status=merge,milestone=,format=table,col=type|summary|priority|owner,group=status)]]
+
+== Tickets slated for 8.2.2
+
+=== merge/patch/upstream
+
+[[TicketQuery(milestone=8.2.2,status=merge|patch|upstream,format=table,col=type|summary|priority|differential|owner,group=status,order=priority)]]
+
+=== new
+
+[[TicketQuery(milestone=8.2.2,status=new,format=table,col=type|summary|priority|owner,group=status,order=priority)]]
+
+=== infoneeded
+
+[[TicketQuery(milestone=8.2.2,status=infoneeded,format=table,col=type|summary|priority|owner,group=status,order=priority)]]
