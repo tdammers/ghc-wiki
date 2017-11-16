@@ -63,7 +63,7 @@ Here's how to submit a bug fix to GHC. For [changing the documentation](working-
   *Alternatively*: **Create a Pull Request** on [
   GitHub](https://github.com/ghc/ghc/). This variant should only be chosen for simple changes that are likely accepted without much review.
 
-1. **Update the Trac ticket.** Fill out the field called "[Differential Revisions](phabricator#inking-reviews-to-trac-tickets-and-vice-versa)". Syntax: `Phab:D123`. 
+1. **Update the Trac ticket.** Fill out the field called "[Differential Revisions](phabricator#linking-reviews-to-trac-tickets-and-vice-versa)". Syntax: `Phab:D123`. 
 
 1. **Wait** for the reviewers to look at your patches. If this takes more than a week, complain! 
 
