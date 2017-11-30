@@ -1,5 +1,5 @@
 
-This proposal has been revised based on the feedback gathered from the [proposal discussion](proposal/monad-of-no-return#iscussion). The original revision of this proposal can be found [
+This proposal has been revised based on the feedback gathered from the [proposal discussion](proposal/monad-of-no-return#discussion). The original revision of this proposal can be found [
 here](https://mail.haskell.org/pipermail/libraries/2015-September/026121.html). See wiki page [History](proposal/monad-of-no-return?action=history) for changes relative to that first revision.
 
 
@@ -304,7 +304,7 @@ instance Monad Foo where
 
 
 
-This transition scheme is **not** proposed anymore; see [new strategy below](proposal/monad-of-no-return#educed-breakage-variant)
+This transition scheme is **not** proposed anymore; see [new strategy below](proposal/monad-of-no-return#reduced-breakage-variant)
 
 
 
