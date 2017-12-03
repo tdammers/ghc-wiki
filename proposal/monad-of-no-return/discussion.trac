@@ -1,0 +1,94 @@
+= Proposal Discussion of MonadOfNoReturn (MRP)
+
+The original proposal was posted to [https://www.reddit.com/r/haskell/comments/3mb8lb/monad_of_no_return_proposal_mrp/ reddit] as well to the [http://thread.gmane.org/gmane.comp.lang.haskell.libraries/25274 libraries] list  (broken off thread branch [http://thread.gmane.org/gmane.comp.lang.haskell.libraries/25380 here]) on 2015-09-24, and lateron the discussion thread got cross-posted to `haskell-cafe` and `haskell-prime`.
+
+== Conclusion & Revised Proposal
+
+Based on the feedback gathered from the discussion, the [MonadOfNoReturn proposal has been revised] to address the raised concerns. First and foremost, a [MonadOfNoReturn#ReducedBreakageVariant new stretched out transition scheme] complying with the recently enacted [https://groups.google.com/forum/#!msg/haskell-core-libraries/qXYMfV8JZ6k/tTuFrBMdDgAJ 3-release policy] (and beyond) has been devised. Moreover, the feasibility of automatic refactoring tooling was investigated and resulted in the working `Hs2010To201x` proof-of-concept.
+
+On 2017-11-29 the revised proposal was posted on `/r/haskell` and had a favorable reception ([https://www.reddit.com/r/haskell/comments/7ghoy6/proposalmonadofnoreturn/ reddit thread]).
+
+== Discussion Summary
+
+This proposal was initially met with enthusiasm as being the right
+thing to do, despite the compatibility implications of the originally
+proposed transition scheme on both Reddit and the mailing list.
+
+It was suggested early on during the discussion to also remove `>>`
+from `Monad` as part of MRP as the same general rationale applies for
+`>>` similarly (additionally motivated by effects on `Traversable`).
+
+The feasibility of automatic refactoring tooling was
+discussed. Moreover, it was suggested to drop the "legacy" designation
+from the remaining top-level `return` binding's Haddock comment (as
+originally proposed).  The latter item caused a short bikeshedding
+detour of suggesting alternative names for `return`/`pure` such as
+`inject`/`box`/`wrap`/`unit`, and questioning the merits of having
+called `return` that way in the first place.
+
+It was suggested to provide a permanent custom error message providing
+guidance when explicit `return` definitions occur (after `return` has
+moved out of `Monad`) for the benefit of future people unaware of the
+new post-AMP `Monad` classes. The idea of custom error messages for
+removed entities was considered interesting in general, leading to the
+suggestion of introducing a `{-# REMOVED #-}` pragma to complement
+`{-# DEPRECATED #-}` pragmas.
+
+The question was raised whether it would be desirable to delay MRP and
+bundle it with other little changes being turned on at once with the
+next Haskell Report to avoid piecemeal changes now. It was pointed out
+the upcoming Haskell Report is in fact what's driving the timing of
+this very proposal, and to have warnings available early on to smooth
+the transition, and that two Reports for 2017 and 2020 are on the
+roadmap, with the 2020 Report depending on changes being in place
+in 2017.
+
+After a week had passed, a joint post from Henrik Nilsson and Graham
+Hutton significantly changed the direction of the discussion. The
+critique was aimed in general at the recent flurry of breaking changes
+(AMP, FTP et al.) with sometimes questionable merit to GHC's `base`
+library which is considered a de-facto Haskell standard, and in
+particular at MRP for being a non-essential breaking change to GHC's
+`base` library and therefore urging extreme caution.
+
+The issue of textbook examples being broken by MRP was raised, but
+countered by a survey of the most popular books which are usually
+based on the written Haskell98/2010 standard (i.e. pre-AMP) and are
+therefore already broken by AMP/MFP/FTP, so that breakage by MRP is
+minor in comparison. To the contrary, MRP helps providing didactically
+cleaner presentation of the `Monad` class hierarchy, and helps
+avoiding to have to explain historical baggage (an in-the-works book
+was mentioned, where AMP already improved the exposition). So when
+books are updated to AMP/MFP, taking MRP into account as well poses no
+additional cost.
+
+Also, the issue of avoiding error-prone CPP (which was required by the
+original proposal for backward compatible code) was brought up.  In a
+similar vein, support for attaining `-Wall`-hygiene without having to
+add additional CPP conditionals is desirable.  This lead to the CLC
+considering a 3-year CPP-free/Wall clean guideline.  It was also
+pointed out, that MRP was not done as part of AMP already for
+the very reason to provide a more gradual migration path.
+(NB: Both concerns are addressed by the revised MRP)
+
+A major general underlying fear based on the perceived constant flux
+of non-backward compatible changes is triggered by MRP: Haskell may
+miss the small window of opportunity for being adopted by mainstream
+if Haskell is perceived as being unstable with code constantly
+breaking due to API changes. This lead to suggestions such as bundling
+changes belonging together in chunks every couple of years, and/or
+alternatively extending the life-cycle of previous GHC releases
+(e.g. the pre-AMP GHC 7.8 release) with LTS guarantees to copy how
+similar issues are handled in other ecosystem, or even use GHC 8 as
+experimental testing-ground ("Perl 6/Python 3 for Haskell"). It was
+pointed out that the revived Haskell Prime process may help
+synchronizing these changes in a more controlled cadence.
+
+The discussion spread via cross-posting to the haskell-cafe and the
+haskell-prime list, and also covered a large range of other less MRP
+specific topics such as the merits of `ApplicativeDo`, whether Haskell
+2010 fell short of expectations, how to manage language changes in
+general, the role/relationship of the Haskell Prime and the Core
+Libraries Committee, the purpose of warnings, language features to aid
+with compatibilities.
+
