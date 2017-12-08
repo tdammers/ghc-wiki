@@ -1,0 +1,16 @@
+= Float out and full laziness =
+
+This is a status page for full laziness, implemented by the float-out transformation.
+
+The relevant modules in GHC are `SetLevels` and `FloatOut`.
+
+
+== Tickets ==
+
+Use Keyword = `FloatOut` to ensure that a ticket ends up on these lists.
+
+'''Open Tickets:'''
+[[TicketQuery(status=new|patch,keywords=~FloatOut)]]
+
+'''Closed Tickets:'''
+[[TicketQuery(status=closed,keywords=~FloatOut)]]
