@@ -2,7 +2,7 @@
 
 
 
-Releases are made by the release manager, currently Ben Gamari. The release manager is also the maintainer of the stable branch, see [\#Branches](working-conventions/releases#ranches).
+Releases are made by the release manager, currently Ben Gamari. The release manager is also the maintainer of the stable branch, see [\#Branches](working-conventions/releases#branches).
 
 
 ## Release policies
