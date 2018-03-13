@@ -1,0 +1,18 @@
+
+
+= The Haskell Execution Model =
+
+The [wiki:Commentary/Compiler/StgSynType STG language] has a clear ''operational'' model, as well as having a declarative lambda-calculus reading.  The business of the [wiki:Commentary/Compiler/CodeGen code generator] is to translate the STG program into `C--`, and thence to machine code, but that is mere detail. From the STG program you should be able to understand:
+  * What functions are in the compiled program, and what their entry and return conventions are
+  * What heap objects are allocated, when, and what their layout is
+
+GHC uses an eval/apply execution model, described in the paper [https://www.microsoft.com/en-us/research/publication/make-fast-curry-pushenter-vs-evalapply/ How to make a fast curry: push/enter vs eval/apply].  This paper is well worth reading if you are interested in this section.
+
+Contents:
+ 
+ * [wiki:Commentary/Rts/HaskellExecution/Registers Registers]
+ * [wiki:Commentary/Rts/HaskellExecution/FunctionCalls Function Calls]
+ * [wiki:Commentary/Rts/HaskellExecution/CallingConvention Call and Return Conventions]
+ * [wiki:Commentary/Rts/HaskellExecution/HeapChecks Heap and Stack checks]
+ * [wiki:Commentary/Rts/HaskellExecution/Updates Updates]
+ * [wiki:Commentary/Rts/HaskellExecution/PointerTagging Pointer Tagging]
