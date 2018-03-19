@@ -85,7 +85,7 @@ All other PrimOps are classified as out-of-line, and are implemented by hand-wri
 - PrimOps cannot be partially applied.  Calls to all PrimOps are made at the correct arity; this is ensured by 
   the [CorePrep](commentary/compiler/hsc-main) pass.
 
-- Out-of-line PrimOps have a special, fixed, [calling convention](commentary/rts/haskell-execution#alling-convention):
+- Out-of-line PrimOps have a special, fixed, [calling convention](commentary/rts/haskell-execution#calling-convention):
   all arguments
   are in the [registers](commentary/rts/haskell-execution#) R1-R8.  This is to make it easy to write the
   C-- code for these PrimOps: we don't have to write code for multiple calling conventions.
