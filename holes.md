@@ -559,7 +559,7 @@ It seems intuitive how named holes work in expressions. How would they work in t
 
 
 
-As we mentioned in [Comparison](holes#omparison), the expression wildcard does not allow finding out the type of an existing expression. A special pair of brackets could be used to do this.
+As we mentioned in [Comparison](holes#comparison), the expression wildcard does not allow finding out the type of an existing expression. A special pair of brackets could be used to do this.
 
 
 
@@ -595,12 +595,12 @@ For this specification, we use the named term variables variant (though it may a
 When using holes (i.e. `-XHoles` is set), we expect the following:
 
 
-1. The program should type-check as if every hole `_?h` is replaced with `undefined`. See [Ambiguous types](holes#mbiguous-types) for more discussion.
+1. The program should type-check as if every hole `_?h` is replaced with `undefined`. See [Ambiguous types](holes#ambiguous-types) for more discussion.
 1. If the program is well-typed (as above), then:
 
   - The types of all holes should be reported.
   - Assuming no other errors, the program should compile and run.
-  - If running a program causes a hole to be evaluated, the evaluation should fail with an runtime error. See [Runtime error](holes#untime-error) for an example.
+  - If running a program causes a hole to be evaluated, the evaluation should fail with an runtime error. See [Runtime error](holes#runtime-error) for an example.
 1. (optional) If the program is ill-typed, then:
 
   - The types of all holes should be reported.
@@ -662,7 +662,7 @@ This is the approach that we have been going with. However, the result seems uni
 
 
 
-A hole with an ambiguous type should probably be treated as a hole runtime error and not a deferred type error (see [Runtime error](holes#untime-error) for an example); however, not all holes are the immediate cause of ambiguity type errors. For example, consider:
+A hole with an ambiguous type should probably be treated as a hole runtime error and not a deferred type error (see [Runtime error](holes#runtime-error) for an example); however, not all holes are the immediate cause of ambiguity type errors. For example, consider:
 
 
 ```wiki
