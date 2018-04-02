@@ -1,0 +1,501 @@
+= Typed holes =
+
+This page discusses the design and implementation of "typed holes" in GHC. 
+
+See also
+* The original ticket on this feature: #5910. 
+
+Historical note: the [https://github.com/xnyhps/ghc development repository] and its [https://github.com/xnyhps/ghc/issues issue tracker].
+
+
+== Tickets ==
+
+Use Keyword = `TypedHoles` to ensure that a ticket ends up on these lists.
+
+'''Open Tickets:'''
+[[TicketQuery(status=new|patch,keywords=~TypedHoles)]]
+
+'''Closed Tickets:'''
+[[TicketQuery(status=closed,keywords=~TypedHoles)]]
+
+
+----------------------------------
+Below here is the original wiki page now probably partly outdated by the implementation in GHC.
+
+= Introduction =
+
+Informally, a "hole" is something to be filled. A hole in the ground can cause an injury if you stepped into it, but you can also build a house around it without a problem. You can easily measure a hole to determine how much material (e.g. dirt or concrete) is needed to fill it.
+
+The analogy of a hole in the ground can be transferred to a hole in a program. If you run the program and encounter a hole, the runtime will halt (e.g. as if you encountered {{{undefined}}}). But you can still compile a program with holes. The compiler reports information about the hole, so that the programmer knows what code should replace the hole.
+
+These are the requirements of the problem that holes solve:
+  1. Extract information about subterms in a program.
+  1. Do not interrupt compilation.
+
+The extracted information from a hole can include, among other things:
+  * The expected type of the hole
+  * The local bindings (and their types) in the scope of the hole
+
+We first describe related work, including concepts that are similar in other languages as well as other approaches to solving the problem proposed. Then, we discuss the proposal in detail.
+
+= Related Work =
+
+== Goals in Agda ==
+
+One of the features of the Emacs mode for [http://wiki.portal.chalmers.se/agda/pmwiki.php Agda] is the ability to insert a goal, a placeholder for code that is yet to be written. By inserting a {{{?}}} in an expression, the compiler will introduce a goal. After loading the file (which typechecks it), Agda gives an overview of the goals in the file and their types.
+
+For example:
+
+{{{
+test : List Bool
+test = Cons ? (Cons ? Nil)
+}}}
+
+gets turned into
+
+{{{
+test : List Bool
+test = Cons { }0 (Cons { }1 Nil)
+}}}
+
+with the output
+
+{{{
+?0 : Bool
+?1 : Bool
+}}}
+
+As can be seen here, goals are numbered, and the typechecker returns the inferred type for each of these goals.
+
+Goals can make it a lot easier to write code. They allow typechecking to continue although certain parts of code are missing. They also work as a to-do list for incomplete programs.
+
+== Deferring type errors to runtime ==
+
+The proposal DeferErrorsToRuntime implements a flag that turns every type error into a warning with an associated bit of code that is run when the offending ill-typed term is encountered at runtime. At the time of writing, this is implemented in GHC as {{{-fdefer-type-errors}}}.
+
+Deferring type errors alone is not a solution that fits the problem description; however, it can be used in conjunction with other things to solve the problem.
+
+== Inserting deliberate type errors ==
+
+One technique for finding the type of a subterm that has been often seen on the mailing lists is deliberately inserting ill-typed terms, so that the type error reports the expected type of the term.
+
+Here is an example:
+{{{
+1 + ()
+}}}
+We get an error that there is no instance for {{{Num ()}}}.
+
+We can do this is a more refined manner by using {{{undefined}}} with a type annotation:
+{{{
+test :: [Bool]
+test = undefined : ((undefined :: ()) ++ [])
+}}}
+This gives the error:
+{{{
+test.hs:2:22:
+    Couldn't match expected type `[Bool]' with actual type `()'
+    In the first argument of `(++)', namely `(undefined :: ())'
+    In the second argument of `(:)', namely `((undefined :: ()) ++ [])'
+    In the expression: undefined : ((undefined :: ()) ++ [])
+Failed, modules loaded: none.
+}}}
+The advantage of using {{{undefined}}} is that we can remove the type annotation, and the program will probably compile.
+
+The clear problem with deliberate type errors is that the program does not type-check. We cannot use this technique on multiple locations at one time. We also only get type errors and not other information.
+
+With ''deliberate errors and deferred type errors'', we do get a program that type-checks. This is actually a reasonable solution; however, it still has two problems:
+  * Deferring type errors is indiscriminate: you defer both the deliberate and unintended type errors.
+  * It does not provide useful information other than type errors.
+
+== Implicit parameters ==
+
+The [http://www.haskell.org/ghc/docs/latest/html/users_guide/other-type-extensions.html#implicit-parameters implicit parameters] extension allows a programmer to delay the binding of a variable while still preserving its type.
+
+Here is an example:
+{{{
+$ ghci -XImplicitParams
+Prelude> :t ?x : (?y ++ [])
+?x : (?y ++ []) :: (?x::a, ?y::[a]) => [a]
+}}}
+The implicit parameters {{{?a}}} and {{{?b}}} appear as constraints in the type of the term containing them.
+
+Implicit parameters must be bound, either in a term, e.g. {{{let ?x = ... in ...}}}, or in a type signature, e.g. {{{let f :: (?x::a, Num a) => a; f = 1 + ?x}}}. If an implicit parameter is not bound, it results in a type error. Of course, we can defer the type errors, but then we have the same problem with indiscriminate deferral.
+
+Implicit parameters do not serve very well for debugging. Due to the binding requirement, they are not suitable for typing things with unknown types. Either you must change type signatures or you must deal with the unbound implicit parameter type errors (or warnings in case the errors are deferred). Lastly, since implicit parameters are meant for usage in programs, it does not seem like they should be used for extracting additional information about the parameter's location. (This is not a technical argument, of course.)
+
+{{{
+#!comment
+Another thing to keep in mind with implicit parameters is that implicit parameters with the same name in different functions are not assumed to be the same (i.e., required to be unifiable), ''except'' if some function has both implicit parameters in its constraints.
+}}}
+
+-----------------------
+= Proposal =
+
+In this section, we discuss the proposed extension to GHC.
+
+== Language extension ==
+
+Since we are changing the syntax and semantics of Haskell, we feel that this should become a language extension (rather than another kind of compiler flag). For now, we proposed the name {{{Holes}}} (as in {{{-XHoles}}}), though this could change after discussion.
+
+== Syntactic placement of holes ==
+
+We view a hole as a piece of syntax that is inserted in code as a placeholder until the programmer fills that location with something else. That placeholder can not only allow the program to be compiled but also allow the compiler to report information that is significant to the location of the placeholder.
+
+Numerous views on the syntax and semantics of holes have been suggested. We first classify the various options by the syntactic categories of types or expressions. Then, we classify them within each category and describe the various trade-offs.
+
+=== Types ===
+
+Here is an example:
+{{{
+f :: Bool -> _ ()
+f x = if x then return () else (undefined :: _) >>= guard
+}}}
+We show a hole (with the wildcard syntax `_`) in several locations: a type signature and a type annotation. In the signature, a hole fills in for a type constructor, and in the annotation, the hole fills in for the type of `undefined`. Upon typing, we expect to learn the types that are inferred for these holes. For example, we might get the following report:
+{{{
+Found a hole in the signature: test :: Bool -> _ ()
+Source location: ...
+Inferred type: MonadPlus m => m :: * -> *
+
+Found a hole in the annotation: undefined :: _
+Source location: ...
+Inferred type: MonadPlus m => m Bool :: *
+}}}
+Note that all type variables should be the same for all reports, so all types above refer to the same `m`. 
+
+'''SLPJ''' see comments below about class constraints on the holes. '''End of SLPJ'''
+
+
+=== Expressions ===
+
+Here is an example:
+{{{
+f x = do
+  y <- _ x
+  y `mplus` _
+}}}
+We show a monadic expression with holes (`_`) in the function position of an application and as an argument to `mplus`. Upon typing, we expect to learn the types that would be inferred for the missing expressions in these holes. For example, we might get the following report:
+{{{
+Found a hole in the expression: _ x
+Source location: ...
+Inferred type: MonadPlus m => a -> m b
+
+Found a hole in the expression: y `mplus` _
+Source location: ...
+Inferred type: MonadPlus m => m b
+}}}
+Again, note that the type variables are universally quantified over all reports, not each report separately.  '''SLPJ''' I have no idea what this sentence means.  '''End of SLPJ'''. '''SPL''' It means that the `m` in the first report is the same `m` as in the second. Likewise for the `b`. '''End of SPL'''
+
+'''SLPJ'''.  I am very uncomfortable with saying anything like
+{{{
+Inferred type: MonadPlus m => m b
+}}}
+for two reasons:
+ * First, that absolutely is not the inferred type of the hold.  Imagine that I added a binding
+{{{
+boo :: MonadPlus m => m b
+}}}
+ and replaced the last line of the example with
+{{{
+  y `mplus` boo
+}}}
+ Would it type check?  Absolutely not!  Adding type constraints on the types of the holes seems wierd and and impossible to justify.
+
+ * Second, the need for `MonadPlus` is nothing to do with the holes. It's to do with the call to `mplus` and the do-notation. It seems wrong to implicate the hole.
+'''End of SLPJ'''
+
+'''SPL''' I don't understand the problem.
+
+ 1. When I try the following, it works fine:
+{{{
+import Control.Monad
+
+f x = do
+  y <- undefined x
+  y `mplus` boo
+
+boo :: MonadPlus m => m b
+boo = undefined
+}}}
+ 1. Perhaps it's not technically correct to call `MonadPlus m => m b` the "inferred type" (what about "expected type"?), but it is the type with the minimum set of constraints that type needs to fulfill to be accepted. Or maybe I'm missing something.
+ 1. How would you report the type of the holes? The above wording is merely a suggestion, but I think all that information should be there.
+
+'''End of SPL'''
+
+'''holzensp''' I think the confusion comes from the notation used in the reports. The above examples do definitely typecheck (also when boo is defined with a signature as in SPL's example); the types are even inferred:
+{{{
+import Control.Monad
+
+f x foo bar = do
+   y <- foo x
+   y `mplus` bar
+}}}
+leads to the following GHCi-session
+{{{
+[1 of 1] Compiling Main             ( Holes.hs, interpreted )
+Ok, modules loaded: Main.
+*Main> :t f
+f :: MonadPlus m => t -> (t -> m (m b)) -> m b -> m b
+*Main>
+}}}
+The confusion, I think, comes from the notation of the constraints as `MonadPlus m => m b` which usually signifies "this" `m` is bound here and thus not any other `m` from any other scope. 
+
+If I may be so bold to suggest a different style of reporting; specifically one where holes are not reported on as they are encountered, but rather collected/grouped by commonality of their variables, e.g.
+{{{
+f = do
+   x <- fmap fst $ runStateT _?prc _?st
+   y <- _?cnt x
+   z <- return (return 0 >>= _?indep)
+   return (y,z)
+}}}
+Has holes with the following types (where variables are "quantified over the entire report," rather than locally):
+{{{
+_?prc :: Monad m => StateT s m a
+_?st :: s
+_?cnt :: Monad m => a -> m b
+_?indep :: (Monad m', Num n) => n -> m' c
+}}}
+This means that `_?prc`, `_?st` and `_?cnt` share type variables, whereas `_?indep` is independent of the others. I would suggest this style of reporting:
+{{{
+Found holes with related type variables: s m a
+with constraints: Monad m
+typed as follows:
+prc :: StateT s m a
+st :: s
+cnt :: a -> m b
+
+Found hole
+indep :: (Monad m1, Num n) => n -> m1 t
+}}}
+'''End of holzensp'''
+
+=== Comparison ===
+
+If we had to choose, should holes be in types or expressions? Let's look at the advantages and disadvantages.
+
+''Kinds.'' With types, we can put a hole in a type constructor position (see example above), so we have more flexibility in the restrictions we can place on a particular type: e.g. `_ ()` or `Monad m => m _`. With expressions, we are limited to the kinds of types that expressions can have (e.g. `*` and not `* -> *`).
+
+''Information reporting.'' We would like to extract additional information from a hole other than just the type. The primary consideration is the set of available bindings and their types. With type (annotation) holes, it is not clear if that is possible. With expression holes, it seems intuitive.
+
+''Evaluation.'' With expressions, we must consider how holes are evaluated. We would expect `_` would be treated the same as `undefined`, so this may cause unexpected program death when evaluating a hole. With types, we are not concerned with this. Type holes are never evaluated, so they cannot break a well-typed program.
+
+''Expression size.'' Type annotation holes can be used to find the type of arbitrarily large expressions, relying only on the normal expression bracketing. Expression holes (as presented so far) only replace a whole expression with a placeholder. Another approach would be needed to support expression hole bracketing.
+
+''Verbosity.'' Type annotation holes, e.g. `undefined :: _`, are possibly too verbose for simple uses, while expression holes are straightforward.
+
+== Extensions to basic holes ==
+
+In the previous section, we described holes as simple "wildcard" syntax that can be put in either a type or an expression. There are a few basic extensions or variations to this idea.
+
+=== Names ===
+
+We might consider the wildcard syntax `_` to be an "anonymous" or "unnamed" hole. We could also support a named hole, e.g. `_?x`. Named holes have two advantages over wildcards.
+
+''Better reporting.'' The reports can now explicitly mention the hole (in addition to the source location). For example:
+{{{
+Found the hole _?x in the expression: _?x + 4
+...
+}}}
+
+''Multiple uses.'' When a named hole is used in multiple source locations, intuitively, that named hole should have the type resulting from the unification of the hole types at each location. For example:
+{{{
+f y = print (y + _?x)
+g z = mappend z _?x
+}}}
+This might produce the following report:
+{{{
+Found the hole _?x in the expressions:
+  print (y + _?x) at source location ...
+  mappend z _?x at source location ...
+Inferred type: Show a, Num a, Monoid a => a
+}}}
+
+It seems intuitive how named holes work in expressions. How would they work in types?
+
+=== Brackets (ranges) ===
+
+As we mentioned in [#Comparison Comparison], the expression wildcard does not allow finding out the type of an existing expression. A special pair of brackets could be used to do this.
+
+Assuming {{{{_}}} and {{{_}}}} are the brackets for a hole, we have this example:
+{{{
+f y = print {_ y + mempty _}
+}}}
+And the report might be:
+{{{
+Found hole brackets around the expression: y + mempty
+Source location: ...
+Inferred type: Num a, Monoid a => a
+}}}
+
+We could combine the naming and bracketing extensions into one.
+
+== User's view ==
+
+For this specification, we use the named term variables variant (though it may also apply to other variants).
+
+When using holes (i.e. {{{-XHoles}}} is set), we expect the following:
+  1. The program should type-check as if every hole {{{_?h}}} is replaced with {{{undefined}}}. See [#Ambiguoustypes Ambiguous types] for more discussion.
+  1. If the program is well-typed (as above), then:
+    * The types of all holes should be reported.
+    * Assuming no other errors, the program should compile and run.
+    * If running a program causes a hole to be evaluated, the evaluation should fail with an runtime error. See [#Runtimeerror Runtime error] for an example.
+  1. (optional) If the program is ill-typed, then:
+    * The types of all holes should be reported.
+
+=== Ambiguous types ===
+
+Suppose that we replace every hole with {{{undefined}}} and type-check the program without {{{-XHoles}}}. Some programs would not type-check due to unsolved class constraints that result in ambiguous types. Consider this example:
+{{{
+f :: String
+f = show _?h
+}}}
+If we view `_?h` as `undefined`, then this results in an error:
+{{{
+Main.hs:2:5:
+    No instance for (Show a0) arising from a use of `show'
+    The type variable `a0' is ambiguous
+    ...
+    In the expression: show _?h
+    In an equation for `f': f = show _?h
+Failed, modules loaded: none.
+}}}
+If we instead allow the program to type-check, we can find out what type the hole should have ({{{_?h :: Show a => a}}} in this case) and more information.
+
+'''SLPJ''' I would rather put it like this. If I wrote
+{{{
+f :: String
+f = show undefined
+}}}
+then I '''want''' an ambiguity error.  And that is supposed to be what holes are equivalent to (see above).  But, you may argue, there is no point in reporting a cascade of errors that follow from the absence of information about a hole.  It's just distracting.  So here's an idea:
+ * With `-XHoles` we autmatically behave like `-fdefer-type-errors` for any unsolved type constraint that shares a free unification variable with a hole.
+The idea is that if we have a hole of type `a`, then an unsolved `(Show a)` or `(C [a])` or `F a ~ Int` or anything mentioning `a` are automatically deferred and perhaps not even reported as warnings (unsure on this point). If you run the program you might trip over one of them, of course.
+'''End of SLPJ'''
+
+'''SPL'''
+This is the approach that we have been going with. However, the result seems unintuitive when you consider the `Foo` example below, because the deferred type error would pop up at the `show` applied to `(Foo ...)` and not at the hole itself. When I write such code, I would expect an error at the hole `_?h` and not a different error at some (potentially distant?) other point due to a unexpectedly deferred ambiguity type error. 
+'''End of SPL'''
+
+A hole with an ambiguous type should probably be treated as a hole runtime error and not a deferred type error (see [#Runtimeerror Runtime error] for an example); however, not all holes are the immediate cause of ambiguity type errors. For example, consider:
+{{{
+data Foo a = Foo a {- no Show instance -}
+main = putStrLn (show (Foo _?h))
+}}}
+Here, the ambiguity comes from having no `Show` instance for `Foo a` and not directly from the hole itself. In this case, we could defer the error (since it is related to a hole) or simply ignore the hole and allow for an error.
+
+==== Monomorphism restriction ====
+
+Some ambiguous types fall under the monomorphism restriction. That is, the following program will not type under Haskell2010 due to the restriction that `f` has a monomorphic type:
+{{{
+f = undefined >>= undefined
+}}}
+Replacing each {{{undefined}}} with a hole, we get:
+{{{
+f = _?h >>= _?i
+}}}
+This program could be considered well-typed with {{{f :: Monad m => m b}}} and the holes {{{_?h :: Monad m => m a}}} and {{{_?i :: Monad m => a -> m b}}}. As a result, if `-XNoMonomorphismRestriction` is used, the typing of the holes will not change.
+
+==== Useful? ====
+
+We think holes with ambiguous types can be useful, but it is unclear how they should be treated.
+
+=== Type of a hole ===
+
+The type of a hole should be the resolved type with minimum constraints. That is, the type of a hole should only have constraints that have not been solved but are either inferred from the context (e.g. {{{show _?h}}}) or given in a type annotation/signature (e.g. {{{_?h :: Show a => a}}}).
+
+=== Runtime error ===
+
+Given the following module:
+{{{
+main = _?x >>= return
+}}}
+we expect (something like) the runtime error:
+{{{
+blah: blah.hs:2:8:
+    Found the hole `_?x' with type `IO t'
+    In the expression: _?x >>= return
+    In the definition of `main': main = _?x >>= return
+}}}
+
+= API access to Holes =
+
+Another open question is how to
+programmatically get information back from GHC. It seems that so far we are
+just thinking about printing a warning message from the compiler. But in order
+to write something like Agda-mode, I guess we ultimately want to expose this in
+the GHC API, so programs like [ghc-mod
+http://www.haskell.org/haskellwiki/Haskell_mode_for_Emacs#ghc-mod ghc-mod] can display
+the holes information and let the user move between them.
+
+This seems tricky since it doesn't fit completely with the way the GHC API is
+currently set up. I think there are two options:
+
+1. Treat them like warning messages are currently handled, and extend the
+"listener" callback which gets called during compilation to have messages about
+holes as well as warnings in general.
+
+However, this is not very uniform: the list of holes in a module is
+more similar to the list of top-level bindings in the modules, so the API for
+querying them should be similar.
+
+2. Treat them like top-level bindings, and have a set of methods for querying
+them that way.
+
+Currently, GHC is set up so that each time you compile a module a .hi is
+generated, and all the API methods for querying for module information looks at
+the .hi file. So this alternative entails modifying the .hi file format to also
+have a section about holes.
+
+What is the best way to do this?
+
+= Unbound Identifiers and Named Holes =
+There has been some discussion on 2 features: naming holes (using something like _a to differentiate holes more easily), and being able to turn any unbound identifier into a hole.
+
+The first feature has the open problem of how different usages of a named holes should share their type. Some people might expect it to be unified across al usages in a module, however, that would be confusing with regards to polymorphism (a hole which is used as `Char` and `Bool` would become `forall a . a`, which is not very helpful).
+
+== Implementation notes ==
+
+https://github.com/xnyhps/ghc/commit/8573dfec24a0b354b7be32bf567a3a5bf700728e adds basic support for named holes, namely by turning unbound identifiers starting with `_` into a hole.
+
+It works as follows:
+
+ * `HsExpr` as an extra field: {{{HsUnboundVar}}}, which stores the `RdrName` of the unbound identifier (which we can use to print it).
+ * `rnExpr` of `HsVar` now uses `lookupOccRn_maybe` if `-XTypeHoles` is on, and the name starts with `_`. If it gets a `Nothing`, instead of running the error handler, it returns a `HsUnboundVar` with that name.
+ * `tcExpr` has a new helper function `tcHole` which does almost the same for a `HsHole` and a `HsUnboundVar`, only difference is in specifying name and the origin.
+ * Reporting has been changed slightly to make it clear what originated the hole.
+
+Example:
+
+The module:
+{{{
+f = _a _b _
+}}}
+
+Gives the following error messages (or warnings in this case, with `-fdefer-type-errors` on):
+{{{
+holes2.hs:1:5: Warning:
+    Found hole with type: `t0 -> t1 -> t'
+    Arising from: an undeclared identifier `_a' at holes2.hs:1:5-6
+    Where: `t0' is an ambiguous type variable
+           `t1' is an ambiguous type variable
+           `t' is a rigid type variable bound by
+               the inferred type of f :: t at holes2.hs:1:1
+    Relevant bindings include f :: t (bound at holes2.hs:1:1)
+    In the expression: _a
+    In the expression: _a _b _
+    In an equation for `f': f = _a _b _
+
+holes2.hs:1:8: Warning:
+    Found hole with type: `t0'
+    Arising from: an undeclared identifier `_b' at holes2.hs:1:8-9
+    Where: `t0' is an ambiguous type variable
+    In the first argument of `_a', namely `_b'
+    In the expression: _a _b _
+    In an equation for `f': f = _a _b _
+
+holes2.hs:1:11: Warning:
+    Found hole with type: `t1'
+    Arising from: a use of `_' at holes2.hs:1:11
+    Where: `t1' is an ambiguous type variable
+    In the second argument of `_a', namely `_'
+    In the expression: _a _b _
+    In an equation for `f': f = _a _b _
+}}}
