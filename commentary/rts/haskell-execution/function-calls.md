@@ -37,7 +37,7 @@ First, we need some terminology:
 When compiling a call, there are several cases to consider, which are treated separately.  
 
 
-- **Unknown function**;  a call in which we do not statically know what the function is.  In that case we must do a "generic apply".  This is so exciting that it deserves its [own section](commentary/rts/haskell-execution/function-calls#eneric-apply).
+- **Unknown function**;  a call in which we do not statically know what the function is.  In that case we must do a "generic apply".  This is so exciting that it deserves its [own section](commentary/rts/haskell-execution/function-calls#generic-apply).
 
 - **Known function, saturated call**.   The function is applied to exactly the right number of arguments to satisfy its arity.  In that case, we simply load the arguments according to the standard entry convention, and tail-call (jump to) the function's entry point.  On average, about 80% of all calls fall into this category (see the eval/apply paper for measurements).
 
