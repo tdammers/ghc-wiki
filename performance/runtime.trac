@@ -1,0 +1,126 @@
+= Performance of programs compiled with GHC =
+
+Here is where we track various on-going efforts to improve the runtime performance of code produced by GHC. If you are interested in the performance of the compiler itself, see [[Performance/Compiler]].
+
+== Relevant tickets ==
+
+ * #10992: `Data.List.sum` is much slower than the naive recursive definition for it.  Does not happen in 7.8.
+ * #6166: An alleged runtime performance regression in `mwc-random`.
+
+ * #14980 (regressed in 8.4): Runtime performance regression with binary operations on vectors 
+
+Identify tickets by using "Runtime performance bug" for the "Type of failure field".
+
+'''Open Tickets:'''
+[[TicketQuery(status=new|patch,failure=Runtime performance bug,desc=1,order=id)]]
+
+'''Closed Tickets:'''
+[[TicketQuery(status=closed,failure=Runtime performance bug,desc=1,order=id)]]
+
+
+[[PageOutline]]
+
+== Nofib results ==
+
+=== Austin, 5 May 2015 ===
+Full results [https://gist.githubusercontent.com/thoughtpolice/498d51153240cc4d899c/raw/9a43f6bbfd642cf4e7b15188f9c0b053d311f7b9/gistfile1.txt are here] (updated '''May 5th, 2015''')
+
+'''NB''': The baseline here is 7.6.3
+
+=== Ben, 31 July 2015 ===
+
+http://home.smart-cactus.org/~ben/nofib.html
+
+Baseline is 7.4.2.
+
+=== Nofib outliers ===
+
+==== Binary sizes ====
+
+===== 7.6 to 7.8 =====
+
+  - Solid average binary size increase of '''5.3%'''.
+
+==== Allocations ====
+
+===== 7.4 to 7.6 =====
+
+  - '''fannkuch-redux''': increased by factor of 10,000?!?!
+    - 7.6.3: `<<ghc: 870987952 bytes, 1668 GCs (1666 + 2), 0/0 avg/max bytes residency (0 samples), 84640 bytes GC work, 1M in use, 0.00 INIT (0.00 elapsed), 2.43 MUT (2.43 elapsed), 0.00 GC (0.00 elapsed), 0.00 GC(0) (0.00 elapsed), 0.00 GC(1) (0.00 elapsed), 1 balance :ghc>>`
+    - 7.4.2: `<<ghc: 74944 bytes, 1 GCs (0 + 1), 0/0 avg/max bytes residency (0 samples), 3512 bytes GC work, 1M in use, 0.00 INIT (0.00 elapsed), 2.25 MUT (2.25 elapsed), 0.00 GC (0.00 elapsed), 0.00 GC(0) (0.00 elapsed), 0.00 GC(1) (0.00 elapsed), 1 balance :ghc>>`
+    - According to [FoldrBuildNotes] this test is very sensitive to fusion
+    - Filed #10717 to track this.
+
+===== 7.6 to 7.8 =====
+
+  - '''spectral-norm''': increases by '''17.0%'''.
+    - A '''lot''' more calls to `map`, over 100 more! Maybe inliner failure?
+    - Over '''twice''' as many calls to `ghc-prim:GHC.Classes.$fEqChar_$c=={v r90O}` (& similar functions). Also over twice as many calls to `elem`, 
+    - Similarly, many more calls to other specializations, like `base:Text.ParserCombinators.ReadP.$fMonadPlusP_$cmplus{v r1sr}`, which adds even more allocations (from 301 to 3928 for this one entry!)
+    - Basically the same story up to `HEAD`!
+
+===== 7.8 to 7.10 =====
+
+  - '''gcd''': increases by '''20.7%'''.
+    - Ticky tells us that this seems to be a combination of a few things; most everything seems fairly similar, but we see a large amount of allocations attributable to 7.10 that I can't figure out where they came from, aside from the new `integer-gmp`: `integer-gmp-1.0.0.0:GHC.Integer.Type.$WS#{v rwl}` accounts for 106696208 extra bytes of allocation! It also seems like there are actual extant calls to `GHC.Base.map` in 7.10, and none in 7.8. These are the main differences.
+  - '''pidigits''': increases by '''7.4%'''.
+    - Ticky tells us that this seems to be, in large part, due to `integer-gmp` (which is mostly what it benchmarks anyway). I think part of this is actually an error, because before integer-gmp, a lot of things were done in C-- code or whatnot, while the new `integer-gmp` does everything in Haskell, so a lot more Haskell code shows up in the profile. So the results aren't 1-to-1. One thing that seems to be happening is that there are a lot more specializations going on that are called repeatedly, it seems; many occurrences of things like `sat_sad2{v} (integer-gmp-1.0.0.0:GHC.Integer.Type) in rfK` which don't exist in the 7.8 profiles, each with a lot of entries and allocations.
+  - '''primetest''': went down '''27.5%''' in 7.6-to-7.8, but '''8.8%''' slower than 7.6 now - in total it got something like '''36.6%''' worse.
+    - Much like '''pidigits''', a lot more `integer-gmp` stuff shows up in these profiles. While it's still just like the last one, there are some other regressions; for example, `GHC.Integer.Type.remInteger` seems to have 245901/260800 calls/bytes allocated, vs 121001/200000 for 7.8
+
+TODO: Lots of fusion changes have happened in the last few months too - but these should all be pretty diagnosable with some reverts, since they're usually very localized. Maybe worth looking through `base` changes.
+
+==== Runtime ====
+
+===== 7.6 to 7.8 =====
+
+  - `lcss`: increases by '''12.6%'''.
+    - Ticky says it seems to be `map` calls yet again! These jump hugely here from 21014 to 81002.
+    - Also, another inner loop with `algb` it looks like gets called a huge number of times too - `algb2` is called '''2001056 times vs 7984760 times'''!
+      - Same with `algb` and `algb1`, which seem to be called more often too.
+    - Some other similar things; a few regressions in the # of calls to things like `Text.ParserCombinator.ReadP` specializations, I think.
+    - Same story with HEAD!
+
+===== 7.8 to 7.10 =====
+
+  - `lcss`: decreased by ~5% in 7.10, but still '''7%''' slower than 7.6.
+    - See above for real regressions.
+  - `multiplier`: increases by '''7.6%'''.
+    - `map` strikes again? 2601324 vs 3597333 calls, with an accompanying allocation delta.
+    - But some other inner loops here work and go away correctly (mainly `go`), unlike e.g. `lcss`.
+ 
+==== Comparing integer-gmp 0.5 and 1.0 ====
+
+One of the major factors that has changed recently is `integer-gmp`. Namely, GHC 7.10 includes `integer-gmp-1.0`, a major rework of `integer-gmp-0.5`. I've compiled GHC 7.10.1 with `integer-gmp` 0.5 and 1.0. [http://home.smart-cactus.org/~ben/nofib.html Here] is a nofib comparison. There are a few interesting points here,
+
+  - Binary sizes dropped dramatically and consistently (typically around 60 to 70%) from 0.5 to 1.0.
+  - Runtime is almost always within error. A few exceptions,
+      - `binary-trees`: 6% slower with 1.0
+      - `pidigits`: 5% slower
+      - `integer`: 4% slower
+      - `cryptarithm1`: 2.5% slower
+      - `circsim`: 3% faster
+      - `lcss`: 5% faster
+      - `power`: 17% faster
+  - Allocations are typically similar. The only test that improves significantly
+    is `prime` whose allocations decreased by 24% Many more tests regress
+    considerably,
+      - `bernoulli`: +15%
+      - `gcd`: +21%
+      - `kahan`: +40%
+      - `mandel` +34%
+      - `primetest`: +50%
+      - `rsa`: +53%
+
+The allocation issue is actually discussed in the commit message (c774b28f76ee4c220f7c1c9fd81585e0e3af0e8a),
+> Due to the different (over)allocation scheme and potentially different
+> accounting (via the new `{shrink,resize}MutableByteArray#` primitives),
+> some of the nofib benchmarks actually results in increased allocation
+> numbers (but not necessarily an increase in runtime!).  I believe the
+> allocation numbers could improve if `{resize,shrink}MutableByteArray#`
+> could be optimised to reallocate in-place more efficiently.
+
+The message then goes on to list exactly the nofib tests mentioned above. Given that there isn't a strong negative trend in runtime corresponding with these increased allocations, I'm leaning towards ignoring these for now.
+
+
+
