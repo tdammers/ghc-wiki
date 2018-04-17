@@ -1,0 +1,17 @@
+= Recursive do-notation =
+
+This page covers the `mdo` notation.
+
+It's described in some detail in the paper: [http://leventerkok.github.io/papers/recdo.pdf A recursive do for Haskell] (Haskell'02).
+
+See also [wiki:ApplicativeDo]
+
+== Tickets ==
+
+Use Keyword = `RecursiveDo` to ensure that a ticket ends up on these lists.
+
+'''Open Tickets:'''
+[[TicketQuery(status=new|patch,keywords=~RecursiveDo)]]
+
+'''Closed Tickets:'''
+[[TicketQuery(status=closed,keywords=~RecursiveDo)]]
