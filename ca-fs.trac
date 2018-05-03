@@ -1,0 +1,19 @@
+= Constant Applicative Forms (CAFs) =
+
+This pages summarises the state of play for CAFs
+
+Main starting points
+
+* [wiki:Commentary/Rts/CAFs]
+* [wiki:Commentary/Rts/Storage/CAFs]
+* [wiki:Commentary/Rts/Storage/GC/CAFs]
+
+== Tickets ==
+
+Use Keyword = `CAFs` to ensure that a ticket ends up on these lists.
+
+'''Open Tickets:'''
+[[TicketQuery(status=new|patch,keywords=~CAFs)]]
+
+'''Closed Tickets:'''
+[[TicketQuery(status=closed,keywords=~CAFs)]]
