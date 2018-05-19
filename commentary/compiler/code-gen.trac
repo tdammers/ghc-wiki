@@ -1,0 +1,36 @@
+= Code Generator =
+
+This page describes code generator ("codegen") in GHC. It is meant to reflect current state of the implementation. If you notice any inaccuracies please update the page (if you know how) or complain on ghc-devs.
+
+* [wiki:Commentary/Compiler/CodeGen/Overview Overview of the code generator]
+* [wiki:Commentary/Compiler/NewCodeGenModules Data types and modules for the code generator]
+* [wiki:Commentary/Compiler/GeneratedCode The STG language and how to execute it]
+* [wiki:Commentary/Compiler/NewCodeGenStupidity List of code-gen stupidities] (some, but not all, fixed).
+* [wiki:Commentary/Compiler/NewCodeGen/Cleanup Clean-up ideas once the new codegen is in place (i.e. now)]; not all done.
+* [wiki:Commentary/Compiler/Loopification Loopification] i.e. turn tail calls into loops
+* [wiki:Commentary/Compiler/Backends/LLVM LLVM back end]
+* [wiki:Hoopl/Cleanup]
+* [wiki:Commentary/Compiler/BackendOpt Planned Backend Optimizations]
+* [wiki:Commentary/Compiler/CodeLayout Details about how we place basic blocks]
+
+== A brief history of code generator ==
+
+You might occasionally hear about "old" and "new" code generator. GHC 7.6 and earlier used the old code generator. New code generator was being developed since 2007 and it was [changeset:832077ca5393d298324cb6b0a2cb501e27209768/ghc enabled by default on 31 August 2012] after the release of GHC 7.6.1. The first stable GHC to use the new code generator is 7.8.1 released in early 2014. 
+
+Various historical pages, with still-useful info:
+
+* [wiki:Commentary/Compiler/OldCodeGen Commentary on the old code generator]
+
+* [wiki:Commentary/Compiler/NewCodeGen Status page on the "new code generator"] (now the current one)
+* [wiki:Commentary/Compiler/Backends/LLVM/ReplacingNCG Replace native code generator with LLVM]
+* [wiki:Commentary/Compiler/IntegratedCodeGen IntegratedCodeGen] One plan is to expand the capability of the pipeline so that it does native code generation too so that existing backends can be discarded.
+
+== Tickets ==
+
+Use Keyword = `CodeGen` to ensure that a ticket ends up on these lists.
+
+**Open Tickets:**
+[[TicketQuery(status=new|patch,keywords=~CodeGen)]]
+
+**Closed Tickets:**
+[[TicketQuery(status=closed,keywords=~CodeGen)]]
