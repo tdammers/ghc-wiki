@@ -9,7 +9,7 @@ This page gathers together a list of ideas and plans for improving the backend o
 
 
 
-The reason we needed proc-point splitting for the LLVM backend is detailed [here](commentary/compiler/backends/llvm/wip#et-rid-of-proc-point-splitting).
+The reason we needed proc-point splitting for the LLVM backend is detailed [here](commentary/compiler/backends/llvm/wip#get-rid-of-proc-point-splitting).
 
 
 #### Rationale
