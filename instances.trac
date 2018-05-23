@@ -1,0 +1,15 @@
+= Type-class and type-function instances =
+
+This page collects pointers to stuff about type-class, and type function, instances.  Especially things to do with overlap.
+
+But not 'deriving'; there's a separate [wiki:DerivingInstances page for that]
+
+== Tickets ==
+
+Use Keyword = `Instances` to ensure that a ticket ends up on these lists.
+
+'''Open Tickets:'''
+[[TicketQuery(status=new|patch,keywords=~Instances)]]
+
+'''Closed Tickets:'''
+[[TicketQuery(status=closed,keywords=~Instances)]]
