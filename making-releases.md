@@ -103,7 +103,7 @@ The source tarball includes some generated files, such as `Parser.hs` (generated
 
 
 
-First [check out the branch](building/getting-the-sources#etting-a-branch), and ensure that the version number and `RELEASE` near the top of `configure.ac` are correct. Then:
+First [check out the branch](building/getting-the-sources#getting-a-branch), and ensure that the version number and `RELEASE` near the top of `configure.ac` are correct. Then:
 
 
 ```wiki
