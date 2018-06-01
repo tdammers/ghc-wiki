@@ -1,0 +1,26 @@
+= GHC-on-Windows Task Force =
+
+
+== The People
+
+* '''Roman Kuznetsov''' <kuznero@gmail.com>
+* '''Kyrill Briantsev''' <kyrab@mail.ru> awson
+* '''Darren Grant''' <dedgrant@gmail.com>
+* '''David Macek''' <david.macek.0@gmail.com>
+* '''Michael Steele''' <mikesteele81@gmail.com>
+* '''Andrew Klingenberg''' <asklingenberg@gmail.com>
+
+{{{#!box info
+Should your name be here? Just edit the page and add yourself 
+(and also add yourself to Phabricator's [Phab:project/view/11/ "GHC Windows Task Force"]-Team to get notified about related code-reviews!)
+}}}
+
+== The Tasks
+
+The list of known problems tagged as Windows issues can be found [query:status=!closed&os=Windows&desc=1&order=id on Trac]. It would be particularly great if people with commit rights could review the patches in the waitlist.
+
+An overview of tasks currently being worked on and their progress can be found on the [https://phabricator.haskell.org/project/board/11/ Windows Task Force Fabricator] work board.
+
+== The Process
+
+For the time being, let's use the general [http://www.haskell.org/pipermail/ghc-devs/ ghc-devs@] mailing list for coordination. As always, before starting any major work it's a good idea to shoot an email to ghc-devs@ and to file a Trac issue (or add a comment on an existing issue) to claim it.
