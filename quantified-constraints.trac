@@ -1,0 +1,35 @@
+= Quantified constraints =
+
+This wiki page summarises the state of play on the idea of allowing quantification in class constraints.  For example
+{{{
+data Rose f a = Branch a (f (Rose f a))
+
+instance (Eq a, forall b. (Eq b) => Eq (f b))
+       => Eq (Rose f a)
+  where ...
+}}}
+The new bit is the `forall` in the context of the instance declaration. This is allowed in GHC 8.6 and later using the `QuantifiedConstraints` extension.
+
+Here are some resources
+
+* The [https://github.com/ghc-proposals/ghc-proposals/pull/109 GHC Proposal discussing quantified constraints]
+
+* [https://www.microsoft.com/en-us/research/publication/derivable-type-classes Derivable type classes], Section 7, where the idea was first proposed (I think).
+
+* #2893, a ticket about the idea
+
+* [http://i.cs.hku.hk/~bruno//papers/hs2017.pdf Quantified class constraints], a Haskell 2017 paper that works out the idea in some detail, and a [https://www.reddit.com/r/haskell/comments/6me3sv/quantified_class_constraints_pdf/ Reddit thread] about it.
+
+* [http://haskell.org/haskellwiki/Quantified_contexts An old haskell.org Wiki page about it]
+* [https://mail.haskell.org/pipermail/libraries/2017-December/028377.html A Libraries thread (Dec 18)].
+
+== Status
+
+Use Keyword = `QuantifiedConstraints` to ensure that a ticket ends up on these lists.
+
+Open Tickets:
+[[TicketQuery(status=infoneeded,status=new|patch,keywords=~QuantifiedConstraints)]]
+
+Closed Tickets:
+[[TicketQuery(status=infoneeded,status=closed,keywords=~QuantifiedConstraints)]]
+
