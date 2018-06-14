@@ -414,7 +414,7 @@ Enable building of the extra libraries: those packages that have an `'extra'` ta
 <table><tr><th>`V`</th>
 <td>
 (default: `1`)
-Set `V=0` to get prettier build output. See [Building/Using\#Verbosebuild](building/using#erbose-build) below.
+Set `V=0` to get prettier build output. See [Building/Using\#Verbosebuild](building/using#verbose-build) below.
 </td></tr></table>
 
 
