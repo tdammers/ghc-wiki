@@ -1,0 +1,12 @@
+= SIMD instructions in GHC =
+
+The goal of the SIMD project is to allow GHC and Haskell libraries to take advantage of SIMD vector instructions. Please see more information on
+
+ * [wiki:SIMD/Design design]
+ * [wiki:SIMD/Implementation/Status implementation status]
+
+== Obsolete sub-topics ==
+ * An [wiki:SIMD/Implementation/Plan implementation plan].
+ * Manuel's notes on [wiki:SIMD/Implementation/Llvm implementing SIMD support in GHC using LLVM].
+ * An [wiki:SIMD/Implementation/Old old implementation] of the very beginnings of SIMD support in GHC.
+ * An example of vector operations in [wiki:SIMD/LlvmExample LLVM IL].
