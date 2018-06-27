@@ -1,0 +1,44 @@
+= Working on GHC =
+
+{{{#!comment
+
+Please don't duplicate stuff that can easily be found in the sidebar. That includes yet another link to the building guide, or how to test patches (also found in the building guide, but probably deserves its own link in the side bar).
+
+}}}
+
+
+GHC is a BSD-licensed open-source project, and we welcome your help in making it better. This page and the side bar on the left have pointers to information you'll need.
+
+ * [wiki:WorkingConventions/FixingBugs How to contribute a patch to GHC]. For [wiki:WorkingConventions/AddingFeatures adding features], there are a few extra steps to follow.
+
+ * [http://haskell.org/haskellwiki/Library_submissions How to propose a change to the libraries]
+
+== Working conventions ==
+
+ * '''Using Git''': read [wiki:WorkingConventions/Git how to use git with GHC]. Information about our submodule setup is in [wiki:WorkingConventions/Git/Submodules], and some useful Git tricks are in [wiki:WorkingConventions/Git/Tricks].
+
+ * '''Using Phabricator''': we use Phabricator as a code review tool; here are [wiki:Phabricator our Phabricator guidance notes].
+
+ * '''Releases and branches''': Our conventions for making releases and how the branches are managed: [wiki:WorkingConventions/Releases Releases]
+
+ * '''Useful tools''': [[WorkingConventions/UsefulTools|Various tools]] which exist to make working on GHC more pleasant.
+
+ * '''Using the Bug Tracker''': see [wiki:WorkingConventions/BugTracker Using the Bug Tracker]
+
+ * '''Coding style''': When you are editing GHC's source code, please follow our coding guidelines:
+   * [wiki:Commentary/CodingStyle Coding style in the compiler]
+   * [wiki:Commentary/Rts/Conventions Coding style in the runtime system]
+
+ * '''Licensing''': make sure you are familiar with GHC's [wiki:Licensing].  Unless you say otherwise, we will assume that if you submit a contribution to GHC, then you intend to supply it to us under the same license as the existing code. However, we do not ask for copyright attribution; you retain copyright on any contributions you make, so feel free to add your copyright to the top of any file in which you make non-trivial changes.
+
+ * '''For boot libraries''': GHC ships with a number of [wiki:Commentary/Libraries/VersionHistory boot libraries] maintained outside of GHC itself. Maintainers of such libraries should read [wiki:WorkingConventions/BootLibraries] for guidance on how to maintain their libraries.
+
+== Tips and Tricks ==
+
+ * [wiki:Building/InGhci Loading GHC into GHCi] can provide a more iterative development experience. 
+
+ * To have an easier time looking up tickets and searching trac, use [wiki:BrowserTips the browser tips page] to make your search and lookups for Trac tickets substantially easier.
+
+ * If you use Emacs, see [wiki:Emacs] for some useful stuff to put in your `.emacs` file.
+
+ * If you have lots of Haskell installations, you may find Edsko's blog post [http://www.edsko.net/2013/02/10/comprehensive-haskell-sandboxes/ Comprehensive Haskell Sandboxes] useful.
