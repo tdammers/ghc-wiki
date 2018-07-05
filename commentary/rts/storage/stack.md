@@ -15,7 +15,7 @@ The stack consists of a sequence of *stack frames* (also sometimes called *activ
 
 
 
-There are several kinds of [stack frames](commentary/rts/storage/stack#inds-of-stack-frame), but the most common types are those pushed when evaluating a `case` expression:
+There are several kinds of [stack frames](commentary/rts/storage/stack#kinds-of-stack-frame), but the most common types are those pushed when evaluating a `case` expression:
 
 
 ```wiki
@@ -30,7 +30,7 @@ The code for evaluating a `case` pushes a new stack frame representing the alter
 
 
 
-The info table for a stack frame has a couple of extra fields in addition to the [basic info table layout](commentary/rts/heap-objects#nfo-tables).  A stack-frame info table is defined by `StgRetInfoTable` in [includes/rts/storage/InfoTables.h](/trac/ghc/browser/ghc/includes/rts/storage/InfoTables.h).
+The info table for a stack frame has a couple of extra fields in addition to the [basic info table layout](commentary/rts/heap-objects#info-tables).  A stack-frame info table is defined by `StgRetInfoTable` in [includes/rts/storage/InfoTables.h](/trac/ghc/browser/ghc/includes/rts/storage/InfoTables.h).
 
 
 
