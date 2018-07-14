@@ -1,0 +1,15 @@
+= How to change GHC's documentation =
+
+Updating [https://downloads.haskell.org/~ghc/latest/docs/html/libraries/ GHC's documentation] is easy, and can benefit new comers greatly !
+
+GHC's documentation is included within in its source code, using [http://haskell-haddock.readthedocs.io/en/latest/markup.html Haddock's markup].
+
+Here are the steps to modify it:
+
+0. '''Create a [https://github.com/ghc/ghc/pulls?utf8=%E2%9C%93&q=is%3Apr Pull Request]''' on [https://github.com/ghc/ghc/ GitHub]. [[BR]][[BR]]
+0. '''Wait''' for the reviewers to look at your patches. If this takes more than a week, complain! [[BR]][[BR]]
+0. '''Wait''' for bgamari to publish the documentation. (As of Nov 2017, he runs the publish script manually, about once a month.)  If this takes more than a month, complain on the {{{#ghc}}} channel on [http://freenode.net/ FreeNode] !  
+
+Loathe github? You can update documentation using [[Phabricator]] too!
+
+Then have a beer on us.  We are truly grateful.
