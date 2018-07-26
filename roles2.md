@@ -2,7 +2,7 @@
 
 
 
-It has become (somewhat) clear that the Roles mechanism as implemented in GHC 7.8 is insufficient. (See [examples](roles2#xamples) below.) This page is dedicated to creating a new design for roles that might fix the problems, continuing the discussion started in [\#9123](http://gitlabghc.nibbler/ghc/ghc/issues/9123).
+It has become (somewhat) clear that the Roles mechanism as implemented in GHC 7.8 is insufficient. (See [examples](roles2#examples) below.) This page is dedicated to creating a new design for roles that might fix the problems, continuing the discussion started in [\#9123](http://gitlabghc.nibbler/ghc/ghc/issues/9123).
 
 
 
