@@ -1,0 +1,175 @@
+= The GHC reading list =
+
+[[PageOutline]]
+
+Suppose you want to start contributing to GHC: what should you read by way of background?  Here is an annotated list.  Please add to it as you come across useful material. When you do so, please consider adding a link to a place where you are reasonably confident the resource will be available in 10 or 20 years. [http://doi.org/ doi] purports to enable such links.
+
+You can ask questions on `ghc-devs@haskell.org`. People are friendly.  See also [wiki:WorkingConventions working on GHC] and [wiki:TeamGHC The GHC Team].
+
+See also [http://www.stephendiehl.com/posts/essential_compilers.html Stephen Deihl's Haskell implementation reading list].
+
+== General background ==
+
+ * The [wiki:Commentary GHC Commentary] is a Wiki that describes GHC's implementation.  It is a Wiki.  That means that you can, and should, fix errors and write new chapters.
+
+ * [http://www.aosabook.org/en/ghc.html The Glasgow Haskell Compiler], in [http://www.aosabook.org/en/index.html The Architecture of Open Source Applications], Volume II, ed Brown & Wilson. This paper gives an up to date (2012) technical overview of GHC.
+
+ * Simon PJ's [http://research.microsoft.com/~simonpj home page] and [http://research.microsoft.com/en-us/um/people/simonpj/papers/papers.html publications page] have lots of relevant papers.  Some key ones appear below but not all.
+
+ * Simon PJ's books:
+   * [http://research.microsoft.com/en-us/um/people/simonpj/papers/slpj-book-1987/index.htm The Implementation of Functional Programming Languages]
+   * [http://research.microsoft.com/en-us/um/people/simonpj/papers/pj-lester-book/ Implementing Functional Languages: a tutorial]
+   give useful general background. They are not GHC-specific at all, but they have lots of information about functional-language compilers.
+
+== Types and type inference ==
+
+ * [https://arxiv.org/abs/1610.07978 Dependent Types in Haskell: Theory and Practice] (2016), Richard Eisenberg. Eisenber's PhD thesis describes many aspects of GHC's type system, although the "bake" inference algorithm is not yet implemented in GHC.
+
+ * [http://git.haskell.org/ghc.git/blob/refs/heads/master:/docs/core-spec/core-spec.pdf System FC, as implemented in GHC] (2013), Richard Eisenberg.
+
+ * [http://haskell.org/haskellwiki/Simonpj/Talk:OutsideIn Modular type inference with local assumptions] [http://dx.doi.org/10.1017/S0956796811000098 doi link], Simon Peyton Jones, Dimitrios Vytiniotis, Tom Schrijvers, Martin Sulzmann, Journal of Functional Programming, 2011.  This epic 83-page JFP paper brings together, in a single uniform framework, a series of our earlier papers on type inference for type systems involving local constraints, including GADTs and indexed type families.  
+
+* [http://repository.upenn.edu/cis_papers/315/ Practical Type Inference for Arbitrary-Rank Types]. Simon Peyton Jones, Dimitrios Vytiniotis, Stephanie Weirich, Mark Shields. JFP '07. [http://dx.doi.org/10.1017/S0956796806006034 doi] [http://repository.upenn.edu/cis_reports/58/ technical appendix] Describes type inference for higher-rank types.
+
+ * [[span(id=TypeEqualities, class=wikianchor, Type equalities in GHC's intermediate language:)]]
+   * [http://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf System FC with Explicit Kind Equality]. Stephanie Weirich, Justin Hsu, Richard A. Eisenberg. ICFP '13. [http://dx.doi.org/10.1145/2500365.2500599 doi] Merges types with kinds, allowing promotion of GADTs and type families. Implementation not yet merged (July 2015).
+   * ''Equality proofs and deferred type errors'', Simon Peyton Jones, Dimitrios Vytiniotis and Pedro Magalhaes (ICFP 2012).  An exploration of what happens when you take equality proofs seriously in a compiler. [http://dx.doi.org/10.1145/2364527.2364554 doi] [http://dreixel.net/research/pdf/epdtecp.pdf pdf]
+   * ''Giving Haskell a promotion'', Brent Yorgey, Stepanie Weirich, Julien Cretin, Simon Peyton Jones, and Dimitrios Vytiniotis (TLDI 2012).  How to (a) add kind polymorphism and (b) promote data types to become data kinds. [http://dx.doi.org/10.1145/2103786.2103795 doi] [http://research.microsoft.com/en-us/um/people/simonpj/papers/ext-f/promotion.pdf pdf]
+   * ''Evidence Normalization in System FC''. Dimitrios Vytiniotis, Simon Peyton Jones. RTA '13. [http://dx.doi.org/10.4230/LIPIcs.RTA.2013.20 doi] [http://drops.dagstuhl.de/opus/volltexte/2013/4050/pdf/3.pdf pdf] Explains the coercion optimizer.
+   * ''System F with Type Equality Coercions'', Martin Sulzmann, Manuel Chakravarty, and Simon Peyton Jones (TLDI 2007).  The first paper about System FC. [http://dx.doi.org/10.1145/1190315.1190324 doi] [http://research.microsoft.com/en-us/um/people/simonpj/papers/ext-f/tldi22-sulzmann-with-appendix.pdf extended pdf]
+
+* [[span(id=TypeFamilies, class=wikianchor, Type families:)]]
+    * [http://research.microsoft.com/en-us/um/people/simonpj/Papers/assoc-types/assoc.pdf Associated Types with Class]. Manuel M. T. Chakravarty, Gabriele Keller, Simon Peyton Jones, Simon Marlow. POPL '05. [http://dx.doi.org/10.1145/1040305.1040306 doi] Introduces associated data families.
+    * [http://research.microsoft.com/en-us/um/people/simonpj/papers/assoc-types/at-syns.pdf Associated Type Synonyms]. Manuel M. T. Chakravarty, Gabriele Keller, Simon Peyton Jones. ICFP '05. [http://dx.doi.org/10.1145/1086365.1086397 doi] Introduces associated type families.
+    * [http://www.seas.upenn.edu/~sweirich/papers/popl14-axioms.pdf Closed Type Families with Overlapping Equations]. Richard A. Eisenberg, Dimitrios Vytiniotis, Simon Peyton Jones, Stephanie Weirich. POPL '14. [http://dx.doi.org/10.1145/2535838.2535856 doi] [http://repository.upenn.edu/cis_reports/990/ extended version] Introduces closed type families.
+    * [http://ics.p.lodz.pl/~stolarek/_media/pl:research:stolarek_peyton-jones_eisenberg_injectivity.pdf Injective Type Families for Haskell]. Jan Stolarek, Simon Peyton Jones, Richard Eisenberg. Haskell '15. [http://dx.doi.org/10.1145/2804302.2804314 doi]. Introduces injective type families.
+
+* [http://research.microsoft.com/en-us/um/people/simonpj/papers/ext-f/coercible.pdf Safe Zero-Cost Coercions for Haskell]. Joachim Breitner, Richard A. Eisenberg, Simon Peyton Jones, Stephanie Weirich. ICFP '14. [http://dx.doi.org/10.1145/2628136.2628141 doi] [http://www.seas.upenn.edu/~sweirich/papers/coercible-extended.pdf extended pdf] Introduces the `Coercible` mechanism.
+
+* [https://lirias.kuleuven.be/bitstream/123456789/423475/3/paper.pdf Partial Type Signatures for Haskell]. Thomas Winant, Dominique Devriese, Frank Piessens, Tom Schrijvers.  PADL 2014 [https://lirias.kuleuven.be/bitstream/123456789/424883/1/CW649.pdf TR] [http://dx.doi.org/10.1007/978-3-319-04132-2_2 doi] Introduces partial type signatures.
+
+
+* [https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/jfp06.pdf Understanding Functional Dependencies via Constraint Handling Rules]. Martin Sulzmann, Gregory J. Duck, Simon Peyton Jones, Peter J. Stuckey. JFP '07. [http://dx.doi.org/10.1017/S0956796806006137 doi]
+
+ * [http://research.microsoft.com/~simonpj/Papers/classhask.ps.gz Type Classes in Haskell], Cordelia Hall, Kevin Hammond, Simon Peyton Jones, and Philip Wadler, European Symposium On Programming 1994. Type inference for type classes.
+
+ * [http://research.microsoft.com/~simonpj/Papers/derive.htm Derivable type classes], Ralf Hinze and Simon Peyton Jones; Haskell Workshop 2000.
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/usage-types/popl99-usage.ps.gz Once Upon a Polymorphic Type], Keith Wansbrough and Simon Peyton Jones, POPL 1999.
+
+ * from ghc-proposals (please organize them into the correct paragraph)
+   * [https://cs.brynmawr.edu/~rae/papers/2017/levity/levity.pdf Levity Polymorphism (extended version)], Richard A. Eisenberg, Simon Peyton Jones, PLDI 2017. (ghc-proposals [https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0003-levity-polymorphism.rst 0003])
+   * [https://www.microsoft.com/en-us/research/publication/pattern-synonyms/ Pattern Synonyms], Matthew Pickering, Gergő Érdi, Simon Peyton Jones, and Richard A. Eisenberg, Haskell Symposium 2016. (ghc-proposals [https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0016-as-patterns-synonyms.rst 0016])
+   * [https://i.cs.hku.hk/~bruno//papers/hs2017.pdf Quantified class constraints], Gert-Jan Bottu,  Georgios Karachalias, Tom Schrijvers, Bruno C. d. S. Oliveira, Philip Wadler, Haskell Symposium 2017. (ghc-proposals [https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0018-quantified-constraints.rst 0018])
+   * [https://www.kosmikus.org/DerivingVia/deriving-via-paper.pdf Deriving Via or, How to Turn Hand-Written Instances into an Anti-Pattern], Baldur Blöndal, Andres Löh, Ryan Scott, Haskell Symposium 2018. (ghc-proposals [https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0023-deriving-via.rst 0023])
+   * [https://arxiv.org/abs/1806.03476 Type variables in patterns], Richard Eisenberg, Joachim Breitner and Simon Peyton Jones, Haskell Symposium 2018. (ghc-proposals [https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0031-type-applications-in-patterns.rst 0031])
+
+Please add: System FC, GADTs, kind polymorphism etc
+
+== Optimisations ==
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/comp-by-trans-scp.ps.gz A transformation-based optimiser for Haskell], SL Peyton Jones and A Santos, Science of Computer Programming 32(1-3), pp3-47, September 1998.  Gives an overview of many of the transformations GHC does on Core.  Andre's [http://research.microsoft.com/en-us/um/people/simonpj/papers/santos-thesis.ps.gz PhD thesis] gives more details.
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/inlining/index.htm Secrets of the GHC inliner], Simon Peyton Jones and Simon Marlow, Journal of Functional Programming 12(4), July 2002, pp393-434.  Describes how the Simplifier does inlining.
+
+ *  [http://research.microsoft.com/en-us/um/people/simonpj/papers/deforestation-short-cut.ps.Z A short cut to deforestation], A Gill, SL Peyton Jones, J Launchbury, Proc Functional Programming Languages and Computer Architecture (FPCA'93), Copenhagen, June 1993, pp223-232.  The famous foldr/build rule.  Andy's [http://research.microsoft.com/en-us/um/people/simonpj/papers/andy-thesis.ps.gz PhD thesis] has more.  
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/rules.htm Playing by the rules: rewriting as a practical optimisation technique in GHC], Simon Peyton Jones, Andrew Tolmach and Tony Hoare, Haskell Workshop 2001.  Describes how RULES work, which are heavily used in GHC.
+
+ * [https://research.microsoft.com/en-us/um/people/simonpj/papers/spec-constr/spec-constr.pdf Call-pattern Specialisation for Haskell Programs], Simon Peyton Jones, ICFP 2007. Describes the specialisation optimiser.
+
+ * [http://research.microsoft.com/pubs/67060/float.ps.gz Let-floating: moving bindings to give faster programs], Simon Peyton Jones, Will Partain, and Andre Santos, ICFP 1996. Describes the let floating and full laziness optimisation passes.
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/usage-types/cardinality-popl14.pdf Modular, Higher-Order Cardinality Analysis in Theory and Practice], Ilya Sergey, Dimitrios Vytiniotis, Simon Peyton Jones, POPL 2014. Describes cardinality analysis and optimisations that it enables or improves (eg. let-floating).
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/cpr/cpr.ps.gz Constructed Product Result Analysis for Haskell], Clem Baker-Finch, Kevin Glynn, and Simon Peyton Jones, Journal of Functional Programming 14(2), 211–245, March 2004. Describes optimisation that allows to return tuple components in registers (for functions that return tuples).
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/demand-anal/demand.ps Demand analysis], Simon Peyton Jones, Peter Sestoft, and John Hughes, draft, 2006.
+
+ * [http://gallium.inria.fr/~naxu/research/arity.ps Arity Analysis], Dana N. Xu and Simon Peyton Jones, Working Notes, 2006
+
+ * [http://www.joachim-breitner.de/publications/CallArity-TFP.pdf Call Arity], Joachim Breitner, TFP, 2014, as well as [http://www.joachim-breitner.de/publications/CallArity-Haskell15.pdf Formally Proving a Compiler Transformation Safe], Joachim Breitner, Haskell 2015
+
+== Data Parallel Haskell and concurrency ==
+
+ * [http://www.cse.unsw.edu.au/~chak/papers/data-parallel-haskell.pdf Data Parallel Haskell: a status report], Manuel M. T. Chakravarty, Roman Leshchinskiy, Simon Peyton Jones, Gabriele Keller, and Simon Marlow. , DAMP 2007: Workshop on Declarative Aspects of Multicore Programming, 2007
+
+ * [http://www.cse.unsw.edu.au/~chak/papers/fsttcs2008.pdf Harnessing the Multicores: Nested Data Parallelism in Haskell], Simon Peyton Jones, Roman Leshchinskiy, Gabriele Keller, and Manuel M. T. Chakravarty , IARCS Annual Conference on Foundations of Software Technology and Theoretical Computer Science (FSTTCS 2008), IBFI, Schloss Dagstuhl, 2008. 
+
+ * [http://www.cse.unsw.edu.au/~chak/papers/vect-avoid.pdf Vectorisation Avoidance], Gabriele Keller, Manuel M. T. Chakravarty, Roman Leshchinskiy, Ben Lippmeier, and Simon Peyton Jones, Proceedings of ACM SIGPLAN Haskell Symposium 2012, ACM Press, 2012. 
+
+ * [http://www.cse.unsw.edu.au/~chak/papers/replicate.pdf Work Efficient Higher-Order Vectorisation], Ben Lippmeier, Manuel M. T. Chakravarty, Gabriele Keller, Roman Leshchinskiy, and Simon Peyton Jones, The 17th ACM SIGPLAN International Conference on Functional Programming, ACM Press, 2012
+
+ * [http://simonmar.github.io/bib/papers/multicore-ghc.pdf Runtime Support for Multicore Haskell] (Simon Marlow, Simon Peyton Jones, Satnam Singh) In ICFP '09: Proceeding of the 14th ACM SIGPLAN International Conference on Functional Programming, Edinburgh, Scotland, August 2009
+
+ * [http://www.haskell.org/ghc/docs/papers/concurrent-haskell.ps.gz Concurrent Haskell], Simon Peyton Jones, Andrew Gordon, Sigbjorn Finne. Deals with the various concurrency constructs in GHC and the Haskell language. E.g., MVars.
+
+ * [http://research.microsoft.com/pubs/67418/2005-ppopp-composable.pdf Composable Memory Transactions], Tim Harris, Simon Marlow, Simon Peyton-Jones, and Maurice Herlihy.  In Proceedings of the tenth ACM SIGPLAN symposium on Principles and practice of parallel programming (PPoPP '05)
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/stm/stm-invariants.pdf Transactional Memory with Data Invariants], Tim Harris and Simon Peyton Jones.  In TRANSACT '06
+
+== Intermediate Representation of GHC (Core & Related) ==
+
+ * [http://www.haskell.org/ghc/docs/6.10.4/html/ext-core/core.pdf An External Representation for the GHC Core Language] Gives an overview of the semantics and syntax of Core, GHC's internal intermediate representation for Haskell that most of the optimisation work is done on. A good language to understand when starting with GHC.
+
+ * [http://www.haskell.org/ghc/docs/papers/unboxed-values.ps.gz Unboxed Values as First-Class Citizens], Simon L Peyton Jones and John Launchbury, Conference on Functional Programming Languages and Computer Architecture, September 1991. Describe the design of GHC language and internals for handling machine values and boxing / unboxing them as lazy values.
+
+== Code generation and virtual machine ==
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/eval-apply/index.htm How to make a fast curry: push/enter vs eval/apply], Simon Marlow and Simon Peyton Jones, International Conference on Functional Programming, Snowbird, Sept 2004, pp4-15.
+
+ * [http://simonmar.github.io/bib/papers/ptr-tagging.pdf Faster laziness using dynamic pointer tagging] (Simon Marlow, Alexey Rodriguez Yakushev, Simon Peyton Jones) In ICFP '07: Proceedings of the ACM SIGPLAN international conference on Functional programming, Freiburg, Germany, ACM Press, October 2007
+
+ * [http://research.microsoft.com/~simonpj/papers/spineless-tagless-gmachine.ps.gz Implementing lazy functional languages on stock hardware: the Spineless Tagless G-machine], SL Peyton Jones, Journal of Functional Programming 2(2), Apr 1992, pp127-202.  The original STG paper but still highly relevant.
+
+ * [http://www.haskell.org/ghc/docs/papers/run-time-system.ps.gz The STG runtime system (revised)], Simon Peyton Jones and Simon Marlow. A highly-detailed description of STG. It is probably the most up-to-date description, aside for later additions from [http://simonmar.github.io/bib/papers/ptr-tagging.pdf dynamic pointer tagging paper] and [http://research.microsoft.com/en-us/um/people/simonpj/papers/eval-apply/index.htm fast curry paper].
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/c--/hoopl-haskell10.pdf Hoopl: A Modular, Reusable Library for Dataflow Analysis and Transformation], Norman Ramsey, John Dias, and Simon Peyton Jones. Haskell Symposium 2010
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/c--/ppdp.ps.gz C--: a portable assembly language that supports garbage collection], Simon Peyton Jones, Norman Ramsey, and Fermin Reig. Invited talk at PPDP'99. 
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/papers/c--/c--exn-pldi.ps.gz A Single Intermediate Language That Supports Multiple Implementations of Exceptions], Norman Ramsey and Simon Peyton Jones, PLDI 2000.
+
+ * [https://www.davidterei.com/downloads/papers/terei:2010:llvm.pdf An LLVM Backend for GHC], David Terei and Manuel M. T. Chakravarty. Haskell Symposium 2010
+
+== IO and Related ==
+
+ * [https://research.microsoft.com/en-us/um/people/simonpj/papers/marktoberdorf/mark.pdf Tackling the awkward squad: monadic input/output, concurrency, exceptions, and foreign-language calls in Haskell], Simon Peyton Jones. Deals with the incarnation of IO in Haskell and GHC. The history getting to monads, handling exceptions and handling concurrency.
+
+ * [http://www.haskell.org/ghc/docs/papers/imperative.ps.gz Imperative Functional Programming], Simon Peyton Jones, Philip Wadler. POPL,  Jan 1993, pp71-84. Presents Monads as a way of implementing IO in Haskell.
+
+ * [http://www.haskell.org/ghc/docs/papers/lazy-functional-state-threads.ps.gz Lazy Functional State Threads], John Launchbury and Simon Peyton Jones. PLDI 1993. A follow-up on "Imperative Functional Programming" paper.
+
+ * [http://simonmar.github.io/bib/papers/async.pdf Asynchronous Exceptions in Haskell], Simon Marlow, Simon Peyton Jones, Andrew Moran and John Reppy, 2006.
+
+  * [http://www.haskell.org/ghc/docs/papers/except_ps.gz A semantics for imprecise exceptions], Simon Peyton Jones, Alastair Reid, Tony Hoare and Simon Marlow, PLDI '99.
+
+ * [http://research.microsoft.com/en-us/um/people/simonpj/Papers/imprecise-exn-sem.htm Imprecise Exceptions, Co-Inductively], Andy Moran, Soeren Lassen, and Simon Peyton Jones, HOOTS'99.
+
+ * [http://haskell.cs.yale.edu/wp-content/uploads/2013/08/hask035-voellmy.pdf Mio: A High-Performance Multicore IO Manager for GHC], Andreas Voellmy, Junchang Wang, Paul Hudak and Kazuhiko Yamamoto. Haskell Symposium 2013.
+
+== The run-time system, garbage collector, profiling, FFI ==
+
+ * [http://simonmar.github.io/bib/papers/parallel-gc.pdf Parallel Generational-Copying Garbage Collection with a Block-Structured Heap] (Simon Marlow, Tim Harris, Roshan P. James, Simon Peyton Jones) In ISMM '08: Proceedings of the 7th international symposium on Memory management, Tucson, Arizona, ACM, June 2008
+
+ * [http://ezyang.com/papers/ezyang15-cnf.pdf Efficient communication and collection with compact normal forms] (Edward Z. Yang, Giovanni Campagna, Ömer S. Ağacan, Ahmed El-Hassany, Abhishek Kulkarni, Ryan R. Newton), ICFP 2015.
+
+ * [http://simonmar.github.io/bib/papers/multiproc.pdf Haskell on a Shared-Memory Multiprocessor] (Tim Harris, Simon Marlow, Simon Peyton Jones) In Haskell '05: Proceedings of the 2005 ACM SIGPLAN workshop on Haskell, pages 49--61, Tallinn, Estonia, ACM Press, September 2005
+
+ * [http://www.haskell.org/ghc/docs/papers/profiling.ps.gz Time and space profiling for non-strict, higher-order functional languages], Patrick M. Sansom and Simon Peyton Jones, POPL 1995.
+
+ * [http://www.haskell.org/ghc/docs/papers/threads.ps.gz The Concurrent Haskell Foreign Function Interface], Wolfgang Thaller. An Addendum to Haskell 98 FFI Report.
+
+ * [http://simonmar.github.io/bib/papers/conc-ffi.pdf Extending the Haskell Foreign Function Interface with Concurrency], Simon Marlow, Simon Peyton Jones and Wolfgang Thaller. Haskell Workshop 2004.
+
+== Modules & Packages ==
+
+ * [http://programatica.cs.pdx.edu/P/diatchi.pdf A Formal Specification of the Haskell 98 Module System] (Iavor S. Diatchki, Mark P. Jones, Thomas Hallgren) In Haskell '02.
+
+ * [http://plv.mpi-sws.org/backpack/backpack-paper.pdf Backpack: Retrofitting Haskell with Interfaces] (Scott Kilpatrick, Derek Dreyer, Simon Peyton Jones, Simon Marlow), POPL 2014.
+
+== Other GHC features ==
+
+* [http://research.microsoft.com/en-us/um/people/simonpj/papers/meta-haskell/meta-haskell.pdf Template Meta-programming for Haskell]. Tim Sheard, Simon Peyton Jones. Haskell '02. [http://dx.doi.org/10.1145/636517.636528 doi] Introduces Template Haskell.
+
+* [http://research.microsoft.com/en-us/um/people/simonpj/papers/hmap/index.htm Scrap your Boilerplate: a Practical Design Pattern for Generic Programming]. Ralf Lämmel, Simon Peyton Jones. TLDI '03. [http://dx.doi.org/10.1145/604174.604179 doi] Introduces `Typeable` and `Data`.
