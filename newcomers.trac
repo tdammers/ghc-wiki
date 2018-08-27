@@ -1,0 +1,111 @@
+= Resources for newcomers to GHC =
+
+This page is intended to serve as the first stop for those people who say, "I want to contribute to GHC, but I don't know quite where to begin." Begin here. While the [wiki:Building building guide], [wiki:WorkingConventions working conventions], [wiki:Commentary commentary] and [wiki:Debugging debugging] pages (always linked from the left sidebar) have great information that can come in handy while you're working on your first, or first several patches, this page is intended to have the details you will need to get rolling.
+
+If you have any questions along the way don't hesitate to reach out to the community. There are people on the [[MailingListsAndIRC|mailing lists and IRC]] who will gladly help you (although you may need to be patient). Don't forget that all GHC developers are still learning; your question is never too silly to ask.
+
+
+== First steps ==
+
+[wiki:Building/Preparation Prepare] your machine, [wiki:Building/GettingTheSources clone] the git repo, and [wiki:Building/QuickStart] GHC. For the short, short version, which may or may not work for your machine, you can try this (note that [https://ghc.haskell.org/trac/ghc/wiki/Building/Preparation/Tools building older versions of GHC may require having an older version of GHC on your path]):
+
+{{{#!comment
+-- Note: when this page got mentioned on reddit, git.haskell.org couldn't handle the load, so we now tell newcomers to clone from github, even though it requires one more initial step.
+git clone --recursive git://git.haskell.org/ghc.git
+}}}
+
+{{{
+#!sh
+# needed only once, URL rewrite rule is persisted in ${HOME}/.gitconfig
+git config --global url."git://github.com/ghc/packages-".insteadOf git://github.com/ghc/packages/
+# (if you already cloned using ssh, you'll need this rule instead to make submodules work:)
+# git config --global url."git@github.com:ghc/packages-".insteadOf git@github.com:ghc/packages/
+
+# clone GHC's main Git repository (creates './ghc' folder in CWD)
+git clone --recursive git://github.com/ghc/ghc
+cd ghc/
+
+# configure build
+cp mk/build.mk.sample mk/build.mk
+
+## edit mk/build.mk to remove the comment marker # on the line "BuildFlavour = devel2"
+
+./boot
+./configure
+# NOTE: On Windows you need to download some binary distributables before being able to build
+# This only has to be done once and can be done by adding a flag to the call to configure:
+./configure --enable-tarballs-autodownload
+
+# build GHC
+make -j8 # parallelize to at most 8 parallel jobs; adapt to actual number of cpu cores
+}}}
+
+    If your machine has all the prerequisites, this might just work. Expect it all to take roughly 30 minutes.
+
+* While you are waiting for your build to finish, orient yourself to the general architecture of GHC. This [http://www.aosabook.org/en/ghc.html article] is written by two of the chief architects of GHC, Simon Marlow and Simon Peyton-Jones, is excellent and current (2012).
+
+* After a successful build, you should have your brand new compiler in `./inplace/bin/ghc-stage2`. (GHCi is launched with `./inplace/bin/ghc-stage2 --interactive`). Try it out.
+
+
+== Fast rebuilding ==
+There are 4 things to remember:
+ 1. Select `BuildFlavour = devel2` in your `mk/build.mk` file (copy `mk/build.mk.sample` to `mk/build.mk` first), to
+    [Building/Using#HowtomakeGHCbuildquickly make GHC build more quickly].
+
+ 2. Don't run `make` directly in the ghc root directory (unless you just pulled in changes from others). Instead, first
+    change to the directory (`compiler`, `utils`, `ghc` or `libraries`) where you're making your changes.
+    See [Building/Using#Buildingasinglesub-component Building a single sub-component].
+ 
+ 3. Set `stage=2` in your `mk/build.mk` file, to
+    [wiki:Building/Using#Freezingstage1 freeze the stage 1 compiler].
+    This makes sure that only the
+    [wiki:Building/Architecture/Idiom/Stages stage-2] compiler will be
+    rebuilt after this.
+
+ 4. While in the sub-component directory, use `make fast`
+    [wiki:Building/Using#Skipdependencybuilding skip dependency building] (except after pulling in changes from others).
+
+A good first sanity check is to twiddle some error message in the code, just to see that changed error message pop up when you compile a file. Write some Haskell code with an error in it, and look at the error message. Search through the code for that error message. Change the message, rebuild ghc (run `make fast` in the `ghc` directory), and recompile your file again with `./inplace/bin/ghc-stage2`. If you see the changed message, you're good to go.
+
+
+== Finding a ticket ==
+
+Now that you can build GHC, let's get hacking. But first, you'll need to identify a goal. GHC's Trac tickets are a great place to find starting points. You are encouraged to ask for a starting point on IRC or the `ghc-devs` [[MailingListsAndIRC|mailing list]]. There someone familiar with the process can help you find a ticket that matches your expertise and help you when you get stuck.
+
+If you want to get a taste for possible starting tasks, below is a list of tickets that appear to be "low-hanging fruit" -- things that might be reasonable for a newcomer to GHC hacking. Of course, we can't ever be sure of how hard a task is before doing it, so apologies if one of these is too hard.
+
+You can add tickets to this list by giving them the `newcomer` Trac keyword.
+
+**Bugs:**
+[[TicketQuery(status=infoneeded,status=new,keywords=~newcomer,owner=,type=bug)]]
+**Feature requests:**
+[[TicketQuery(status=infoneeded,status=new,keywords=~newcomer,owner=,type=feature request)]]
+**Tasks:**
+[[TicketQuery(status=infoneeded,status=new,keywords=~newcomer,owner=,type=task)]]
+
+== Practical advice ==
+
+* Read up on the steps you are expected to take for [wiki:WorkingConventions/FixingBugs contributing a patch to GHC].
+
+* See also code reviews in [https://phabricator.haskell.org/differential/ Phabricator]. You can refer to how they have been fixed.
+
+== Less practical advice ==
+
+* Don't get scared. GHC is a big codebase, but it makes sense when you stare at it long enough!
+
+* Don't hesitate to ask questions. We have all been beginners at some point and understand that diving in to GHC can be a challenge. Asking questions will help you make better use of your hacking time.
+
+* Be forewarned that many pages on the GHC Wiki are somewhat out-of-date. Always check the last modification date. Email `ghc-devs` if you're not sure.
+
+* You may want to look at these "how it went for me" blog posts.
+ - [http://rawgit.com/gibiansky/4c54f767bf21a6954b23/raw/67c62c5555f40c6fb67b124307725df168201361/exp.html Hacking on GHC (is not that hard)] by Andrew Gibiansky
+ - [http://anniecherkaev.com/projects/contributing-to-ghc Contributing to GHC] by Annie Cherkaev
+ - [https://medium.com/@zw3rk/contributing-to-ghc-290653b63147 Contributing to GHC via Phabricator] by Moritz Angermann
+
+* There is a blog post series by Stephen Diehl that provides an overview of many important data structures and contains links to other sources of information: [http://www.stephendiehl.com/posts/ghc_01.html Dive into GHC]
+
+== Need help? ==
+
+You can email the [http://www.haskell.org/mailman/listinfo/ghc-devs ghc-devs] list, or ask on IRC in `#ghc`.
+
+Happy hacking!
