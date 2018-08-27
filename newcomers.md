@@ -61,7 +61,7 @@ There are 4 things to remember:
 
 
 1. Select `BuildFlavour = devel2` in your `mk/build.mk` file (copy `mk/build.mk.sample` to `mk/build.mk` first), to
-  [make GHC build more quickly](building/using#ow-to-make-ghc-build-quickly).
+  [make GHC build more quickly](building/using#how-to-make-ghc-build-quickly).
 
 1. Don't run `make` directly in the ghc root directory (unless you just pulled in changes from others). Instead, first
   change to the directory (`compiler`, `utils`, `ghc` or `libraries`) where you're making your changes.
@@ -72,13 +72,13 @@ There are 4 things to remember:
 
 
 1. Set `stage=2` in your `mk/build.mk` file, to
-  [freeze the stage 1 compiler](building/using#reezing-stage-1).
+  [freeze the stage 1 compiler](building/using#freezing-stage-1).
   This makes sure that only the
   [stage-2](building/architecture/idiom/stages) compiler will be
   rebuilt after this.
 
 1. While in the sub-component directory, use `make fast`
-  [skip dependency building](building/using#kip-dependency-building) (except after pulling in changes from others).
+  [skip dependency building](building/using#skip-dependency-building) (except after pulling in changes from others).
 
 
 A good first sanity check is to twiddle some error message in the code, just to see that changed error message pop up when you compile a file. Write some Haskell code with an error in it, and look at the error message. Search through the code for that error message. Change the message, rebuild ghc (run `make fast` in the `ghc` directory), and recompile your file again with `./inplace/bin/ghc-stage2`. If you see the changed message, you're good to go.
