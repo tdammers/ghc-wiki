@@ -1,0 +1,131 @@
+[[PageOutline]]
+
+= GHC 8.6.x Migration Guide =
+
+This guide summarises the changes you may need to make to your code to migrate from GHC 8.4 to GHC 8.6. This guide complements the GHC 8.6.x release notes which should be consulted as well.
+
+----------------------------------
+== Compiler changes
+
+=== `StarIsType` ===
+
+As part of [https://github.com/ghc-proposals/ghc-proposals/blob/05721788de9ab6538def68c3c2c9dec50c9f24a8/proposals/0020-no-type-in-type.rst this GHC proposal] (as amended by [https://github.com/ghc-proposals/ghc-proposals/pull/146 this GHC proposal]), a new `StarIsType` extension was introduced, which instructs GHC to treat `*` as a synonym for `Type` (from `Data.Kind`) instead of a binary type operator.
+
+`StarIsType` is enabled by default, and one consequence of this is that GHC will interpret any use of `*` as `Type`, even if it would have been previously interpreted as a binary type operator. A notable example of such a binary type operator is `GHC.TypeLits.*`, so code like:
+
+{{{#!hs
+import GHC.TypeLits
+
+f :: Proxy m -> Proxy n -> Proxy (m * n)
+f _ _ = Proxy
+}}}
+
+Will not typecheck if `StarIsType` is enabled, since `m * n` is treated as if one had written `m Type n`. There are several ways to adapt to this:
+
+1. Use `*` qualified (e.g., `Proxy (m GHC.TypeLits.* n`). This approach is compliant with the GHC three-release policy, as it does not require CPP to support older GHCs.
+2. Enable the `NoStarIsType` extension using a `LANGUAGE` pragma. Since `(No)StarIsType` did not exist on older GHCs, this approach will require CPP in order to support older compilers.
+3. Conditionally enable the `NoStarIsType` extension using Cabal's `default-extensions` field, like this:
+{{{
+  if impl(ghc >= 8.6)
+    default-extensions: NoStarIsType
+}}}
+
+=== `MonadFailDesugaring` by default ===
+
+GHC now enables the `MonadFailDesugaring` extension by default, as discussed in https://prime.haskell.org/wiki/Libraries/Proposals/MonadFail#Transitionalstrategy. This means that code that uses partial pattern matches in `do`-notation, such as this:
+
+{{{#!hs
+f :: [[a]] -> [a]
+f l = do
+  (_:xs) <- l
+  xs
+}}}
+
+Will now desugar to use the `fail` method from the `MonadFail` class instead of from `Monad`. That is, this code will now desugar to something resembling:
+
+{{{#!hs
+import Control.Monad.Fail as Fail
+
+f :: [[a]] -> [a]
+f l = case l of
+        (_:xs) -> xs
+        _      -> Fail.fail "Pattern-match failure"
+}}}
+
+Depending on the code, it is possible that this change will result in breakage. See https://prime.haskell.org/wiki/Libraries/Proposals/MonadFail#Adaptingoldcode for ways to adapt to breakage.
+
+=== Constructor-less GADTs now require `GADTSyntax` ===
+
+Data types with empty `where` clauses (such as `data T where`) are no longer valid without the `GADTSyntax` extension. (Due to an oversight, previous versions of GHC would accept them without the extension enabled.)
+
+=== `-Wincomplete-patterns` now applies to patterns in guards and `MultiWayIf`
+
+Due to a bug, previous versions of GHC would not emit any `-Wincomplete-patterns` warnings at all for incomplete patterns inside of guards or `MultiWayIf` expressions. This bug has been fixed, which means that code like:
+
+{{{#!hs
+foo :: Bool -> Int
+foo b = if | b -> 1
+}}}
+
+Will now raise a warning in GHC 8.6:
+
+{{{
+warning: [-Wincomplete-patterns]
+    Pattern match(es) are non-exhaustive
+    In a multi-way if alternative:
+        Guards do not cover entire pattern space
+}}}
+
+=== `PolyKinds` is pickier
+
+GHC is now more diligent about catching illegal uses of kind polymorphism that snuck into recent GHC releases. For instance, this used to be accepted without `PolyKinds`:
+
+{{{#!hs
+class C a where
+  c :: Proxy (x :: a)
+}}}
+
+Despite the fact that `a` is used as a kind variable in the type signature for `c`. This is now an error unless `PolyKinds` is explicitly enabled.
+
+Moreover, GHC 8.4 would accept the following without the use of `PolyKinds`:
+
+{{{#!hs
+f :: forall k (a :: k). Proxy a
+f = Proxy
+}}}
+
+Despite the fact that `k` is used as both a type and kind variable. This is now an error unless `PolyKinds` is explicitly enabled.
+
+=== `UndecidableInstances` is pickier ===
+
+GHC now requires the `UndecidableInstances` extension in order to allow type family applications in instance contexts, as in the following code:
+
+{{{#!hs
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+
+import Data.Kind
+
+type family F a :: Constraint
+class C a where
+
+{-
+Will error without UndecidableInstances:
+
+    • Illegal nested constraint ‘F a’
+      (Use UndecidableInstances to permit this)
+    • In the instance declaration for ‘C [[a]]’
+-}
+instance F a => C [[a]]
+}}}
+
+=== DPH is gone ===
+
+Data Parallel Haskell and GHC's automatic vectorization support, which have been bitrotting for many years, have finally been removed. One particularly user-facing change related to this is that the `-Odph` flag is now gone, so GHC will simply error if it is passed `-Odph` as a flag. (Note that `-Odph` was simply a synonym for `-O2 -fmax-simplifier-iterations=20 -fsimplifier-phases=3`.)
+
+--------------------------------
+== Library changes
+
+TODO
