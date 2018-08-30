@@ -1,0 +1,78 @@
+ = Loading GHC into GHCi
+
+This page says how you can load GHC into GHCi for more iterative development. Csongor Kiss was the first person to record this feat. The scaffolding has been added to `master` since Aug 2018, and if you have to use an older working copy, refer to the guide at the bottom ([https://ghc.haskell.org/trac/ghc/wiki/Building/InGhci#OldGHCsourcetree Old GHC source tree]).
+
+After building GHC, just do the following in the repository root:
+{{{
+./utils/ghc-in-ghci/run.sh
+}}}
+
+Notes:
+
+* This works best on systems with a decent amount of RAM.  The GHCi process uses about 3.5GB initially, and the usage sometimes increases during development.  So, if you have less than 8GB of RAM, loading GHC into GHCi probably will not aid development efficiency.
+
+* Adding `-j4` might speed up the process. Increasing the number will utilize more cores.
+
+* The script will also run `:load Main`, to load GHC's main module. After that, running `main` will run an inner GHCi, because there is a default `:set args --interactive ...`. To override this, use `:set args ...` or `:main ...`.
+
+* If you don't want to wait for `:load Main`, since you want to load some other module, then you can use `Ctrl+C` to cancel the initial load.
+
+=== ghcid
+
+There is a `.ghcid` file which allows use of Neil Mitchell's handy [https://github.com/ndmitchell/ghcid ghcid] tool directly by just running `ghcid`. This tool drives GHCi to automatically reload when files change.  
+
+
+== Old GHC source tree
+
+1. Put this .ghci file in compiler/
+
+{{{
+:set -ibackpack
+:set -ibasicTypes
+:set -icmm
+:set -icodeGen
+:set -icoreSyn
+:set -ideSugar
+:set -ighci
+:set -ihsSyn
+:set -iiface
+:set -illvmGen
+:set -imain
+:set -inativeGen
+:set -iparser
+:set -iprelude
+:set -iprofiling
+:set -irename
+:set -isimplCore
+:set -isimplStg
+:set -ispecialise
+:set -istgSyn
+:set -istranal
+:set -itypecheck
+:set -itypes
+:set -iutils
+:set -ivectorise
+:set -I../compiler
+:set -I../compiler/stage2
+:set -I../compiler/stage2/build
+:set -i../compiler/stage2/build
+:set -I../includes
+:set -I../includes/dist-derivedconstants/header
+:set -package=ghc-boot-th
+:set -fobject-code
+:set -DSTAGE=2
+:set -XNoImplicitPrelude
+:load GHC
+}}}
+
+2. Run `../inplace/bin/ghc-stage2 --interactive -odir tmp -hidir tmp -j<n> +RTS -A128m` where <n> is the number of cores on your machine
+from inside compiler/
+
+It may take a while and require a little bit of memory but in the end
+all 500 or so modules will be loaded.
+
+It can also be used with `ghcid`.
+
+{{{
+ghcid -c "../inplace/bin/ghc-stage2 --interactive -odir tmp -hidir tmp -j4 +RTS-A128m"
+}}}
