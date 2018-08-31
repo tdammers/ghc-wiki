@@ -35,7 +35,7 @@ Note that this builds a profiled *stage-2* compiler.  In principle it's possible
 
 
 
-If you want to profile GHC while compiling GHC, the easiest way to do this is to build a *stage-3* compiler with your profiled *stage-2* compiler. You’ll need to run `make stage=3` the first time you do this in order to build the dependencies for the stage3 compiler; see [Rebuilding GHC](building/using#ebuilding-the-ghc-binary-after-making-changes) and below for more details.
+If you want to profile GHC while compiling GHC, the easiest way to do this is to build a *stage-3* compiler with your profiled *stage-2* compiler. You’ll need to run `make stage=3` the first time you do this in order to build the dependencies for the stage3 compiler; see [Rebuilding GHC](building/using#rebuilding-the-ghc-binary-after-making-changes) and below for more details.
 
 
 
