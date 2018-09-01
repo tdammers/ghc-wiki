@@ -1,0 +1,68 @@
+TODO: This page is somewhat old. It needs to be updated with recent information. The followings are the latest related information.
+
+GHC User's Guide:
+ * [https://downloads.haskell.org/%7Eghc/latest/docs/html/users_guide/glasgow_exts.html#levity-polymorphism Levity polymorphism]
+ * [https://downloads.haskell.org/%7Eghc/latest/docs/html/users_guide/glasgow_exts.html#the-kind The kind *]
+
+GHC Proposals:
+ * [https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0003-levity-polymorphism.rst Revise Levity Polymorphism]
+ * [https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0020-no-type-in-type.rst Embrace Type :: Type]
+ * [https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0030-remove-star-kind.rst Remove the * kind syntax]
+
+Papers:
+ * [https://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf System FC with Explicit Kind Equality]
+ * [https://cs.brynmawr.edu/~rae/papers/2017/levity/levity.pdf Levity Polymorphism (extended version)]
+
+
+= Kinds =
+
+Kinds classify types.  So for example:
+{{{
+   Int :: *
+   Int -> Int :: *
+   Maybe :: * -> *
+   Int# :: #
+   (# Int, Int #) :: #
+}}}
+The base kinds are these:
+ * "`*`" is the kind of lifted, boxed values. Things like `Int` and `Maybe Float` have kind `*`.
+ * "`#`" is the kind of unlifted values. Things like `Int#` have kind `#`.
+ * With the advent of [wiki:GhcKinds data type promotion and kind polymorphism] we can have a lot more kinds.
+ * Kinds are in flux with levity polymorphism. See [wiki:LevityPolymorphism]. See also [wiki:TypeType].
+
+(Unboxed tuples used to have a distinct kind, but in 2012 we combined unboxed tuples with other unboxed values in a single kind "`#`".)
+
+== Representing kinds ==
+
+Kinds are represented by the data type `Type` (see [wiki:Commentary/Compiler/TypeType]):
+{{{
+type Kind = Type
+}}}
+Basic kinds are 
+represented using type constructors, e.g. the kind `*` is represented as
+{{{
+liftedTypeKind :: Kind
+liftedTypeKind = TyConApp liftedTypeKindTyCon []
+}}}
+where `liftedTypeKindTyCon` is a built-in `PrimTyCon`.  The arrow type
+constructor is used as the arrow kind constructor, e.g. the kind `* -> *` 
+is represented internally as
+{{{
+FunTy liftedTypeKind liftedTypeKind
+}}}
+It's easy to extract the kind of a type, or the sort of a kind:
+{{{
+typeKind :: Type -> Kind
+}}}
+The "sort" of a kind is always one of the
+sorts: `TY` (for kinds that classify normal types) or `CO` (for kinds that
+classify coercion evidence).  The coercion kind, `T1 :=: T2`, is
+represented by `PredTy (EqPred T1 T2)`.
+
+== Kind subtyping ==
+
+There is a small amount of sub-typing in kinds.  Suppose you see `(t1 -> t2)`.  What kind must `t1` and `t2` have?  It could be `*` or `#`.  So we have a single kind `OpenKind`, which is a super-kind of both, with this simple lattice:
+
+[[Image(https://docs.google.com/drawings/pub?id=1M5yBP8iAWTgqdI3oG1UNnYihVlipnvvk2vLInAFxtNM&w=359&h=229)]]
+
+(You can edit this picture [https://docs.google.com/drawings/d/1M5yBP8iAWTgqdI3oG1UNnYihVlipnvvk2vLInAFxtNM/edit?hl=en_GB here].)
