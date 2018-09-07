@@ -69,7 +69,7 @@ need to.
 
 
 
-The compiler also needs to know the layout of heap objects, and the way this information is plumbed into the compiler from the C headers in the runtime is described here: [Commentary/Compiler/CodeGen](commentary/compiler/code-gen#torage-manager-representations).
+The compiler also needs to know the layout of heap objects, and the way this information is plumbed into the compiler from the C headers in the runtime is described here: [Commentary/Compiler/CodeGen](commentary/compiler/code-gen#storage-manager-representations).
 
 
 ---
@@ -103,7 +103,7 @@ Where:
 - The *entry code* for the closure is usually the code that will *evaluate* the closure.  There is one exception:
   for functions, the entry code will apply the function to the arguments given in registers or on the stack, according
   to the calling convention.  The entry code assumes all the arguments are present - to apply a function to fewer arguments
-  or to apply an unknown function, the [generic apply functions](commentary/rts/haskell-execution/function-calls#eneric-apply) must
+  or to apply an unknown function, the [generic apply functions](commentary/rts/haskell-execution/function-calls#generic-apply) must
   be used.
 
 
@@ -199,7 +199,7 @@ Objects fall into two categories:
   scattered through the object code, and only the linker knows where.
 
 
-To find out whether a particular object is dynamic or static, use the [HEAP\_ALLOCED()](commentary/rts/storage/heap-alloced) macro, from [rts/sm/HeapAlloc.h](/trac/ghc/browser/rts/sm/HeapAlloc.h)[](/trac/ghc/export/HEAD/ghc/rts/sm/HeapAlloc.h).  This macro works by consulting a bitmap (or structured bitmap) that tells for each [megablock](commentary/rts/storage#tructure-of-blocks) of memory whether it is part of the dynamic heap or not.
+To find out whether a particular object is dynamic or static, use the [HEAP\_ALLOCED()](commentary/rts/storage/heap-alloced) macro, from [rts/sm/HeapAlloc.h](/trac/ghc/browser/rts/sm/HeapAlloc.h)[](/trac/ghc/export/HEAD/ghc/rts/sm/HeapAlloc.h).  This macro works by consulting a bitmap (or structured bitmap) that tells for each [megablock](commentary/rts/storage#structure-of-blocks) of memory whether it is part of the dynamic heap or not.
 
 
 ### Dynamic objects
@@ -356,7 +356,7 @@ Thunks have pointers-first layout:
 
 As for function closures, the payload contains the free variables of
 the expression.  A thunk differs from a function closure in that it
-can be [updated](commentary/rts/haskell-execution#pdates).
+can be [updated](commentary/rts/haskell-execution#updates).
 
 
 
@@ -444,7 +444,7 @@ Partial applications are tricky beasts.
 
 A partial application, closure type `PAP`, represents a function
 applied to too few arguments.  Partial applications are only built by
-the [generic apply functions](commentary/rts/haskell-execution/function-calls#eneric-apply) in [rts/Apply.cmm](/trac/ghc/browser/rts/Apply.cmm)[](/trac/ghc/export/HEAD/ghc/rts/Apply.cmm).
+the [generic apply functions](commentary/rts/haskell-execution/function-calls#generic-apply) in [rts/Apply.cmm](/trac/ghc/browser/rts/Apply.cmm)[](/trac/ghc/export/HEAD/ghc/rts/Apply.cmm).
 
 
 <table><tr><th> Header </th>
@@ -719,7 +719,7 @@ The TSO structure contains several fields.  For full details see [includes/rts/s
 >
 
 - *bound*: pointer to a [Task](commentary/rts/scheduler#) if this thread is bound
-- *cap*: the [Capability](commentary/rts/scheduler#apabilities) on which this thread resides.
+- *cap*: the [Capability](commentary/rts/scheduler#capabilities) on which this thread resides.
 
 ### STM objects
 
