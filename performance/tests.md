@@ -98,7 +98,7 @@ With the proposed change, we hope to achieve the following benefits:
 
   - Expected values are no longer needed.
   - Expected performance changes only requires an [indication](performance/tests#) that the change exists, rather than having to re-adjust the expected values and/or tolerance.
-- More accurate [local testing](performance/tests#esting-locally).
+- More accurate [local testing](performance/tests#testing-locally).
 
 ### Test results are per platform
 
