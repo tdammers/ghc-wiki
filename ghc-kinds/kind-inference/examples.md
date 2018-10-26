@@ -111,7 +111,7 @@ data S3 k (a :: k) b = MkS (S3 Type b a)
 ```
 
 
-Proposed: reject as polymorphically recursive. Yet the idea in [GhcKinds/KindInference\#Simonssuggestion](ghc-kinds/kind-inference#imon's-suggestion) accepts this.
+Proposed: reject as polymorphically recursive. Yet the idea in [GhcKinds/KindInference\#Simonssuggestion](ghc-kinds/kind-inference#simon's-suggestion) accepts this.
 
 
 ```
