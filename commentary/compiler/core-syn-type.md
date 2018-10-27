@@ -74,7 +74,7 @@ Binder is used (as the name suggest) to bind a variable to an expression. The `E
 Here are some notes about the individual constructors of `Expr`.
 
 
-- `Var` represents variables.  The `Id` it contains is essentially an [OccName](commentary/compiler/rdr-name-type#he-occname-type) plus a `Type`; however, equality `(==)` on `Id`s is based only on their `OccName`'s, so *two `Var`s with different types may be `(==)`-equal*.
+- `Var` represents variables.  The `Id` it contains is essentially an [OccName](commentary/compiler/rdr-name-type#the-occname-type) plus a `Type`; however, equality `(==)` on `Id`s is based only on their `OccName`'s, so *two `Var`s with different types may be `(==)`-equal*.
 
 - `Lam` is used for both term and type abstraction (small and big lambdas).
 
@@ -82,7 +82,7 @@ Here are some notes about the individual constructors of `Expr`.
 
 - `Let` handles both recursive and non-recursive let-bindings; see the the two constructors for `Bind`. The Let constructor contains both binders as well as the resulting expression. The resulting expression is the `e` in expression `let x = r in e`.
 
-- `Case` expressions need [more explanation](commentary/compiler/core-syn-type#ase-expressions).
+- `Case` expressions need [more explanation](commentary/compiler/core-syn-type#case-expressions).
 
 - `Cast` is used for an [FC cast expression](commentary/compiler/fc).  `Coercion` is a synonym for `Type`.
 
