@@ -1,0 +1,29 @@
+= GHC plans for 8.4.4 =
+
+[[PageOutline]]
+
+This page is our road-map for what will be in 8.4.4.  
+
+If you believe your favorite thing belongs in this list, but isn't there, please yell.  If it's not in the road map, it probably won't get done.  Without a lot of support, many things in the road map won't get done either, so we need your help!
+
+== Dates ==
+
+Release in Early Fall 2018.
+
+== Tickets marked merge with no milestone
+
+[[TicketQuery(status=merge,milestone=,format=table,col=type|summary|priority|owner,group=status)]]
+
+== Tickets slated for 8.4.4
+
+=== merge/patch/upstream
+
+[[TicketQuery(milestone=8.4.4,status=merge|patch|upstream,format=table,col=type|summary|priority|differential|owner,group=status,order=priority)]]
+
+=== new
+
+[[TicketQuery(milestone=8.4.4,status=new,format=table,col=type|summary|priority|owner,group=status,order=priority)]]
+
+=== infoneeded
+
+[[TicketQuery(milestone=8.4.4,status=infoneeded,format=table,col=type|summary|priority|owner,group=status,order=priority)]]
