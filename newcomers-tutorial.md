@@ -340,3 +340,29 @@ Note that:
   group of Notes as a whole.
 - Notes can be referenced across modules; in that case, the reference is
   written like this: `-- see Note [Float coercions] in SpecConstr.lhs`
+
+### Adding Tests
+
+TODO
+
+## Submitting Your Code
+
+### Committing
+
+TODO
+
+### Validating
+
+TODO
+
+### Issuing Merge Requests
+
+TODO
+
+## When things go pear-shaped
+
+TODO
+
+## Further Reading
+
+TODO
