@@ -183,6 +183,39 @@ print:
 All is fine.
 ```
 
+## Running Tests
+
+GHC comes with an extensive test suite, located in `./testsuite`; the actual
+tests are organized into a directory tree under `./testsuite/tests`, sorted by
+topic or general feature area. For example, tests relating to GHC's relatively
+new dependently-typed features can be found in `./testsuite/tests/dependent`.
+
+To run the entire testsuite, use:
+
+```sh
+make test
+```
+
+This should take a while.
+
+During development, you will not normally want to re-run the entire testsuite
+all the time, so instead, you can navigate to a subdirectory and run `make`
+there. Try it:
+
+```sh
+cd ./testsuite/tests/dependent
+make
+cd ../../..
+```
+
+Another option is to only run selected test cases:
+
+```sh
+TEST=T11432 make test
+```
+
+This will run only tests named `T11432`, anywhere in the testsuite subtree.
+
 ## Rebuilding
 
 While working on GHC, you will need to rebuild often; however, most of the
