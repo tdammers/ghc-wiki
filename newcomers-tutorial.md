@@ -68,25 +68,17 @@ git clone --recursive git://github.com/ghc/ghc
 ```sh
 cd ghc/
 
-# configure build
-cp mk/build.mk.sample mk/build.mk
-
-## edit mk/build.mk to remove the comment marker # on the line "BuildFlavour = devel2"
-
-./boot
-./configure
-
-# NOTE: On Windows you need to download some binary distributables before being
-# able to build. This only has to be done once and can be done by adding a flag
-# to the call to configure:
-./configure --enable-tarballs-autodownload
-
 # Build GHC
-# The -j flag says how many parallel jobs to use. Depending on your system, the
-# best value tends to be between N/2 and N, where N is the number of cores on
-# your machine. Pick lower values if you're low on RAM, or if have a slow
-# disk, or if you have other important or demanding tasks running.
-make -j8
+./hadrian/build.sh -c -j
+# On Windows, use instead:
+# hadrian/build.bat -c -j
+
+# The -j flag says to run a parallel build, guessing an appropriate number of
+# parallel jobs. If you are low on system resources (particularly CPU or disk
+# I/O), it may be faster to not use this feature.
+#
+# The -c flag says to also bootstrap GHC's Haskell dependencies and configure
+# the build, if necessary.
 ```
 
 Now go make yourself some coffee while the build runs.
@@ -94,18 +86,18 @@ Now go make yourself some coffee while the build runs.
 ## Running your freshly-built GHC
 
 If all went according to plan, you should now have a working compiler in
-`./inplace/bin/ghc-stage2`. Under normal circumstances, you will not want to
+`./_build/stage1/bin/ghc`. Under normal circumstances, you will not want to
 actually install that compiler. Instead, you can invoke it directly, either as
 a regular GHC:
 
 ```sh
-./inplace/bin/ghc-stage2
+./_build/stage1/bin/ghc
 ```
 
 Or in interactive mode, a.k.a. `ghci`:
 
 ```sh
-./inplace/bin/ghc-stage2 --interactive
+./_build/stage1/bin/ghc --interactive
 ```
 
 Let's give it a spin. Paste the following into a file named `test.hs`:
@@ -120,7 +112,7 @@ main = do
 Compile it with:
 
 ```sh
-./inplace/bin/ghc-stage2 test.hs
+./_build/stage1/bin/ghc test.hs
 ```
 
 This should produce a binary `test`, which you can run as `./test`; it should
@@ -140,28 +132,26 @@ new dependently-typed features can be found in `./testsuite/tests/dependent`.
 To run the entire testsuite, use:
 
 ```sh
-make test
+./hadrian/build.sh test
 ```
 
 This should take a while.
 
 During development, you will not normally want to re-run the entire testsuite
-all the time, so instead, you can navigate to a subdirectory and run `make`
-there. Try it:
+all the time; instead, you probably want to focus on just a handful of tests
+to watch, only to run the full testsuite when you're done, to check for
+regressions. Here's how you do that:
 
 ```sh
-cd ./testsuite/tests/dependent
-make
-cd ../../..
+./hadrian/build.sh test --only=T11432
 ```
 
-Another option is to only run selected test cases:
+This will run only tests named `T11432`, anywhere in the testsuite subtree. You
+can specify multiple tests, separated by whitespace:
 
 ```sh
-TEST=T11432 make test
+./hadrian/build.sh test --only="T11432 T12345 T11111"
 ```
-
-This will run only tests named `T11432`, anywhere in the testsuite subtree.
 
 ## Rebuilding
 
@@ -169,27 +159,28 @@ While working on GHC, you will need to rebuild often; however, most of the
 time, it is possible to avoid a full, slow build. Here's a few things you can
 do to speed things up:
 
-
-1. Select `BuildFlavour = devel2` in your `mk/build.mk`.
-   (Further reading: [Make GHC build more quickly](building/using#how-to-make-ghc-build-quickly))
-2. In most cases, you will not make changes in more than one subdirectory at
-   once. So instead of saying `make` at the top level, you can `cd` into the
-   directory where you made your changes first, that is, `compiler`, `utils`,
-   `ghc`, or `libraries`.
-   (Further reading: [Building a single sub-component](building/using#building-a-single-sub-component))
-3. Set `stage=2` in your `mk/build.mk` file. This will keep the Stage 1
-   compiler "frozen", re-running only Stage 2 compilation. For most development
-   work, this is perfectly fine.
-   (Further reading: [Freezing the stage 1 compiler](building/using#freezing-stage-1),
-   [Stages](building/architecture/idiom/stages))
-4. Use `make fast`. This will skip rebuilding dependencies.
-   (Further reading: [Skip dependency building](building/using#skip-dependency-building))
+- Rebuild only the things that you're interested in. E.g.:
+  `./hadrian/build.sh _build/stage1/bin/ghc` to build only the compiler.
+- Freeze the stage 1 compiler: `--freeze1`. Most of the time, rebuilding the
+  stage 1 compiler is not necessary, but the build system is not smart enough
+  to figure this out on its own; freezing stage 1 tells it to *never* rebuild
+  stage 1.
+- Picking a faster *build flavor*. For working on the compiler, the `devel2`
+  flavour is usually the most appropriate: `--flavour=devel2`. If you can
+  afford to skip dependency rebuilds, and compile without any optimizations,
+  then the `fastest` flavour is probably best.
 
 At this point, it is probably worth mentioning the concept of "Stages".
 
-In a nutshell: Stage 0 is your bootstrap compiler (installed from a binary
-release); Stage 1 is the new GHC codebase compiled with Stage 0; Stage 2 is the
-final, release-grade build, made with Stage 2.
+In a nutshell:
+
+- **Stage 0** is your bootstrap compiler (installed from a binary release).
+- **Stage 1** is the new GHC codebase compiled with Stage 0.
+- **Stage 2** is the final, release-grade build, made with Stage 1.
+
+Note that the subdirectories under `./_build` are named after the stage that
+produced them, not the one that is stored in them. This is why
+`_build/stage1/bin/ghc` is the Stage **2** compiler, built with Stage 1.
 
 [Idiom/Stages](building/architecture/idiom/stages) explains the concept in more
 detail, and provides a rationale.
