@@ -13,98 +13,45 @@ question is never too silly to ask.
 
 ## Installing Prerequisites
 
-For the sake of keeping things simple, we will assume a Debian-based GNU/Linux
-system. GHC builds on a plethora of platforms; check [Setting up your system
+GHC builds on a plethora of platforms; check [Setting up your system
 for building GHC](building/preparation) for detailed instructions for your
 platform of choice.
 
-### Essential Dependencies
+A minimal list of prerequisites:
 
-The following list of packages are essential for GHC development:
+### Essential Tools:
 
-```sh
-sudo apt-get install git autoconf automake libtool make gcc g++ \
-   libgmp-dev ncurses-dev libtinfo-dev python3 xz-utils
-```
+- **git**
+- **a typical build toolchain**: autoconf, automake, libtool, make, gcc, g++
+- **python3**
 
-### GHC
+Install these as usual.
 
-To build GHC, you need GHC. Unfortunately, the version that ships with current
-Debian systems is too old to build a current GHC; we recommend installing the
-latest stable release from the [GHC page](https://www.haskell.org/ghc/). At the
-time of writing, the latest release is GHC 8.6.3, which can be downloaded
-from [here](https://www.haskell.org/ghc/download_ghc_8_6_3.html).
+### Essential Build Dependencies:
 
-So:
+- **libtinfo**
+- **libgmp**
+- **ncurses**
+- **xz-utils**
 
-```sh
-wget https://downloads.haskell.org/~ghc/8.6.3/ghc-8.6.3-x86_64-deb9-linux.tar.xz
-tar xf ghc-8.6.3-x86_64-deb9-linux.tar.xz
-cd ghc-8.6.3
-./configure
-sudo make install
-cd ..
-```
+Install these as usual. You will need the development packages for these
+(typically named `something-dev` on most Unix-like OS distributions).
 
-Use `ghc --version` to check that you are now using the correct version:
+### Haskell Toolchain:
 
-```
-The Glorious Glasgow Haskell Compilation System, version 8.6.3
-```
-
-For non-Debian platforms, refer to [the GHC download page](https://www.haskell.org/ghc/download_ghc_8_6_3.html)
-for an appropriate install package.
-
-### Cabal
-
-You'll need an up-to-date version of Cabal. If you have one installed already,
-you can **use cabal to install cabal**:
-
-```sh
-cabal install cabal-install
-```
-
-Otherwise, you will have to **install Cabal manually** from Hackage:
-
-```sh
-wget https://hackage.haskell.org/package/cabal-install-2.4.1.0/cabal-install-2.4.1.0.tar.gz 
-tar xf cabal-install-2.4.1.0.tar.gz
-cd cabal-install-2.4.1.0
-./bootstrap.sh
-echo 'export PATH=$HOME/.cabal/bin:$PATH' >> ~/.bashrc
-```
-
-Use `cabal --version` to check that you are using the correct version:
-
-```
-cabal-install version 2.4.1.0
-compiled using version 2.4.1.0 of the Cabal library 
-```
-
-Refer to [the Cabal page on Hackage](https://hackage.haskell.org/package/cabal-install)
-for the latest version of Cabal and adjust appropriately.
-
-### Alex and Happy
-
-These two fellows are needed for generating lexers and parsers. The versions
-available from Debian are too old, but they can easily be installed with Cabal:
-
-```sh
-cabal install alex happy
-```
+- **GHC**; you need a reasonably new version, we recommend the latest stable
+  release, which you can find via the [GHC homepage](https://www.haskell.org/ghc/).
+- **Cabal**; either install through your distro, and then upgrade with `cabal
+  install cabal-install`, or follow the steps to install manually outlined on
+  [Cabal's Hackage Page](https://hackage.haskell.org/package/cabal-install)
+- **Alex** and **Happy**; use Cabal to install these.
 
 ### Dependencies for building documentation
 
-```sh
-sudo apt-get install python-sphinx texlive-xetex texlive-fonts-recommended fonts-lmodern texlive-latex-recommended texlive-latex-extra
-```
-
-### Dependencies for various development tasks
-
-```sh
-sudo apt-get install linux-tools-generic xutils-dev
-```
-
+- **sphinx** (probably called `python-sphinx` or similar)
+- **xetex (texlive) and fonts** (e.g. `texlive-xetex`,
+  `texlive-fonts-recommended`, `fonts-lmodern`, `texlive-latex-recommended`,
+  `texlive-latex-extra` - refer to your distro for available packages)
 
 ## Getting The Code
 
