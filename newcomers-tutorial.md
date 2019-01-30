@@ -193,6 +193,11 @@ issue tracker here)** - these are issues we expect to be "low hanging fruit".
 Of course, we can't ever be sure of how hard a task is before doing it, so
 apologies if one of these is too hard.
 
+Either way, **if you are going to work on something, make sure a ticket exists
+for it**. This is essential for all sorts of things, but most importantly,
+attaching things to tickets makes sure they don't get lost. So if there is no
+ticket for it yet, do file one. **(TODO: put link to issue tracker here)**
+
 Apart from that, you are encouraged to ask for a starting point on IRC or the
 `ghc-devs` [mailing list](mailing-lists-and-irc). There someone familiar with
 the process can help you find a ticket that matches your expertise and help you
@@ -281,7 +286,34 @@ Note that:
 
 ### Adding Tests
 
-TODO
+Tests live in the `./testsuite/tests` subdirectory, organized by topic / area.
+Usually, tests are further organized into `should_compile`, `should_run`, and
+`should_fail` subdirectories, though this is merely a convention. Inside each
+"leaf" directory, you will find a file named `all.T`, which defines the tests
+that live in the directory, and next to it, all the files that are needed to
+compile (and possibly run) those tests.
+
+Here are the tests for properly adding a test case:
+
+1. Determine and navigate to the appropriate subdirectory in the testsuite
+   tree.
+2. Pick a name for your test case. Unless you have a good reason to deviate,
+   the convention is to use the corresponding ticket number, prefixed with a
+   `T`. If you need more than one test case for that ticket, append something
+   to make it unique - either a sequential lowercase letter, or some meaningful
+   hint. Note however that some subdirectories use a different naming
+   convention, which takes precedence over the `Tnnnnn` format.
+   Let's assume `T12345` is your chosen test name.
+3. Create a file `T12345.hs`, and implement the test in it (as Haskell code).
+4. Open the `all.T` file, and add your test. It should look something like
+   this: `test('T12345', normal, compile_and_run, [''])`.
+5. Navigate back to the project root and run your test: `./hadrian/build.sh
+   test --only="T12345"`.
+
+Further reading:
+
+- The full guide to [adding test cases](building/running-tests/adding) explores
+  more features of the testsuite driver.
 
 ## Submitting Your Code
 
