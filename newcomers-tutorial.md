@@ -53,14 +53,21 @@ Install these as usual. You will need the development packages for these
   `texlive-fonts-recommended`, `fonts-lmodern`, `texlive-latex-recommended`,
   `texlive-latex-extra` - refer to your distro for available packages)
 
+### Required Bureaucracy
+
+GHC uses its own gitlab environment, found at
+[gitlab.haskell.org](https://gitlab.haskell.org/). In order to submit merge
+requests, file issues, and participate in code reviews, you will need an
+account.
+
 ## Getting The Code
 
 ```sh
 # needed only once, URL rewrite rule is persisted in ${HOME}/.gitconfig
-git config --global url."git://github.com/ghc/packages-".insteadOf git://github.com/ghc/packages/
+git config --global url."git@gitlab.haskell.org:ghc/packages-".insteadOf git@gitlab.haskell.org:ghc/packages/
 
 # clone GHC's main Git repository (creates './ghc' folder in CWD)
-git clone --recursive git://github.com/ghc/ghc
+git clone --recursive git@gitlab.haskell.org:ghc/ghc.git
 ```
 
 ## Making your first build
@@ -319,15 +326,77 @@ Further reading:
 
 ### Committing
 
-TODO
+The usual git hygiene applies:
+
+- Create a new branch for each merge request, based off of `master`. If you
+  have push permissions on the main `ghc/ghc` repo on
+  [gitlab.haskell.org](https://gitlab.haskell.org), you may create and push
+  your branch there; otherwise, fork the project and push to your fork.
+- Write a one-line summary, preferably no more than 50 columns, followed by 1
+  blank line, followed by an (optional, but recommended) longer description of
+  the commit.
+- Tastefully squash commits before submitting. A merge request may contain
+  multiple commits, but in the interest of keeping line noise low, functionally
+  related commits should be squashed together. Also, as a rule of thumb, each
+  individual commit should validate cleanly (see below) on its own, so as not
+  to disturb `git bisect`.
+- Rebase onto `master` before submitting. This makes merge conflicts later on
+  less likely.
+
+On top of that, a few GHC-specific conventions:
+
+- Prefer imperative over third-person. Good: `Add frabber squabbing to
+  avoid bleebles`. Less good: `Adds frabber squabbing to avoid bleebles`.
+- Mention relevant ticket(s) in the commit, like so: `#14567`.
 
 ### Validating
 
-TODO
+Before submitting your code, you should "validate" it:
+
+```sh
+./hadrian/build.sh validate
+```
+
+GHC uses a Continuous Integration (CI) setup that automatically builds and
+tests all new merge requests. The `validate` command allows you to perform an
+identical build-and-test run locally, with the same configuration, so that you
+can avoid submitting patches that break the build (and would thus needlessly
+clog the CI queue).
+
+`validate` is also a nice, convenient way of doing a comprehensive and fairly
+reliable full test run, providing more certainty at the expense of taking
+(much) longer than running subsets of the testsuite on fast rebuilds.
 
 ### Issuing Merge Requests
 
-TODO
+Once you are happy with the state of your feature branch, issue a merge
+request:
+
+- Push your branch if you haven't already
+- In gitlab, navigate to your fork
+- Select "Merge Requests" in the navigation menu on the left
+- Click the big green "New Merge Request" button
+- Follow the UI - it should be fairly self-explanatory.
+
+### What Happens Next?
+
+- The CI system will pick up your merge request, build it, run it, and report
+  back to gitlab. If all goes according to plan, the merge request will be
+  flagged "green". Keep in mind that a CI build takes quite some time, and
+  there is usually a queue of merge requests to be built, so don't expect
+  immediate feedback here.
+- Someone privileged and knowledgeable will review your code.  Most likely,
+  they will not accept your merge request right away, but instead tell you to
+  change a few things, or ask you to clarify why you did certain things the way
+  you did. A very common request is "could you add a Note explaining
+  this-and-that in more detail please?" So don't be alarmed or discouraged;
+  this is normal and part of the process, and absolutely does not mean your
+  contributions aren't welcome. They very much are. In a similar spirit, the
+  review queue tends to be quite long, so please do be patient.
+- Once the reviewers are sufficiently happy with your patch, it will be merged
+  into `master`, and make its way into an upcoming GHC release. There is
+  nothing you need to do for this to happen yourself, though please do holler
+  if it takes awfully long.
 
 ## When things go pear-shaped
 
@@ -335,4 +404,10 @@ TODO
 
 ## Further Reading
 
-TODO
+- [Building](building)
+- [Working Conventions](working-conventions)
+- [The GHC Commentary](commentary)
+- [Debugging](debugging)
+- [The Architecture of Open Source Applications: The Glasgow Haskell Compiler](http://www.aosabook.org/en/ghc.html),
+  by Simon Marlow and Simon Peyton-Jones, two of the chief architects of GHC
+  and Haskell itself
