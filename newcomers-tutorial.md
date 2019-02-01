@@ -58,7 +58,7 @@ Install these as usual. You will need the development packages for these
 GHC uses its own gitlab environment, found at
 [gitlab.haskell.org](https://gitlab.haskell.org/). In order to submit merge
 requests, file issues, and participate in code reviews, you will need an
-account.
+account (you can also login with your GitHub account).
 
 ## Getting The Code
 
@@ -82,7 +82,8 @@ cd ghc/
 
 # The -j flag says to run a parallel build, guessing an appropriate number of
 # parallel jobs. If you are low on system resources (particularly CPU or disk
-# I/O), it may be faster to not use this feature.
+# I/O), it may be faster to not use this feature, or use -jN to limit the number
+# of parallel jobs to N.
 #
 # The -c flag says to also bootstrap GHC's Haskell dependencies and configure
 # the build, if necessary.
@@ -163,19 +164,19 @@ can specify multiple tests, separated by whitespace:
 ## Rebuilding
 
 While working on GHC, you will need to rebuild often; however, most of the
-time, it is possible to avoid a full, slow build. Here's a few things you can
-do to speed things up:
+time, it is possible to avoid a full, slow build. Here are a few things you 
+can do to speed things up:
 
 - Rebuild only the things that you're interested in. E.g.:
   `./hadrian/build.sh _build/stage1/bin/ghc` to build only the compiler.
-- Freeze the stage 1 compiler: `--freeze1`. Most of the time, rebuilding the
-  stage 1 compiler is not necessary, but the build system is not smart enough
-  to figure this out on its own; freezing stage 1 tells it to *never* rebuild
+- Freeze the stage 1 compiler: `--freeze1`. Most of the time, you would want
+  to skip rebuilding the stage 1 compiler even if its dependencies have
+  changed; by freezing stage 1, you tell the build system to *never* rebuild
   stage 1.
 - Picking a faster *build flavor*. For working on the compiler, the `devel2`
   flavour is usually the most appropriate: `--flavour=devel2`. If you can
-  afford to skip dependency rebuilds, and compile without any optimizations,
-  then the `fastest` flavour is probably best.
+  afford to compile without any optimizations, then the `quickest` flavour
+  is probably best.
 
 At this point, it is probably worth mentioning the concept of "Stages".
 
@@ -195,15 +196,15 @@ detail, and provides a rationale.
 ## Finding a task to work on
 
 Since you came here, you probably have an idea what to work on already - but if
-not, do check the issues tagged "newcomer" **(TODO: put the proper link to the
-issue tracker here)** - these are issues we expect to be "low hanging fruit".
+not, do [check the issues](https://ghc.haskell.org/trac/ghc/query?status=!closed)
+tagged "newcomer" - these are issues we expect to be "low hanging fruit".
 Of course, we can't ever be sure of how hard a task is before doing it, so
 apologies if one of these is too hard.
 
 Either way, **if you are going to work on something, make sure a ticket exists
 for it**. This is essential for all sorts of things, but most importantly,
 attaching things to tickets makes sure they don't get lost. So if there is no
-ticket for it yet, do file one. **(TODO: put link to issue tracker here)**
+ticket for it yet, [do file one](https://ghc.haskell.org/trac/ghc/newticket).
 
 Apart from that, you are encouraged to ask for a starting point on IRC or the
 `ghc-devs` [mailing list](mailing-lists-and-irc). There someone familiar with
