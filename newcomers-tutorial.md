@@ -196,10 +196,10 @@ detail, and provides a rationale.
 ## Finding a task to work on
 
 Since you came here, you probably have an idea what to work on already - but if
-not, do [check the issues](https://ghc.haskell.org/trac/ghc/query?status=!closed)
-tagged "newcomer" - these are issues we expect to be "low hanging fruit".
-Of course, we can't ever be sure of how hard a task is before doing it, so
-apologies if one of these is too hard.
+not, do check
+[the issues tagged "newcomer"](https://ghc.haskell.org/trac/ghc/query?status=!closed) - these
+are issues we expect to be "low hanging fruit". Of course, we can't ever be sure
+of how hard a task is before doing it, so apologies if one of these is too hard.
 
 Either way, **if you are going to work on something, make sure a ticket exists
 for it**. This is essential for all sorts of things, but most importantly,
