@@ -201,6 +201,8 @@ In a nutshell:
 - **Stage 0** is your bootstrap compiler (installed from a binary release).
 - **Stage 1** is the new GHC codebase compiled with Stage 0.
 - **Stage 2** is the final, release-grade build, made with Stage 1.
+- **Stage 3** is a compiler built with the Stage 2 compiler. It is not normally
+  built, but can be enabled; its main use is in building cross-compilers.
 
 Note that the subdirectories under `./_build` are named after the stage that
 produced them, not the one that is stored in them. This is why
