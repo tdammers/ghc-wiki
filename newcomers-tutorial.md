@@ -79,24 +79,31 @@ cd ghc/
 ./hadrian/build.sh -c -j --flavour=devel2
 # On Windows, use instead:
 # hadrian/build.bat -c -j --flavour=devel2
-
-# For the remainder of this document, we will use the Linux/Unix style
-# invocation; if you are on Windows, please substitute hadrian/build.bat for
-# ./hadrian/build.sh as needed.
-
-# The -j flag says to run a parallel build, guessing an appropriate number of
-# parallel jobs. If you are low on system resources (particularly CPU or disk
-# I/O), it may be faster to not use this feature.
-
-# The -c flag says to also bootstrap GHC's Haskell dependencies and configure
-# the build, if necessary.
-
-# --flavour=devel2 selects a build configuration more appropriate for working
-# on the compiler itself; without it, a release build will be made, which takes
-# significantly longer and is less convenient for development.
 ```
+- The `-j` flag says to run a parallel build, guessing an appropriate number of
+  parallel jobs. If you are low on system resources (particularly CPU or disk
+  I/O), it may be faster to not use this feature.
+- The `-c` flag says to also bootstrap GHC's Haskell dependencies and configure
+  the build, if necessary.
+- `--flavour=devel2` selects a build configuration more appropriate for working
+  on the compiler itself; without it, a release build will be made, which takes
+  significantly longer and is less convenient for development.
 
 Now go make yourself some coffee while the build runs.
+
+### A Note To Windows Users
+
+For the remainder of this document, we will use the Linux/Unix style
+invocations; if you are on Windows, please substitute `hadrian/build.bat` for
+`./hadrian/build.sh` as needed.
+
+Further, there are several ways of getting a somewhat Unix-like command line on
+Windows, and each of them comes with some caveats. Depending on which of those
+approaches you used, you may want to use one of the alternative build methods:
+
+- `hadrian/build.stack.bat`
+- `hadrian/build.cabal.bat`
+- `hadrian/build.nix.bat`
 
 ## Running your freshly-built GHC
 
