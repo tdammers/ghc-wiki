@@ -76,16 +76,24 @@ git clone --recursive git@gitlab.haskell.org:ghc/ghc.git
 cd ghc/
 
 # Build GHC
-./hadrian/build.sh -c -j
+./hadrian/build.sh -c -j --flavour=devel2
 # On Windows, use instead:
-# hadrian/build.bat -c -j
+# hadrian/build.bat -c -j --flavour=devel2
+
+# For the remainder of this document, we will use the Linux/Unix style
+# invocation; if you are on Windows, please substitute hadrian/build.bat for
+# ./hadrian/build.sh as needed.
 
 # The -j flag says to run a parallel build, guessing an appropriate number of
 # parallel jobs. If you are low on system resources (particularly CPU or disk
 # I/O), it may be faster to not use this feature.
-#
+
 # The -c flag says to also bootstrap GHC's Haskell dependencies and configure
 # the build, if necessary.
+
+# --flavour=devel2 selects a build configuration more appropriate for working
+# on the compiler itself; without it, a release build will be made, which takes
+# significantly longer and is less convenient for development.
 ```
 
 Now go make yourself some coffee while the build runs.
@@ -166,12 +174,14 @@ While working on GHC, you will need to rebuild often; however, most of the
 time, it is possible to avoid a full, slow build. Here's a few things you can
 do to speed things up:
 
-- Rebuild only the things that you're interested in. E.g.:
-  `./hadrian/build.sh _build/stage1/bin/ghc` to build only the compiler.
+- Rebuild only the things that you're interested in. For example, to only build
+  GHC itself, say `./hadrian/build.sh stage2:exe:ghc-bin`. See
+  [the Hadrian README](https://gitlab.haskell.org/ghc/ghc/blob/master/hadrian/README.md)
+  for details.
 - Freeze the stage 1 compiler: `--freeze1`. Most of the time, rebuilding the
-  stage 1 compiler is not necessary, but the build system is not smart enough
-  to figure this out on its own; freezing stage 1 tells it to *never* rebuild
-  stage 1.
+  stage 1 compiler is not necessary, but it is incredibly difficult to
+  determine this in an automatic fashion, so we need to explicitly tell the
+  build system to not rebuild Stage 1.
 - Picking a faster *build flavor*. For working on the compiler, the `devel2`
   flavour is usually the most appropriate: `--flavour=devel2`. If you can
   afford to skip dependency rebuilds, and compile without any optimizations,
