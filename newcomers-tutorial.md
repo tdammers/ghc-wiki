@@ -122,7 +122,17 @@ Or in interactive mode, a.k.a. `ghci`:
 ./_build/stage1/bin/ghc --interactive
 ```
 
-Let's give it a spin. Paste the following into a file named `test.hs`:
+Let's give it a spin:
+
+```sh
+./_build/stage1/bin/ghc -e '1+2'
+```
+
+This is a nice quick test with fairly good coverage.
+
+
+If you want to take it a bit further, paste the following into a file named
+`test.hs`:
 
 ```haskell
 module Main where
