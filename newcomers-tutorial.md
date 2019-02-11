@@ -383,7 +383,7 @@ On top of that, a few GHC-specific conventions:
 Before submitting your code, you should "validate" it:
 
 ```sh
-./hadrian/build.sh validate
+./validate
 ```
 
 GHC uses a Continuous Integration (CI) setup that automatically builds and
