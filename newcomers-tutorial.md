@@ -441,7 +441,19 @@ request:
 
 ## When things go pear-shaped
 
-TODO
+- A common source of errors is not updating your submodules after switching
+  branches or checking out a different commit. So if you see a build failing
+  mysteriously, `git submodule update` is one of the first things to try.
+- You may also want to re-run the "boot" and "configure" steps; just add `-b`
+  to your Hadrian command to do so - or use `./hadrian/build.sh boot` and
+  `./hadrian/build.sh configure` to run them separately.
+- Sometimes, though hopefully not often, you may have to start from scratch,
+  throwing away all existing build artifacts and intermediates. Simply deleting
+  the `_build` subdirectory will do that for you. Note that this will require a
+  full rebuild of the stage 1 compiler.
+- For a more radical approach, `git clean` can restore your working copy to a
+  pristine state. You will typically also want to do a `git submodule update
+  --init` after this.
 
 ## Further Reading
 
