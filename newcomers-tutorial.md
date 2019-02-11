@@ -109,6 +109,14 @@ approaches you used, you may want to use one of the alternative build methods:
 - `hadrian/build.cabal.bat`
 - `hadrian/build.nix.bat`
 
+### A Note On Hadrian
+
+Hadrian is GHC's new build system, based on [Shake](https://shakebuild.com/).
+It replaces the previous build system, which was based on `make`, and is
+starting to show its age. Hadrian is fairly new, and while most of the quirks
+have been ironed out, you may occasionally run into issues, for which we
+apologize in advance.
+
 ## Running your freshly-built GHC
 
 If all went according to plan, you should now have a working compiler in
