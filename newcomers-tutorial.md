@@ -91,6 +91,10 @@ cd ghc/
 
 Now go make yourself some coffee while the build runs.
 
+This may also be a good time to orient yourself on the GHC codebase (see the
+"Further Reading" section below for some starting points) and configure your
+editor. (**TODO**: add link to editor configuration page)
+
 ### A Note To Windows Users
 
 For the remainder of this document, we will use the Linux/Unix style
