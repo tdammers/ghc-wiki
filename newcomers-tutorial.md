@@ -57,8 +57,8 @@ Install these as usual. You will need the development packages for these
 
 GHC uses its own gitlab environment, found at
 [gitlab.haskell.org](https://gitlab.haskell.org/). In order to submit merge
-requests, file issues, and participate in code reviews, you will need an
-account.
+requests, file issues, and participate in code reviews, you will need to create
+an account, or sign in with a GitHub account.
 
 ## Getting The Code
 
