@@ -93,7 +93,7 @@ Now go make yourself some coffee while the build runs.
 
 This may also be a good time to orient yourself on the GHC codebase (see the
 "Further Reading" section below for some starting points) and configure your
-editor. (**TODO**: add link to editor configuration page)
+editor.
 
 ### A Note To Windows Users
 
@@ -236,15 +236,17 @@ detail, and provides a rationale.
 ## Finding a task to work on
 
 Since you came here, you probably have an idea what to work on already - but if
-not, do check the issues tagged "newcomer" **(TODO: put the proper link to the
-issue tracker here)** - these are issues we expect to be "low hanging fruit".
+not, do check the [issues tagged
+"newcomer"](https://gitlab.haskell.org/ghc/ghc/issues?scope=all&utf8=%E2%9C%93&state=opened&label_name[]=newcomer) -
+these are issues we expect to be "low hanging fruit".
 Of course, we can't ever be sure of how hard a task is before doing it, so
 apologies if one of these is too hard.
 
 Either way, **if you are going to work on something, make sure a ticket exists
 for it**. This is essential for all sorts of things, but most importantly,
 attaching things to tickets makes sure they don't get lost. So if there is no
-ticket for it yet, do file one. **(TODO: put link to issue tracker here)**
+ticket for it yet, do file one. The issue tracker is [right
+here](https://gitlab.haskell.org/ghc/ghc/issues/new).
 
 Apart from that, you are encouraged to ask for a starting point on IRC or the
 `ghc-devs` [mailing list](mailing-lists-and-irc). There someone familiar with
