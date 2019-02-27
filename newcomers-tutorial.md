@@ -370,6 +370,10 @@ Further reading:
 
 ## Submitting Your Code
 
+As a general note, don't be afraid to make mistakes here: if you do, people
+will kindly tell you and help you fix them. We much prefer a contribution that
+isn't perfect yet over one that we never get to see at all.
+
 ### Committing
 
 The usual git hygiene applies:
@@ -394,21 +398,25 @@ On top of that, a few GHC-specific conventions:
 
 ### Validating
 
-Before submitting your code, you should "validate" it:
+GHC uses a Continuous Integration (CI) setup that automatically builds and
+tests all new merge requests, and in general, we require CI to pass before a
+patch gets merged into `master`.
+
+The `validate` command allows you to perform exactly the same
+build-and-test run locally, with the same configuration, so that you
+can avoid submitting patches that break the build (and would thus needlessly
+clog the CI queue). Running it is as simple as this:
 
 ```sh
 ./validate
 ```
 
-GHC uses a Continuous Integration (CI) setup that automatically builds and
-tests all new merge requests. The `validate` command allows you to perform an
-identical build-and-test run locally, with the same configuration, so that you
-can avoid submitting patches that break the build (and would thus needlessly
-clog the CI queue).
-
-`validate` is also a nice, convenient way of doing a comprehensive and fairly
+`validate` is also a convenient way of doing a comprehensive and fairly
 reliable full test run, providing more certainty at the expense of taking
 (much) longer than running subsets of the testsuite on fast rebuilds.
+
+Beware, however, that a full `validate` run can take upwards of an hour,
+depending on your hardware, so it may or may not be worth it.
 
 ### Issuing Merge Requests
 
