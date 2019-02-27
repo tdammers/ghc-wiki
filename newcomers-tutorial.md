@@ -120,6 +120,10 @@ starting to show its age. Hadrian is fairly new, and while most of the quirks
 have been ironed out, you may occasionally run into issues, for which we
 apologize in advance.
 
+Further information on building GHC with Hadrian can be found
+[here](https://gitlab.staging.haskell.org/ghc/ghc/wikis/building/hadrian/quick-start),
+and on [hadrian's own repository](https://github.com/snowleopard/hadrian).
+
 ## Running your freshly-built GHC
 
 If all went according to plan, you should now have a working compiler in
@@ -459,6 +463,8 @@ request:
 ## Further Reading
 
 - [Building](building)
+- [Building GHC With Hadrian](https://gitlab.staging.haskell.org/ghc/ghc/wikis/building/hadrian/quick-start)
+- [Hadrian](https://github.com/snowleopard/hadrian)
 - [Working Conventions](working-conventions)
 - [The GHC Commentary](commentary)
 - [Debugging](debugging)
