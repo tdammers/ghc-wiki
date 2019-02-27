@@ -62,10 +62,8 @@ an account, or sign in with a GitHub account.
 
 ## Getting The Code
 
-```sh
-# needed only once, URL rewrite rule is persisted in ${HOME}/.gitconfig
-git config --global url."git@gitlab.haskell.org:ghc/packages-".insteadOf git@gitlab.haskell.org:ghc/packages/
 
+```sh
 # clone GHC's main Git repository (creates './ghc' folder in CWD)
 git clone --recursive git@gitlab.haskell.org:ghc/ghc.git
 ```
