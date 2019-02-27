@@ -62,10 +62,15 @@ an account, or sign in with a GitHub account.
 
 ## Getting The Code
 
+Since we will be committing patches, we will need a GitLab fork, so it's best
+to get that out of the way right away. So sign into GitLab, find [the GHC
+project](https://gitlab.haskell.org/ghc/ghc), and fork it.
+
+Then clone it to your development machine:
 
 ```sh
 # clone GHC's main Git repository (creates './ghc' folder in CWD)
-git clone --recursive git@gitlab.haskell.org:ghc/ghc.git
+git clone --recursive git@gitlab.haskell.org:yourgitlabusername/ghc.git
 ```
 
 ## Making your first build
@@ -369,10 +374,7 @@ Further reading:
 
 The usual git hygiene applies:
 
-- Create a new branch for each merge request, based off of `master`. If you
-  have push permissions on the main `ghc/ghc` repo on
-  [gitlab.haskell.org](https://gitlab.haskell.org), you may create and push
-  your branch there; otherwise, fork the project and push to your fork.
+- Create a new branch for each merge request, based off of `master`.
 - Write a one-line summary, preferably no more than 50 columns, followed by 1
   blank line, followed by an (optional, but recommended) longer description of
   the commit.
