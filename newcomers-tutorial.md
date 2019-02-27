@@ -277,21 +277,12 @@ short.
 
 #### Comments
 
-We mainly use 3 types of comments in GHC.
+Most of the comments in our codebase are fairly straightforward. One convention
+that deserves some explanation however is a system we call "Notes", which we
+believe strikes a good balance between minimal disruption of the code itself,
+and sufficient amounts of explanations, background information, etc.
 
-First, all top-level entities should have Haddock comments that briefly
-describe what they do and, if needed, why they are there. Haddock comments
-are included in HTML documentation, so as usual, this is the place to document
-an entity's public-ish interface.
-
-Second, short explanations, caveats, warnings, etc., are written inline. As a
-general rule of thumb, these should be one-liners, or even fit on the same line
-together with the thing they document. This is great for nitty-gritty
-implementation details.
-
-Third, for longer explanations, background information, bigger-picture
-rationales, history, etc., we have adopted a system we call "Notes". Here's
-what that looks like:
+Here's what that looks like:
 
 ```haskell
 prepareRhs :: SimplEnv -> OutExpr -> SimplM (SimplEnv, OutExpr)
