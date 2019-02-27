@@ -214,7 +214,7 @@ do to speed things up:
 - Picking a faster *build flavor*. For working on the compiler, the `devel2`
   flavour is usually the most appropriate: `--flavour=devel2`. If you can
   afford to skip dependency rebuilds, and compile without any optimizations,
-  then the `fastest` flavour is probably best.
+  then the `quickest` flavour is probably best.
 
 At this point, it is probably worth mentioning the concept of "Stages".
 
@@ -435,7 +435,7 @@ request:
   this-and-that in more detail please?" So don't be alarmed or discouraged;
   this is normal and part of the process, and absolutely does not mean your
   contributions aren't welcome. They very much are. In a similar spirit, the
-  review queue tends to be quite long, so please do be patient.
+  review queue tends to be quite long, so please be patient.
 - Once the reviewers are sufficiently happy with your patch, it will be merged
   into `master`, and make its way into an upcoming GHC release. There is
   nothing you need to do for this to happen yourself, though please do holler
