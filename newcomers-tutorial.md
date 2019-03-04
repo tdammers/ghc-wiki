@@ -67,6 +67,10 @@ Then clone it to your development machine:
 git clone --recursive git@gitlab.haskell.org:yourgitlabusername/ghc.git
 ```
 
+Note the `--recursive`; this is needed to pull in all the required git
+submodules. Should you forget this, you can say
+`git submodule update --init` after cloning.
+
 ## Making your first build
 
 ```sh
