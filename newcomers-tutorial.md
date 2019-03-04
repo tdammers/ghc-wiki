@@ -114,10 +114,8 @@ approaches you used, you may want to use one of the alternative build methods:
 ### A Note On Hadrian
 
 Hadrian is GHC's new build system, based on [Shake](https://shakebuild.com/).
-It replaces the previous build system, which was based on `make`, and is
-starting to show its age. Hadrian is fairly new, and while most of the quirks
-have been ironed out, you may occasionally run into issues, for which we
-apologize in advance.
+It is pretty stable already and should work just fine, but if you run into
+issues regardless, it may not be your fault.
 
 Further information on building GHC with Hadrian can be found
 [here](https://gitlab.staging.haskell.org/ghc/ghc/wikis/building/hadrian/quick-start),
@@ -456,13 +454,14 @@ request:
   the `_build` subdirectory will do that for you. Note that this will require a
   full rebuild of the stage 1 compiler.
 - For a more radical approach, `git clean` can restore your working copy to a
-  pristine state. You will typically also want to do a `git submodule update
-  --init` after this.
+  pristine state. Due to the submodule setup we use, you will have to issue a
+  command like this one:
+  `git clean -xdf && git submodule foreach 'git clean -xdf' && git submodule update --init`.
 
 ## Further Reading
 
 - [Building](building)
-- [Building GHC With Hadrian](https://gitlab.staging.haskell.org/ghc/ghc/wikis/building/hadrian/quick-start)
+- [Building GHC With Hadrian](building/hadrian/quick-start)
 - [Hadrian](https://github.com/snowleopard/hadrian)
 - [Working Conventions](working-conventions)
 - [The GHC Commentary](commentary)
