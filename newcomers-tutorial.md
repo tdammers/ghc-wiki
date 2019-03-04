@@ -19,25 +19,18 @@ platform of choice.
 
 A minimal list of prerequisites:
 
-### Essential Tools:
-
 - **git**
 - **a typical build toolchain**: autoconf, automake, libtool, make, gcc, g++
 - **python3**
-
-Install these as usual.
-
-### Essential Build Dependencies:
-
 - **libtinfo**
 - **libgmp**
 - **ncurses**
 - **xz-utils**
 
-Install these as usual. You will need the development packages for these
-(typically named `something-dev` on most Unix-like OS distributions).
+Install these as usual. You will need the development packages for any system
+libraries (typically named `something-dev` on a Unix-like OS distribution).
 
-### Haskell Toolchain:
+And a Haskell toolchain:
 
 - **GHC**; you need a reasonably new version, we recommend the latest stable
   release, which you can find via the [GHC homepage](https://www.haskell.org/ghc/).
@@ -46,7 +39,8 @@ Install these as usual. You will need the development packages for these
   [Cabal's Hackage Page](https://hackage.haskell.org/package/cabal-install)
 - **Alex** and **Happy**; use Cabal to install these.
 
-### Dependencies for building documentation
+For building documentation, you will also need the following, though you may
+opt to skip this part for the time being.
 
 - **sphinx** (probably called `python-sphinx` or similar)
 - **xetex (texlive) and fonts** (e.g. `texlive-xetex`,
