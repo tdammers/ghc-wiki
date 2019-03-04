@@ -81,6 +81,7 @@ cd ghc/
 # On Windows, use instead:
 # hadrian/build.bat -c -j --flavour=devel2
 ```
+
 - The `-j` flag says to run a parallel build, guessing an appropriate number of
   parallel jobs. If you are low on system resources (particularly CPU or disk
   I/O), it may be faster to not use this feature.
