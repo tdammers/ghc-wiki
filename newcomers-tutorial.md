@@ -9,7 +9,14 @@ IRC](mailing-lists-and-irc) who will gladly help you (although you may need to
 be patient). Don't forget that all GHC developers are still learning; your
 question is never too silly to ask.
 
+The path to a successful merge request looks like this:
 
+- Installing Prerequisites
+- Getting The Code
+- Building GHC
+- Finding a task to work on
+- Working with the code
+- Submitting Your Code
 
 ## Installing Prerequisites
 
@@ -71,7 +78,7 @@ Note the `--recursive`; this is needed to pull in all the required git
 submodules. Should you forget this, you can say
 `git submodule update --init` after cloning.
 
-## Making your first build
+## Building GHC
 
 ```sh
 cd ghc/
@@ -121,7 +128,7 @@ Further information on building GHC with Hadrian can be found
 [here](https://gitlab.staging.haskell.org/ghc/ghc/wikis/building/hadrian/quick-start),
 and on [hadrian's own repository](https://github.com/snowleopard/hadrian).
 
-## Running your freshly-built GHC
+### Running your freshly-built GHC
 
 If all went according to plan, you should now have a working compiler in
 `./_build/stage1/bin/ghc`. Under normal circumstances, you will not want to
@@ -170,38 +177,7 @@ print:
 All is fine.
 ```
 
-## Running Tests
-
-GHC comes with an extensive test suite, located in `./testsuite`; the actual
-tests are organized into a directory tree under `./testsuite/tests`, sorted by
-topic or general feature area. For example, tests relating to GHC's relatively
-new dependently-typed features can be found in `./testsuite/tests/dependent`.
-
-To run the entire testsuite, use:
-
-```sh
-./hadrian/build.sh test
-```
-
-This should take a while.
-
-During development, you will not normally want to re-run the entire testsuite
-all the time; instead, you probably want to focus on just a handful of tests
-to watch, only to run the full testsuite when you're done, to check for
-regressions. Here's how you do that:
-
-```sh
-./hadrian/build.sh test --only=T11432
-```
-
-This will run only tests named `T11432`, anywhere in the testsuite subtree. You
-can specify multiple tests, separated by whitespace:
-
-```sh
-./hadrian/build.sh test --only="T11432 T12345 T11111"
-```
-
-## Rebuilding
+### Rebuilding
 
 While working on GHC, you will need to rebuild often; however, most of the
 time, it is possible to avoid a full, slow build. Here's a few things you can
@@ -236,6 +212,37 @@ produced them, not the one that is stored in them. This is why
 
 [Idiom/Stages](building/architecture/idiom/stages) explains the concept in more
 detail, and provides a rationale.
+
+### Running Tests
+
+GHC comes with an extensive test suite, located in `./testsuite`; the actual
+tests are organized into a directory tree under `./testsuite/tests`, sorted by
+topic or general feature area. For example, tests relating to GHC's relatively
+new dependently-typed features can be found in `./testsuite/tests/dependent`.
+
+To run the entire testsuite, use:
+
+```sh
+./hadrian/build.sh test
+```
+
+This should take a while.
+
+During development, you will not normally want to re-run the entire testsuite
+all the time; instead, you probably want to focus on just a handful of tests
+to watch, only to run the full testsuite when you're done, to check for
+regressions. Here's how you do that:
+
+```sh
+./hadrian/build.sh test --only=T11432
+```
+
+This will run only tests named `T11432`, anywhere in the testsuite subtree. You
+can specify multiple tests, separated by whitespace:
+
+```sh
+./hadrian/build.sh test --only="T11432 T12345 T11111"
+```
 
 ## Finding a task to work on
 
