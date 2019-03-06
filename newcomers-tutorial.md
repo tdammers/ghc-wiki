@@ -1,9 +1,9 @@
 # The Newcomer's Guide To GHC Development
 
 This page is intended to serve as the first stop for those people who say, "I
-want to contribute to GHC, but I don't know quite where to begin." Begin here. 
+want to contribute to GHC, but I don't know quite where to begin." Begin here.
 
-If you have any questions along the way don't hesitate to reach out to the
+If you have questions along the way, don't hesitate to reach out to the
 community. There are people on the [mailing lists and
 IRC](mailing-lists-and-irc) who will gladly help you (although you may need to
 be patient). Don't forget that all GHC developers are still learning; your
@@ -20,31 +20,31 @@ The path to a successful merge request looks like this:
 
 ## Installing Prerequisites
 
-GHC builds on a plethora of platforms; check [Setting up your system
+GHC builds many platforms; check [Setting up your system
 for building GHC](building/preparation) for detailed instructions for your
 platform of choice.
 
-A minimal list of prerequisites:
+To build GHC, you'll need both a fairly regular set of build tools as well as a Haskell toolchain. The standard tools are:
 
 - **git**
-- **a typical build toolchain**: autoconf, automake, libtool, make, gcc, g++
+- **a standard build toolchain**: autoconf, automake, libtool, make, gcc, g++
 - **python3**
 - **libtinfo**
 - **libgmp**
 - **ncurses**
 - **xz-utils**
 
-Install these as usual. You will need the development packages for any system
-libraries (typically named `something-dev` on a Unix-like OS distribution).
+Install these as usual. You will need the development packages for system
+libraries (usually named like `git-dev`, `python3-dev`, etc. on Unix-like OS distributions).
 
-And a Haskell toolchain:
+The Haskell toolchain has:
 
 - **GHC**; you need a reasonably new version, we recommend the latest stable
   release, which you can find via the [GHC homepage](https://www.haskell.org/ghc/).
 - **Cabal**; either install through your distro, and then upgrade with `cabal
   install cabal-install`, or follow the steps to install manually outlined on
   [Cabal's Hackage Page](https://hackage.haskell.org/package/cabal-install)
-- **Alex** and **Happy**; use Cabal to install these.
+- **Alex** and **Happy**; use `cabal install alex` and `cabal install happy` to install these.
 
 For building documentation, you will also need the following, though you may
 opt to skip this part for the time being.
@@ -54,20 +54,17 @@ opt to skip this part for the time being.
   `texlive-fonts-recommended`, `fonts-lmodern`, `texlive-latex-recommended`,
   `texlive-latex-extra` - refer to your distro for available packages)
 
-### Required Bureaucracy
+### Required Accounts
 
-GHC uses its own gitlab environment, found at
-[gitlab.haskell.org](https://gitlab.haskell.org/). In order to submit merge
-requests, file issues, and participate in code reviews, you will need to create
-an account, or sign in with a GitHub account.
+In order to submit merge requests, file issues, and participate in code reviews, you will need to create a gitlab account, or sign in with GitHub account. GHC uses its own gitlab environment, found at [gitlab.haskell.org](https://gitlab.haskell.org/).
 
 ## Getting The Code
 
-Since we will be committing patches, we will need a GitLab fork, so it's best
-to get that out of the way right away. So sign into GitLab, find [the GHC
+Since you will be committing patches, you will need a GitLab fork, so it's best
+to get that out of the way right away. Sign into GitLab, find [the GHC
 project](https://gitlab.haskell.org/ghc/ghc), and fork it.
 
-Then clone it to your development machine:
+Then, clone it to your development machine:
 
 ```sh
 # clone GHC's main Git repository (creates './ghc' folder in CWD)
@@ -98,7 +95,8 @@ cd ghc/
   on the compiler itself; without it, a release build will be made, which takes
   significantly longer and is less convenient for development.
 
-Now go make yourself some coffee while the build runs.
+Now go make yourself some coffee while the build runs. Don't be too worried if it
+takes around 20 minutes or more for your first build.
 
 This may also be a good time to orient yourself on the GHC codebase (see the
 "Further Reading" section below for some starting points) and configure your
@@ -110,9 +108,8 @@ For the remainder of this document, we will use the Linux/Unix style
 invocations; if you are on Windows, please substitute `hadrian/build.bat` for
 `./hadrian/build.sh` as needed.
 
-Further, there are several ways of getting a somewhat Unix-like command line on
-Windows, and each of them comes with some caveats. Depending on which of those
-approaches you used, you may want to use one of the alternative build methods:
+Further, there are several ways of getting a Unix-like command line on Windows,
+and each comes with some caveats. Depending on which approach you use, you may want to use one of these alternative build methods:
 
 - `hadrian/build.stack.bat`
 - `hadrian/build.cabal.bat`
@@ -122,7 +119,7 @@ approaches you used, you may want to use one of the alternative build methods:
 
 Hadrian is GHC's new build system, based on [Shake](https://shakebuild.com/).
 It is pretty stable already and should work just fine, but if you run into
-issues regardless, it may not be your fault.
+issues, it might help to read the below.
 
 Further information on building GHC with Hadrian can be found
 [here](https://gitlab.staging.haskell.org/ghc/ghc/wikis/building/hadrian/quick-start),
@@ -179,14 +176,13 @@ All is fine.
 
 ### Rebuilding
 
-While working on GHC, you will need to rebuild often; however, most of the
-time, it is possible to avoid a full, slow build. Here's a few things you can
-do to speed things up:
+While working on GHC you will need to rebuild often. Most of the time, it is
+possible to avoid full, slower builds. Here are a few things you can do
+to speed things up:
 
-- Rebuild only the things that you're interested in. For example, to only build
+- Rebuild only what you're interested in. For example, to only build
   GHC itself, say `./hadrian/build.sh stage2:exe:ghc-bin`. See
-  [the Hadrian README](https://gitlab.haskell.org/ghc/ghc/blob/master/hadrian/README.md)
-  for details.
+  [the Hadrian README](https://gitlab.haskell.org/ghc/ghc/blob/master/hadrian/README.md) for details.
 - Freeze the stage 1 compiler: `--freeze1`. Most of the time, rebuilding the
   stage 1 compiler is not necessary, but it is incredibly difficult to
   determine this in an automatic fashion, so we need to explicitly tell the
@@ -196,9 +192,7 @@ do to speed things up:
   afford to skip dependency rebuilds, and compile without any optimizations,
   then the `quickest` flavour is probably best.
 
-At this point, it is probably worth mentioning the concept of "Stages".
-
-In a nutshell:
+At this point, it is probably worth mentioning the concept of "Stages". In a nutshell:
 
 - **Stage 0** is your bootstrap compiler (installed from a binary release).
 - **Stage 1** is the new GHC codebase compiled with Stage 0.
@@ -246,42 +240,39 @@ can specify multiple tests, separated by whitespace:
 
 ## Finding a task to work on
 
-Since you came here, you probably have an idea what to work on already - but if
-not, do check the [issues tagged
+You probably have an idea what you want to work on already - but if not,
+do check the [issues tagged
 "newcomer"](https://gitlab.haskell.org/ghc/ghc/issues?scope=all&utf8=%E2%9C%93&state=opened&label_name[]=newcomer) -
 these are issues we expect to be "low hanging fruit".
-Of course, we can't ever be sure of how hard a task is before doing it, so
-apologies if one of these is too hard.
+
+Of course, we can't be sure how hard a task is before doing it, so
+apologies in advance if one of these is too hard.
 
 Either way, **if you are going to work on something, make sure a ticket exists
 for it**. This is essential for all sorts of things, but most importantly,
 attaching things to tickets makes sure they don't get lost. So if there is no
-ticket for it yet, do file one. The issue tracker is [right
-here](https://gitlab.haskell.org/ghc/ghc/issues/new).
+ticket for it yet, please use the [issue tracker](https://gitlab.haskell.org/ghc/ghc/issues/new) to do so.
 
-Apart from that, you are encouraged to ask for a starting point on IRC or the
-`ghc-devs` [mailing list](mailing-lists-and-irc). There someone familiar with
-the process can help you find a ticket that matches your expertise and help you
-when you get stuck.
+We'd like to encouraged you to ask for a starting point on IRC or the
+`ghc-devs` [mailing list](mailing-lists-and-irc). You'll find someone familiar
+with the process who can help you find a ticket that matches your expertise and you'll also find people who can help you when you get stuck.
 
 ## Working with the code
 
-GHC is an old codebase, with plenty of historic quirks to it, and the things it
-does are intrinsically complex, so it can be quite overwhelming. Don't let that
-discourage you, and don't hesitate to ask questions.
+GHC is a decades-old codebase, with plenty of historic quirks to it, and the things it does are intrinsically complex, so it can be quite overwhelming.
+Please don't let that discourage you, and don't hesitate to ask questions.
 
 ### Coding Style
 
 #### General
 
 GHC doesn't follow a uniform coding style across all modules, and we do not
-enforce any particular one. The general rule is to stick to the same coding
+enforce any in particular. The general rule is to stick to the same coding
 style as is already used in the file you're editing. If you must make stylistic
-changes, commit them separately from functional changes, so that someone
-looking back through the change logs can easily distinguish them.
+changes, commit them separately from functional changes, so someone looking
+back through the change logs can easily distinguish them.
 
-It's much better to write code that is transparent than to write code that is
-short.
+In general, it's much better to write code that is transparent than to write code that is short.
 
 #### Comments
 
@@ -319,7 +310,7 @@ and lead to further optimisation.
 -}
 ```
 
-Note that:
+Please pay attention to:
 
 - The Note itself is a long block of prose with a header in a standard format.
   It can (and often will) be quite long, and include examples.
