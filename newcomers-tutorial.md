@@ -254,8 +254,8 @@ We'd also very much like to encourage you to ask for a starting point on IRC or 
 
 ## Working with the code
 
-GHC is a decades-old codebase, with plenty of historic quirks to it, and the things it does are intrinsically complex, so it can be quite overwhelming.
-Please don't let that discourage you, and don't hesitate to ask questions.
+GHC is an old codebase with plenty of historic quirks. The things it does are intrinsically complex,
+so it can be quite overwhelming. Please don't let that discourage you, and don't hesitate to ask questions.
 
 ### Coding Style
 
@@ -305,7 +305,7 @@ and lead to further optimisation.
 -}
 ```
 
-Please pay attention to:
+Please note that:
 
 - The Note itself is a long block of prose with a header in a standard format.
   It can (and often will) be quite long, and include examples.
