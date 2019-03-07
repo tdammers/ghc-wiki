@@ -177,7 +177,8 @@ Working on GHC naturally requires rebuilding often. Mostly, however, you can avo
 
 - Rebuild only what you're interested in. For example, to only build
   GHC itself, say `./hadrian/build.sh stage2:exe:ghc-bin`. See
-  [the Hadrian README](https://gitlab.haskell.org/ghc/ghc/blob/master/hadrian/README.md) for details.
+  [the Hadrian README](https://gitlab.haskell.org/ghc/ghc/blob/master/hadrian/README.md)
+  for details.
 - Freeze the stage 1 compiler: `--freeze1`. Most of the time, rebuilding the
   stage 1 compiler is not necessary, but it is incredibly difficult to
   determine this in an automatic fashion, so we need to explicitly tell the
