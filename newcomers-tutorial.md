@@ -44,7 +44,7 @@ The Haskell toolchain has:
 - **Cabal**; either install through your distro, and then upgrade with `cabal
   install cabal-install`, or follow the steps to install manually outlined on
   [Cabal's Hackage Page](https://hackage.haskell.org/package/cabal-install)
-- **Alex** and **Happy**; use `cabal install alex` and `cabal install happy` to install these.
+- **Alex** and **Happy**; use Cabal to install these. Instructions can be found on their repo homepages at [Alex](https://www.haskell.org/alex/) and [Happy](https://www.haskell.org/happy/) respectively.
 
 For building documentation, you will also need the following, though you may
 opt to skip this part for the time being.
