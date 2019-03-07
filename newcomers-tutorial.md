@@ -173,9 +173,7 @@ All is fine.
 
 ### Rebuilding
 
-While working on GHC you will need to rebuild often. Most of the time, it is
-possible to avoid full, slower builds. Here are a few things you can do
-to speed things up:
+Working on GHC naturally requires rebuilding often. Mostly, however, you can avoid doing full slow rebuilds with these suggestions:
 
 - Rebuild only what you're interested in. For example, to only build
   GHC itself, say `./hadrian/build.sh stage2:exe:ghc-bin`. See
