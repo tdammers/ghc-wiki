@@ -267,7 +267,7 @@ style as is already used in the file you're editing. If you must make stylistic
 changes, commit them separately from functional changes, so someone looking
 back through the change logs can easily distinguish them.
 
-In general, it's much better to write code that is transparent than to write code that is short.
+It's much better to write code that is transparent than code that is short.
 
 #### Comments
 
