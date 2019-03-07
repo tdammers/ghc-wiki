@@ -60,11 +60,8 @@ GHC uses its own GitLab instance at [gitlab.haskell.org] for code hosting, merge
 
 ## Getting The Code
 
-Since you will be committing patches, you will need a GitLab fork, so it's best
-to get that out of the way right away. Sign into GitLab, find [the GHC
-project](https://gitlab.haskell.org/ghc/ghc), and fork it.
-
-Then, clone it to your development machine:
+You'll need a fork to commit patches on, so sign into GitLab and fork [the GHC
+project](https://gitlab.haskell.org/ghc/ghc), then clone it to your development machine:
 
 ```sh
 # clone GHC's main Git repository (creates './ghc' folder in CWD)
