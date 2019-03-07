@@ -250,7 +250,7 @@ attaching things to tickets makes sure they don't get lost. So if there is no
 ticket for it yet, please use the [issue tracker](https://gitlab.haskell.org/ghc/ghc/issues/new) to do so.
 
 We'd also very much like to encourage you to ask for a starting point on IRC or the
-`ghc-devs` [mailing list](mailing-lists-and-irc) because you'll find someone there who is familiar with the process of helping you to pick a ticket matching your expertise. You'll also find people who can help you when you get stuck, or answer any questions you may have.
+`ghc-devs` [mailing list](mailing-lists-and-irc) because you'll find someone who is familiar with the process of helping to pick tickets matching your expertise. There are also people who can help you if you're stuck, or answer any questions you have.
 
 ## Working with the code
 
