@@ -24,7 +24,7 @@ GHC builds on many platforms; check [Setting up your system
 for building GHC](building/preparation) for detailed instructions for your
 platform of choice.
 
-To build GHC, you'll need both a fairly regular set of build tools as well as a Haskell toolchain. The standard tools are:
+You'll need both a typical set of build tools as well as a Haskell toolchain. The typical tools are:
 
 - **git**
 - **a standard build toolchain**: autoconf, automake, libtool, make, gcc, g++
@@ -54,9 +54,9 @@ opt to skip this part for the time being.
   `texlive-fonts-recommended`, `fonts-lmodern`, `texlive-latex-recommended`,
   `texlive-latex-extra` - refer to your distro for available packages)
 
-### Required Accounts
+### Gitlab Account
 
-In order to submit merge requests, file issues, and participate in code reviews, you will need to create a gitlab account, or sign in with GitHub account. GHC uses its own gitlab environment, found at [gitlab.haskell.org](https://gitlab.haskell.org/).
+GHC uses its own GitLab instance at [gitlab.haskell.org] for code hosting, merge requests, issue tracking and code reviews. You'll need to create an account there or sign into it with a GitHub account.
 
 ## Getting The Code
 
