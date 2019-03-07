@@ -20,7 +20,7 @@ The path to a successful merge request looks like this:
 
 ## Installing Prerequisites
 
-GHC builds many platforms; check [Setting up your system
+GHC builds on many platforms; check [Setting up your system
 for building GHC](building/preparation) for detailed instructions for your
 platform of choice.
 
