@@ -3,7 +3,7 @@
 This page is intended to serve as the first stop for those people who say, "I
 want to contribute to GHC, but I don't know quite where to begin." Begin here.
 
-If you have questions along the way, don't hesitate to reach out to the
+If you have any questions along the way, don't hesitate to reach out to the
 community. There are people on the [mailing lists and
 IRC](mailing-lists-and-irc) who will gladly help you (although you may need to
 be patient). Don't forget that all GHC developers are still learning; your
