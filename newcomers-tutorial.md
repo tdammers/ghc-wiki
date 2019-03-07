@@ -115,8 +115,8 @@ and each comes with some caveats. Depending on which approach you use, you may w
 ### A Note On Hadrian
 
 Hadrian is GHC's new build system, based on [Shake](https://shakebuild.com/).
-It is pretty stable already and should work just fine, but if you run into
-issues, it might help to read the below.
+Even though it's stable and should work well, if you run into
+issues, please don't assume it's your own fault and do feel free to reach out for help.
 
 Further information on building GHC with Hadrian can be found
 [here](https://gitlab.staging.haskell.org/ghc/ghc/wikis/building/hadrian/quick-start),
