@@ -93,7 +93,7 @@ cd ghc/
   significantly longer and is less convenient for development.
 
 Now go make yourself some coffee while the build runs. Don't be too worried if it
-takes around 20 minutes or more for your first build.
+takes quite a while for your first build.
 
 This may also be a good time to orient yourself on the GHC codebase (see the
 "Further Reading" section below for some starting points) and configure your
