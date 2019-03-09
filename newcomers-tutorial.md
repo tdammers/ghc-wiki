@@ -262,7 +262,7 @@ so it can be quite overwhelming. Please don't let that discourage you, and don't
 #### General
 
 GHC doesn't follow a uniform coding style across all modules, and we do not
-enforce any in particular. The general rule is to stick to the same coding
+enforce one. The general rule is to stick to the same coding
 style as is already used in the file you're editing. If you must make stylistic
 changes, commit them separately from functional changes, so someone looking
 back through the change logs can easily distinguish them.
